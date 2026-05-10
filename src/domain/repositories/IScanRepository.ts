@@ -1,0 +1,20 @@
+import type { Finding, Scan, ScanStatus } from "../entities/Scan";
+
+export interface CreateFindingData {
+  category: Finding["category"];
+  severity: Finding["severity"];
+  title: string;
+  description: string;
+  evidence?: string;
+  pointsLost: number;
+}
+
+export interface IScanRepository {
+  findById(id: string): Promise<Scan | null>;
+  findByWebsiteId(websiteId: string): Promise<Scan[]>;
+  findRanking(limit?: number): Promise<Array<Scan & { websiteDomain: string }>>;
+  create(websiteId: string): Promise<Scan>;
+  updateStatus(id: string, status: ScanStatus): Promise<void>;
+  complete(id: string, score: number, maxScore: number, findings: CreateFindingData[]): Promise<Scan>;
+  updateRanking(id: string, inRanking: boolean): Promise<void>;
+}

@@ -1,0 +1,90 @@
+{
+  "common": {
+    "appName": "OwaspChecker",
+    "signOut": "Cerrar sesión",
+    "dashboard": "Panel",
+    "viewRankings": "Ver Ranking",
+    "loading": "Cargando…"
+  },
+  "home": {
+    "headline": "Analiza tu web contra el OWASP Top 10",
+    "description": "Verifica la propiedad, ejecuta el análisis y comparte tus resultados. Obtén una puntuación de seguridad en minutos.",
+    "ctaStart": "Empieza — es gratis",
+    "ctaDashboard": "Ir al Panel",
+    "feature1Title": "Verifica la Propiedad",
+    "feature1Desc": "Confirma que eres dueño del dominio mediante registro DNS TXT, meta tag o un archivo .well-known.",
+    "feature2Title": "Análisis Pasivo + Activo",
+    "feature2Desc": "Comprobamos cabeceras, SSL/TLS, flags de cookies y ejecutamos OWASP ZAP para tests de inyección y mala configuración.",
+    "feature3Title": "Puntuación de Seguridad",
+    "feature3Desc": "Obtén una puntuación sobre 65 mapeada a las categorías del OWASP Top 10, con hallazgos y recomendaciones."
+  },
+  "login": {
+    "title": "Accede a OwaspChecker",
+    "subtitle": "Inicia sesión para analizar tus sitios web",
+    "continueGoogle": "Continuar con Google",
+    "continueGithub": "Continuar con GitHub",
+    "terms": "Al iniciar sesión aceptas nuestros Términos de Servicio. Solo solicitamos acceso de lectura a tu email."
+  },
+  "dashboard": {
+    "title": "Tus Sitios Web",
+    "subtitle": "Añade un dominio, verifica la propiedad y analízalo contra el OWASP Top 10.",
+    "noWebsites": "Aún no tienes sitios web. Añade uno arriba para empezar.",
+    "addDomain": "Añadir Dominio",
+    "adding": "Añadiendo…",
+    "domainPlaceholder": "ejemplo.com",
+    "verifiedBadge": "Verificado",
+    "unverifiedBadge": "Sin verificar",
+    "addedOn": "Añadido el {date}",
+    "access": "Acceder",
+    "networkError": "Error de red. Por favor, inténtalo de nuevo."
+  },
+  "site": {
+    "backToDashboard": "Mis sitios web",
+    "ownership": "Propiedad del dominio",
+    "verified": "Verificado",
+    "unverified": "Sin verificar",
+    "verifiedOn": "Verificado el {date}",
+    "analysis": "Análisis",
+    "noScans": "Sin análisis todavía. Haz clic en \"Iniciar Análisis\" para comenzar.",
+    "deleteSite": "Eliminar sitio",
+    "deleteConfirm": "¿Eliminar este sitio y todos sus análisis?",
+    "deleteYes": "Sí, eliminar",
+    "deleteNo": "Cancelar",
+    "deleting": "Eliminando…",
+    "deleteError": "No se pudo eliminar el sitio. Inténtalo de nuevo."
+  },
+  "verify": {
+    "title": "Verifica la propiedad de {domain}",
+    "subtitle": "Elige un método de verificación y sigue las instrucciones.",
+    "dnsTxt": "Registro DNS TXT",
+    "metaTag": "Meta Tag HTML",
+    "file": "Archivo (.well-known)",
+    "verifyNow": "Verificar ahora",
+    "verifying": "Verificando…"
+  },
+  "scan": {
+    "subtitle": "Análisis OWASP Top 10",
+    "startScan": "Iniciar Análisis",
+    "starting": "Iniciando…",
+    "noScans": "Sin análisis todavía. Haz clic en \"Iniciar Análisis\" para comenzar.",
+    "findings": "Hallazgos ({count})",
+    "started": "Iniciado {date}",
+    "completed": "Completado {date}",
+    "running": "Análisis en curso… esto puede tardar varios minutos.",
+    "clearFilter": "Quitar filtro",
+    "score": "/ {max}",
+    "newScanDesc": "Ejecuta un nuevo análisis OWASP Top 10 sobre este dominio.",
+    "networkError": "Error de red. Por favor, inténtalo de nuevo.",
+    "history": {
+      "title": "Historial de Análisis",
+      "latest": "Último",
+      "scanFrom": "Análisis del {date}"
+    }
+  },
+  "ranking": {
+    "title": "Ranking de Seguridad",
+    "subtitle": "Sitios que optaron por mostrar su puntuación OWASP públicamente.",
+    "noSites": "Aún no hay sitios en el ranking.",
+    "scannedOn": "Analizado el {date}"
+  }
+}

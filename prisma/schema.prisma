@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Auth.js (NextAuth v5) required models ────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── App models ───────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  websites      Website[]
+  createdAt     DateTime  @default(now())
+}
+
+model Website {
+  id                 String              @id @default(cuid())
+  domain             String              @unique
+  userId             String
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified           Boolean             @default(false)
+  verificationToken  String              @unique @default(cuid())
+  verificationMethod VerificationMethod?
+  verifiedAt         DateTime?
+  scans              Scan[]
+  createdAt          DateTime            @default(now())
+}
+
+model Scan {
+  id          String      @id @default(cuid())
+  websiteId   String
+  website     Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  status      ScanStatus  @default(PENDING)
+  score       Int?
+  maxScore    Int?
+  inRanking   Boolean     @default(false)
+  findings    Finding[]
+  startedAt   DateTime    @default(now())
+  completedAt DateTime?
+}
+
+model Finding {
+  id          String        @id @default(cuid())
+  scanId      String
+  scan        Scan          @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  category    OWASPCategory
+  severity    Severity
+  title       String
+  description String        @db.Text
+  evidence    String?       @db.Text
+  pointsLost  Int           @default(0)
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum ScanStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum Severity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum OWASPCategory {
+  A01_BROKEN_ACCESS_CONTROL
+  A02_CRYPTOGRAPHIC_FAILURES
+  A03_INJECTION
+  A04_INSECURE_DESIGN
+  A05_SECURITY_MISCONFIGURATION
+  A06_VULNERABLE_COMPONENTS
+  A07_AUTH_FAILURES
+  A08_DATA_INTEGRITY_FAILURES
+  A09_LOGGING_FAILURES
+  A10_SSRF
+}
+
+enum VerificationMethod {
+  DNS_TXT
+  META_TAG
+  FILE
+}

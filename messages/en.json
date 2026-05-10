@@ -1,0 +1,90 @@
+{
+  "common": {
+    "appName": "OwaspChecker",
+    "signOut": "Sign out",
+    "dashboard": "Dashboard",
+    "viewRankings": "View Rankings",
+    "loading": "Loading…"
+  },
+  "home": {
+    "headline": "Scan your site against OWASP Top 10",
+    "description": "Verify ownership, run the scan, share your results. Get a security score in minutes.",
+    "ctaStart": "Get Started — it's free",
+    "ctaDashboard": "Go to Dashboard",
+    "feature1Title": "Verify Ownership",
+    "feature1Desc": "Confirm you own the domain via DNS TXT, meta tag, or a well-known file.",
+    "feature2Title": "Passive + Active Scan",
+    "feature2Desc": "We check headers, SSL/TLS, cookie flags, and run OWASP ZAP for injection and misconfig tests.",
+    "feature3Title": "Security Score",
+    "feature3Desc": "Get a score out of 65 mapped to OWASP Top 10 categories, with actionable findings."
+  },
+  "login": {
+    "title": "Sign in to OwaspChecker",
+    "subtitle": "Sign in to scan your websites",
+    "continueGoogle": "Continue with Google",
+    "continueGithub": "Continue with GitHub",
+    "terms": "By signing in you agree to our Terms of Service. We only request read access to your email."
+  },
+  "dashboard": {
+    "title": "Your Websites",
+    "subtitle": "Add a domain, verify ownership, then scan it against OWASP Top 10.",
+    "noWebsites": "No websites yet. Add one above to get started.",
+    "addDomain": "Add Domain",
+    "adding": "Adding…",
+    "domainPlaceholder": "example.com",
+    "verifiedBadge": "Verified",
+    "unverifiedBadge": "Unverified",
+    "addedOn": "Added {date}",
+    "access": "Access",
+    "networkError": "Network error. Please try again."
+  },
+  "site": {
+    "backToDashboard": "My websites",
+    "ownership": "Domain ownership",
+    "verified": "Verified",
+    "unverified": "Not verified",
+    "verifiedOn": "Verified on {date}",
+    "analysis": "Analysis",
+    "noScans": "No analyses yet. Click \"Start Scan\" to begin.",
+    "deleteSite": "Delete site",
+    "deleteConfirm": "Delete this site and all its scans?",
+    "deleteYes": "Yes, delete",
+    "deleteNo": "Cancel",
+    "deleting": "Deleting…",
+    "deleteError": "Could not delete the site. Please try again."
+  },
+  "verify": {
+    "title": "Verify ownership of {domain}",
+    "subtitle": "Choose a verification method and follow the instructions.",
+    "dnsTxt": "DNS TXT Record",
+    "metaTag": "HTML Meta Tag",
+    "file": "File Upload (.well-known)",
+    "verifyNow": "Verify now",
+    "verifying": "Verifying…"
+  },
+  "scan": {
+    "subtitle": "OWASP Top 10 scan",
+    "startScan": "Start Scan",
+    "starting": "Starting…",
+    "noScans": "No scans yet. Click \"Start Scan\" to begin.",
+    "findings": "Findings ({count})",
+    "started": "Started {date}",
+    "completed": "Completed {date}",
+    "running": "Scan in progress… this may take a few minutes.",
+    "clearFilter": "Clear filter",
+    "score": "/ {max}",
+    "newScanDesc": "Run a new OWASP Top 10 scan against this domain.",
+    "networkError": "Network error. Please try again.",
+    "history": {
+      "title": "Scan History",
+      "latest": "Latest",
+      "scanFrom": "Scan from {date}"
+    }
+  },
+  "ranking": {
+    "title": "Security Ranking",
+    "subtitle": "Sites that opted in to show their OWASP score publicly.",
+    "noSites": "No sites in the ranking yet.",
+    "scannedOn": "Scanned {date}"
+  }
+}
