@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { auth } from "@/infrastructure/auth/auth";
 import { PrismaWebsiteRepository } from "@/infrastructure/database/repositories/PrismaWebsiteRepository";
-import { StartScanButton } from "@/presentation/components/scan/StartScanButton";
+import { ScanTypeSelector } from "@/presentation/components/scan/ScanTypeSelector";
 
 export default async function ScanPage({
   params,
@@ -48,9 +48,8 @@ export default async function ScanPage({
         <p className="text-gray-400 text-sm mt-1">{t("subtitle")}</p>
       </div>
 
-      <div className="rounded-xl border border-dashed border-gray-700 p-12 flex flex-col items-center justify-center gap-4">
-        <p className="text-gray-400 text-sm text-center">{t("newScanDesc")}</p>
-        <StartScanButton
+      <div className="rounded-xl border border-gray-700 p-8">
+        <ScanTypeSelector
           websiteId={id}
           redirectTo={`/dashboard/websites/${id}`}
         />

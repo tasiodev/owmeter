@@ -7,7 +7,6 @@ import { PrismaScanRepository } from "@/infrastructure/database/repositories/Pri
 import { getVerificationInstructions } from "@/domain/entities/Website";
 import { VerifyForm } from "@/presentation/components/dashboard/VerifyForm";
 import { DeleteWebsiteButton } from "@/presentation/components/dashboard/DeleteWebsiteButton";
-import { StartScanButton } from "@/presentation/components/scan/StartScanButton";
 import { ScanHistoryList } from "@/presentation/components/scan/ScanHistoryList";
 
 export default async function WebsiteDetailPage({
@@ -128,7 +127,12 @@ export default async function WebsiteDetailPage({
         <>
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold">{ts("analysis")}</h2>
-            <StartScanButton websiteId={id} />
+            <Link
+              href={`/dashboard/websites/${id}/scan`}
+              className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm font-medium transition-colors"
+            >
+              {ts("newScan")}
+            </Link>
           </div>
 
           {scans.length > 0 ? (

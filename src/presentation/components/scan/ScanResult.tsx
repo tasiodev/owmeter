@@ -204,11 +204,37 @@ export function ScanResult({ scan, domain }: { scan: Scan; domain?: string }) {
     return () => clearInterval(interval);
   }, [scan.status, router]);
 
+  if (scan.status === "INVALID") {
+    return (
+      <div className="rounded-xl border border-red-800 bg-red-950/30 p-6 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/60 text-red-400">INVALID</span>
+          <span className={`text-xs px-2 py-0.5 rounded-full ${
+            scan.type === "COMPLETE" ? "bg-violet-900/40 text-violet-300" : "bg-gray-800 text-gray-400"
+          }`}>
+            {scan.type === "COMPLETE" ? t("scanTypeBadge") : t("scanTypeBasicBadge")}
+          </span>
+        </div>
+        <h2 className="font-semibold text-red-300">{t("invalidTitle")}</h2>
+        <p className="text-sm text-gray-400">{t("invalidDesc")}</p>
+        {scan.errorMessage && (
+          <div className="space-y-1">
+            <p className="text-xs text-gray-500">{t("invalidErrorLabel")}</p>
+            <pre className="text-xs text-gray-500 bg-gray-900 rounded p-2 whitespace-pre-wrap break-all">
+              {scan.errorMessage}
+            </pre>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const statusBadge: Record<string, string> = {
     PENDING: "bg-gray-800 text-gray-400",
     RUNNING: "bg-blue-900/40 text-blue-400",
     COMPLETED: "bg-emerald-900/40 text-emerald-400",
     FAILED: "bg-red-900/40 text-red-400",
+    INVALID: "bg-red-900/60 text-red-400",
   };
 
   const sorted = [...scan.findings].sort(
@@ -236,6 +262,13 @@ export function ScanResult({ scan, domain }: { scan: Scan; domain?: string }) {
           <div className="flex items-center gap-2">
             <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge[scan.status]}`}>
               {scan.status}
+            </span>
+            <span className={`text-xs px-2 py-0.5 rounded-full ${
+              scan.type === "COMPLETE"
+                ? "bg-violet-900/40 text-violet-300"
+                : "bg-gray-800 text-gray-400"
+            }`}>
+              {scan.type === "COMPLETE" ? t("scanTypeBadge") : t("scanTypeBasicBadge")}
             </span>
           </div>
           <p className="text-sm text-gray-400">

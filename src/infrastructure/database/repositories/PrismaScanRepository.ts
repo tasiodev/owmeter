@@ -1,5 +1,5 @@
 import type { IScanRepository, CreateFindingData } from "@/domain/repositories/IScanRepository";
-import type { Finding, Scan, ScanStatus } from "@/domain/entities/Scan";
+import type { Finding, Scan, ScanStatus, ScanType } from "@/domain/entities/Scan";
 import type { OWASPCategoryId } from "@/domain/value-objects/OWASPCategory";
 import type { Severity } from "@/domain/value-objects/Severity";
 import { prisma } from "../prisma";
@@ -19,9 +19,11 @@ type DbScan = {
   id: string;
   websiteId: string;
   status: string;
+  type: string;
   score: number | null;
   maxScore: number | null;
   inRanking: boolean;
+  errorMessage: string | null;
   startedAt: Date;
   completedAt: Date | null;
   findings?: DbFinding[];
@@ -45,9 +47,11 @@ function toScan(r: DbScan): Scan {
     id: r.id,
     websiteId: r.websiteId,
     status: r.status as ScanStatus,
+    type: r.type as ScanType,
     score: r.score,
     maxScore: r.maxScore,
     inRanking: r.inRanking,
+    errorMessage: r.errorMessage,
     startedAt: r.startedAt,
     completedAt: r.completedAt,
     findings: (r.findings ?? []).map(toFinding),
@@ -82,9 +86,9 @@ export class PrismaScanRepository implements IScanRepository {
     return records.map((r) => ({ ...toScan(r), websiteDomain: r.website.domain }));
   }
 
-  async create(websiteId: string): Promise<Scan> {
+  async create(websiteId: string, type: ScanType = "BASIC"): Promise<Scan> {
     const r = await prisma.scan.create({
-      data: { websiteId },
+      data: { websiteId, type },
       include: { findings: true },
     });
     return toScan(r);
@@ -92,6 +96,13 @@ export class PrismaScanRepository implements IScanRepository {
 
   async updateStatus(id: string, status: ScanStatus): Promise<void> {
     await prisma.scan.update({ where: { id }, data: { status } });
+  }
+
+  async invalidate(id: string, errorMessage: string): Promise<void> {
+    await prisma.scan.update({
+      where: { id },
+      data: { status: "INVALID", errorMessage, completedAt: new Date() },
+    });
   }
 
   async complete(

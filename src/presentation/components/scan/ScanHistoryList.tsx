@@ -57,11 +57,20 @@ export async function ScanHistoryList({
                         {t("history.latest")}
                       </span>
                     )}
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[scan.status]}`}
-                    >
-                      {scan.status}
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      scan.type === "COMPLETE"
+                        ? "bg-violet-900/40 text-violet-300"
+                        : "bg-gray-800 text-gray-400"
+                    }`}>
+                      {scan.type === "COMPLETE" ? t("scanTypeBadge") : t("scanTypeBasicBadge")}
                     </span>
+                    {(scan.status === "RUNNING" || scan.status === "PENDING" || scan.status === "FAILED") && (
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[scan.status]}`}
+                      >
+                        {scan.status}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-gray-500">
                     {new Date(scan.startedAt).toLocaleString()}

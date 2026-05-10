@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { calculateScore } from "../ScoringService";
 import type { RawFinding } from "../ScoringService";
-import { MAX_SCORE_WITHOUT_CODE } from "@/domain/value-objects/OWASPCategory";
+import { MAX_SCORE_WITHOUT_CODE, MAX_SCORE_WITH_CODE } from "@/domain/value-objects/OWASPCategory";
 
 describe("calculateScore", () => {
   it("returns perfect score with no findings", () => {
@@ -94,5 +94,58 @@ describe("calculateScore", () => {
     // A05 maxPoints = 15; two LOW = 2 pts lost
     const { categoryBreakdown } = calculateScore(findings);
     expect(categoryBreakdown.A05_SECURITY_MISCONFIGURATION.score).toBe(13);
+  });
+});
+
+describe("calculateScore — COMPLETE mode", () => {
+  it("returns maxScore of 100 with no findings", () => {
+    const { score, maxScore } = calculateScore([], "COMPLETE");
+    expect(maxScore).toBe(MAX_SCORE_WITH_CODE);
+    expect(score).toBe(MAX_SCORE_WITH_CODE);
+  });
+
+  it("deducts from A04 (code-only) in COMPLETE mode", () => {
+    const findings: RawFinding[] = [
+      {
+        category: "A04_INSECURE_DESIGN",
+        severity: "HIGH",
+        title: "Hardcoded secret",
+        description: "desc",
+      },
+    ];
+    const { score, categoryBreakdown } = calculateScore(findings, "COMPLETE");
+    expect(categoryBreakdown.A04_INSECURE_DESIGN.maxScore).toBe(10);
+    expect(categoryBreakdown.A04_INSECURE_DESIGN.score).toBe(6); // 10 - 4 (HIGH)
+    expect(score).toBe(MAX_SCORE_WITH_CODE - 4);
+  });
+
+  it("deducts from A09 (code-only) in COMPLETE mode", () => {
+    const findings: RawFinding[] = [
+      {
+        category: "A09_LOGGING_FAILURES",
+        severity: "CRITICAL",
+        title: "Logging password",
+        description: "desc",
+      },
+    ];
+    const { categoryBreakdown } = calculateScore(findings, "COMPLETE");
+    expect(categoryBreakdown.A09_LOGGING_FAILURES.maxScore).toBe(15);
+    expect(categoryBreakdown.A09_LOGGING_FAILURES.score).toBe(9); // 15 - 6 (CRITICAL)
+  });
+
+  it("ignores A04/A08/A09 findings in BASIC mode (maxPoints=0)", () => {
+    const findings: RawFinding[] = [
+      {
+        category: "A04_INSECURE_DESIGN",
+        severity: "CRITICAL",
+        title: "Hardcoded secret",
+        description: "desc",
+      },
+    ];
+    const { score, categoryBreakdown } = calculateScore(findings, "BASIC");
+    // maxPoints for A04 in BASIC = 0, so no deduction possible
+    expect(categoryBreakdown.A04_INSECURE_DESIGN.maxScore).toBe(0);
+    expect(categoryBreakdown.A04_INSECURE_DESIGN.score).toBe(0);
+    expect(score).toBe(MAX_SCORE_WITHOUT_CODE); // no points lost
   });
 });

@@ -26,6 +26,7 @@ function makeScan(): Scan {
     id: "scan-1",
     websiteId: "site-1",
     status: "PENDING",
+    type: "BASIC",
     score: null,
     maxScore: null,
     inRanking: false,

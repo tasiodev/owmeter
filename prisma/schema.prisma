@@ -72,16 +72,18 @@ model Website {
 }
 
 model Scan {
-  id          String      @id @default(cuid())
-  websiteId   String
-  website     Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-  status      ScanStatus  @default(PENDING)
-  score       Int?
-  maxScore    Int?
-  inRanking   Boolean     @default(false)
-  findings    Finding[]
-  startedAt   DateTime    @default(now())
-  completedAt DateTime?
+  id           String      @id @default(cuid())
+  websiteId    String
+  website      Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  status       ScanStatus  @default(PENDING)
+  type         ScanType    @default(BASIC)
+  score        Int?
+  maxScore     Int?
+  inRanking    Boolean     @default(false)
+  errorMessage String?     @db.Text
+  findings     Finding[]
+  startedAt    DateTime    @default(now())
+  completedAt  DateTime?
 }
 
 model Finding {
@@ -103,6 +105,12 @@ enum ScanStatus {
   RUNNING
   COMPLETED
   FAILED
+  INVALID
+}
+
+enum ScanType {
+  BASIC
+  COMPLETE
 }
 
 enum Severity {

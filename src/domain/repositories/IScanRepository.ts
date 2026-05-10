@@ -1,4 +1,4 @@
-import type { Finding, Scan, ScanStatus } from "../entities/Scan";
+import type { Finding, Scan, ScanStatus, ScanType } from "../entities/Scan";
 
 export interface CreateFindingData {
   category: Finding["category"];
@@ -13,8 +13,9 @@ export interface IScanRepository {
   findById(id: string): Promise<Scan | null>;
   findByWebsiteId(websiteId: string): Promise<Scan[]>;
   findRanking(limit?: number): Promise<Array<Scan & { websiteDomain: string }>>;
-  create(websiteId: string): Promise<Scan>;
+  create(websiteId: string, type?: ScanType): Promise<Scan>;
   updateStatus(id: string, status: ScanStatus): Promise<void>;
+  invalidate(id: string, errorMessage: string): Promise<void>;
   complete(id: string, score: number, maxScore: number, findings: CreateFindingData[]): Promise<Scan>;
   updateRanking(id: string, inRanking: boolean): Promise<void>;
 }

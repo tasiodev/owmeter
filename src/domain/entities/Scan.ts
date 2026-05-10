@@ -1,7 +1,8 @@
 import type { OWASPCategoryId } from "../value-objects/OWASPCategory";
 import type { Severity } from "../value-objects/Severity";
 
-export type ScanStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
+export type ScanStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "INVALID";
+export type ScanType = "BASIC" | "COMPLETE";
 
 export interface Finding {
   id: string;
@@ -18,9 +19,11 @@ export interface Scan {
   id: string;
   websiteId: string;
   status: ScanStatus;
+  type: ScanType;
   score: number | null;
   maxScore: number | null;
   inRanking: boolean;
+  errorMessage: string | null;
   findings: Finding[];
   startedAt: Date;
   completedAt: Date | null;

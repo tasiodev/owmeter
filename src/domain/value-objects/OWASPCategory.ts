@@ -17,7 +17,7 @@ export const OWASP_CATEGORIES = {
   A04_INSECURE_DESIGN: {
     id: "A04_INSECURE_DESIGN",
     name: "A04:2021 Insecure Design",
-    maxPoints: 0, // code-only, V2
+    maxPoints: 0,
   },
   A05_SECURITY_MISCONFIGURATION: {
     id: "A05_SECURITY_MISCONFIGURATION",
@@ -37,12 +37,12 @@ export const OWASP_CATEGORIES = {
   A08_DATA_INTEGRITY_FAILURES: {
     id: "A08_DATA_INTEGRITY_FAILURES",
     name: "A08:2021 Software & Data Integrity Failures",
-    maxPoints: 0, // code-only, V2
+    maxPoints: 0,
   },
   A09_LOGGING_FAILURES: {
     id: "A09_LOGGING_FAILURES",
     name: "A09:2021 Security Logging & Monitoring Failures",
-    maxPoints: 0, // code-only, V2
+    maxPoints: 0,
   },
   A10_SSRF: {
     id: "A10_SSRF",
@@ -57,3 +57,31 @@ export const MAX_SCORE_WITHOUT_CODE = Object.values(OWASP_CATEGORIES).reduce(
   (sum, c) => sum + c.maxPoints,
   0
 );
+
+export type ScanMode = "BASIC" | "COMPLETE";
+
+export const OWASP_CATEGORIES_COMPLETE = {
+  ...OWASP_CATEGORIES,
+  A04_INSECURE_DESIGN: {
+    ...OWASP_CATEGORIES.A04_INSECURE_DESIGN,
+    maxPoints: 10,
+  },
+  A08_DATA_INTEGRITY_FAILURES: {
+    ...OWASP_CATEGORIES.A08_DATA_INTEGRITY_FAILURES,
+    maxPoints: 10,
+  },
+  A09_LOGGING_FAILURES: {
+    ...OWASP_CATEGORIES.A09_LOGGING_FAILURES,
+    maxPoints: 15,
+  },
+} as const;
+
+export const MAX_SCORE_WITH_CODE = 100;
+
+export function getCategoryMap(mode: ScanMode) {
+  return mode === "COMPLETE" ? OWASP_CATEGORIES_COMPLETE : OWASP_CATEGORIES;
+}
+
+export function getMaxScore(mode: ScanMode) {
+  return mode === "COMPLETE" ? MAX_SCORE_WITH_CODE : MAX_SCORE_WITHOUT_CODE;
+}
