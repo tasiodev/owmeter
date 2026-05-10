@@ -75,6 +75,14 @@
     "score": "/ {max}",
     "newScanDesc": "Run a new OWASP Top 10 scan against this domain.",
     "networkError": "Network error. Please try again.",
+    "prompt": {
+      "buttonLabel": "Prompt IA",
+      "modalTitle": "AI Prompt",
+      "modalSubtitle": "Copy this prompt and paste it into your AI assistant.",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "close": "Close"
+    },
     "history": {
       "title": "Scan History",
       "latest": "Latest",

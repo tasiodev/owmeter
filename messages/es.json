@@ -75,6 +75,14 @@
     "score": "/ {max}",
     "newScanDesc": "Ejecuta un nuevo análisis OWASP Top 10 sobre este dominio.",
     "networkError": "Error de red. Por favor, inténtalo de nuevo.",
+    "prompt": {
+      "buttonLabel": "Prompt IA",
+      "modalTitle": "Prompt IA",
+      "modalSubtitle": "Copia este prompt y pégalo en tu asistente de IA.",
+      "copy": "Copiar",
+      "copied": "¡Copiado!",
+      "close": "Cerrar"
+    },
     "history": {
       "title": "Historial de Análisis",
       "latest": "Último",
