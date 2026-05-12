@@ -2,7 +2,57 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { auth } from "@/infrastructure/auth/auth";
 import { PrismaWebsiteRepository } from "@/infrastructure/database/repositories/PrismaWebsiteRepository";
+import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
 import { AddWebsiteForm } from "@/presentation/components/dashboard/AddWebsiteForm";
+import type { Scan } from "@/domain/entities/Scan";
+
+function MiniScoreRing({ scan }: { scan: Scan | undefined }) {
+  const size = 48;
+  const sw = 4;
+  const r = (size - sw) / 2;
+  const circ = 2 * Math.PI * r;
+
+  if (!scan || scan.score === null || scan.maxScore === null) {
+    return (
+      <div className="relative shrink-0" style={{ width: size, height: size }}>
+        <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1f2937" strokeWidth={sw} />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-gray-600 text-xs">—</span>
+        </div>
+      </div>
+    );
+  }
+
+  const pct = scan.score / scan.maxScore;
+  const pctRounded = Math.round(pct * 100);
+  const color = pctRounded >= 80 ? "#34d399" : pctRounded >= 50 ? "#facc15" : "#f87171";
+  const dash = circ * pct;
+
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1f2937" strokeWidth={sw} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth={sw}
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circ}`}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-xs font-bold tabular-nums" style={{ color }}>
+          {scan.score}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -10,9 +60,12 @@ export default async function DashboardPage() {
   const t = await getTranslations("dashboard");
 
   const repo = new PrismaWebsiteRepository();
+  const scanRepo = new PrismaScanRepository();
   let websites: Awaited<ReturnType<typeof repo.findByUserId>> = [];
+  let latestScans = new Map<string, Scan>();
   try {
     websites = await repo.findByUserId(session!.user!.id!);
+    latestScans = await scanRepo.findLatestCompletedPerWebsite(websites.map((w) => w.id));
   } catch {
     // DB not ready during build
   }
@@ -33,32 +86,29 @@ export default async function DashboardPage() {
       ) : (
         <ul className="space-y-4">
           {websites.map((site) => (
-            <li
-              key={site.id}
-              className="rounded-xl border border-gray-800 p-5 flex items-center justify-between gap-4"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{site.domain}</span>
-                  {site.verified ? (
-                    <span className="text-xs bg-emerald-900/40 text-emerald-400 px-2 py-0.5 rounded-full">
-                      {t("verifiedBadge")}
-                    </span>
-                  ) : (
-                    <span className="text-xs bg-yellow-900/40 text-yellow-400 px-2 py-0.5 rounded-full">
-                      {t("unverifiedBadge")}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-500">
-                  {t("addedOn", { date: new Date(site.createdAt).toLocaleDateString() })}
-                </p>
-              </div>
+            <li key={site.id}>
               <Link
                 href={`/dashboard/websites/${site.id}`}
-                className="text-sm px-4 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white transition-colors shrink-0"
+                className="rounded-xl border border-gray-800 p-5 flex items-center justify-between gap-4 hover:border-gray-600 hover:bg-gray-900/40 transition-colors block"
               >
-                {t("access")}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{site.domain}</span>
+                    {site.verified ? (
+                      <span className="text-xs bg-emerald-900/40 text-emerald-400 px-2 py-0.5 rounded-full">
+                        {t("verifiedBadge")}
+                      </span>
+                    ) : (
+                      <span className="text-xs bg-yellow-900/40 text-yellow-400 px-2 py-0.5 rounded-full">
+                        {t("unverifiedBadge")}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {t("addedOn", { date: new Date(site.createdAt).toLocaleDateString() })}
+                  </p>
+                </div>
+                <MiniScoreRing scan={latestScans.get(site.id)} />
               </Link>
             </li>
           ))}

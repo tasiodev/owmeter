@@ -52,7 +52,12 @@
     "deleteYes": "Yes, delete",
     "deleteNo": "Cancel",
     "deleting": "Deleting…",
-    "deleteError": "Could not delete the site. Please try again."
+    "deleteError": "Could not delete the site. Please try again.",
+    "lastScanTitle": "Last scan",
+    "scanRunning": "Scan in progress…",
+    "viewDetails": "View details",
+    "domainAlreadyInList": "This domain is already in your list.",
+    "domainClaimedByOther": "This domain has already been verified by another user."
   },
   "verify": {
     "title": "Verify ownership of {domain}",
@@ -61,7 +66,9 @@
     "metaTag": "HTML Meta Tag",
     "file": "File Upload (.well-known)",
     "verifyNow": "Verify now",
-    "verifying": "Verifying…"
+    "verifying": "Verifying…",
+    "failed": "Verification failed. Make sure the token is correctly placed and try again.",
+    "networkError": "Network error. Please try again."
   },
   "scan": {
     "subtitle": "OWASP Top 10 scan",
@@ -76,6 +83,7 @@
     "score": "/ {max}",
     "newScanDesc": "Run a new OWASP Top 10 scan against this domain.",
     "networkError": "Network error. Please try again.",
+    "notVerified": "Website ownership is not verified.",
     "chooseScanType": "Choose scan type",
     "basicTitle": "Basic Scan",
     "basicDesc": "Passive header analysis + OWASP ZAP active scan. Score up to 65/100.",

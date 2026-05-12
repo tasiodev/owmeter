@@ -37,7 +37,7 @@ export async function POST(
     return NextResponse.json(website);
   } catch (err) {
     if (err instanceof VerificationError) {
-      return NextResponse.json({ error: err.message }, { status: 400 });
+      return NextResponse.json({ error: "VERIFY_FAILED" }, { status: 400 });
     }
     throw err;
   }

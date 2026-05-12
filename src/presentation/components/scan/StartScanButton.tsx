@@ -28,8 +28,8 @@ export function StartScanButton({
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? t("networkError"));
+        const { error: code } = await res.json();
+        setError(code === "NOT_VERIFIED" ? t("notVerified") : t("networkError"));
         return;
       }
 

@@ -39,10 +39,12 @@ function makeScan(): Scan {
 function makeWebsiteRepo(website: Website | null = makeWebsite()): IWebsiteRepository {
   return {
     findById: vi.fn().mockResolvedValue(website),
-    findByDomain: vi.fn(),
+    findByDomainAndUserId: vi.fn(),
+    findVerifiedByDomain: vi.fn(),
     findByUserId: vi.fn(),
     create: vi.fn(),
     markVerified: vi.fn(),
+    deleteUnverifiedByDomain: vi.fn(),
     delete: vi.fn(),
   };
 }

@@ -67,6 +67,11 @@ async function pollUntilComplete(
   throw new Error("ZAP scan timed out");
 }
 
+function buildEvidence(zapEvidence: string | undefined, urls: string[]): string | undefined {
+  if (zapEvidence) return zapEvidence;
+  return urls.length > 0 ? urls.join("\n") : undefined;
+}
+
 export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]> {
   // 1. Spider the target
   const spiderRes = await zapGet<{ scan: string }>("spider/action/scan", { url: targetUrl, maxChildren: "3" });
@@ -97,11 +102,50 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
   // 4. Clean up context
   await zapGet("core/action/deleteAllAlerts").catch(() => {});
 
+  const targetHost = new URL(targetUrl).hostname;
+
+  function isSameDomainUrl(raw: string | undefined): boolean {
+    if (!raw) return false;
+    try {
+      return new URL(raw).hostname === targetHost;
+    } catch {
+      return false;
+    }
+  }
+
+  function extractResourceUrl(evidence: string | undefined): string | undefined {
+    const match = evidence?.match(/(?:src|href)\s*=\s*["']?(https?:\/\/[^"'\s>]+)/i);
+    return match?.[1];
+  }
+
+  function isFalsePositive(a: ZapAlert): boolean {
+    const alert = a.alert.toLowerCase();
+
+    // Cross-Domain JavaScript: only a problem when the script host differs from the target.
+    if (alert.includes("cross-domain javascript")) {
+      return isSameDomainUrl(extractResourceUrl(a.evidence));
+    }
+
+    // Sub Resource Integrity: only meaningful for cross-origin resources.
+    if (alert.includes("sub resource integrity")) {
+      const url = extractResourceUrl(a.evidence);
+      // If we can't determine the resource URL, assume it's same-domain (Next.js inline/relative).
+      if (!url) return true;
+      return isSameDomainUrl(url);
+    }
+
+    // X-Powered-By: already detected by PassiveAnalyzer with the actual header value.
+    if (alert.includes("x-powered-by")) return true;
+
+    return false;
+  }
+
   // Deduplicate by alert name: ZAP fires one alert per URL for the same issue type.
   // Keep the worst severity and collect up to 3 example URLs as evidence.
   const byAlert = new Map<string, { alert: ZapAlert; urls: string[] }>();
   for (const a of alerts) {
     if (a.risk.toLowerCase() === "informational" && !a.cweid) continue;
+    if (isFalsePositive(a)) continue;
     const existing = byAlert.get(a.alert);
     if (!existing) {
       byAlert.set(a.alert, { alert: a, urls: [a.url].filter(Boolean) });
@@ -122,6 +166,6 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
     severity: zapRiskToSeverity(a.risk),
     title: a.alert,
     description: a.description,
-    evidence: urls.length > 0 ? urls.join("\n") : (a.evidence || undefined),
+    evidence: buildEvidence(a.evidence, urls),
   }));
 }

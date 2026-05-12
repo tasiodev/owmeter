@@ -60,7 +60,7 @@ describe("VerifyForm", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: false,
-        json: async () => ({ error: "Verification failed. Ensure the META_TAG is correctly set." }),
+        json: async () => ({ error: "VERIFY_FAILED" }),
       })
     );
 
@@ -68,9 +68,7 @@ describe("VerifyForm", () => {
     await userEvent.click(screen.getByRole("button"));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Verification failed. Ensure the META_TAG is correctly set.")
-      ).toBeInTheDocument();
+      expect(screen.getByText("verify.failed")).toBeInTheDocument();
     });
   });
 });

@@ -60,7 +60,7 @@ model User {
 
 model Website {
   id                 String              @id @default(cuid())
-  domain             String              @unique
+  domain             String
   userId             String
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   verified           Boolean             @default(false)
@@ -69,6 +69,8 @@ model Website {
   verifiedAt         DateTime?
   scans              Scan[]
   createdAt          DateTime            @default(now())
+
+  @@unique([domain, userId])
 }
 
 model Scan {

@@ -72,7 +72,7 @@ describe("StartScanButton", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: false,
-        json: async () => ({ error: "Website ownership not verified" }),
+        json: async () => ({ error: "NOT_VERIFIED" }),
       })
     );
 
@@ -80,7 +80,7 @@ describe("StartScanButton", () => {
     await userEvent.click(screen.getByRole("button"));
 
     await waitFor(() => {
-      expect(screen.getByText("Website ownership not verified")).toBeInTheDocument();
+      expect(screen.getByText("scan.notVerified")).toBeInTheDocument();
     });
   });
 });

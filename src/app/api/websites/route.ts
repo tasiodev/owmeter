@@ -34,9 +34,14 @@ export async function POST(req: NextRequest) {
   const { domain } = parsed.data;
   const repo = new PrismaWebsiteRepository();
 
-  const existing = await repo.findByDomain(domain);
-  if (existing) {
-    return NextResponse.json({ error: "Domain already registered" }, { status: 409 });
+  const ownEntry = await repo.findByDomainAndUserId(domain, session.user.id);
+  if (ownEntry) {
+    return NextResponse.json({ error: "DOMAIN_ALREADY_IN_LIST" }, { status: 409 });
+  }
+
+  const verifiedByOther = await repo.findVerifiedByDomain(domain);
+  if (verifiedByOther) {
+    return NextResponse.json({ error: "DOMAIN_CLAIMED_BY_OTHER" }, { status: 409 });
   }
 
   const website = await repo.create({ domain, userId: session.user.id });

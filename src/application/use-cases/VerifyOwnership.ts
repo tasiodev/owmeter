@@ -69,5 +69,7 @@ export async function verifyOwnership(
     throw new VerificationError(`Verification failed. Ensure the ${method} is correctly set.`);
   }
 
-  return repo.markVerified(websiteId, method);
+  const result = await repo.markVerified(websiteId, method);
+  await repo.deleteUnverifiedByDomain(website.domain, requestingUserId);
+  return result;
 }

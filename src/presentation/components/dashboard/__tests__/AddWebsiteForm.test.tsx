@@ -68,7 +68,7 @@ describe("AddWebsiteForm", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: false,
-        json: async () => ({ error: "Domain already registered" }),
+        json: async () => ({ error: "DOMAIN_ALREADY_IN_LIST" }),
       })
     );
 
@@ -79,7 +79,7 @@ describe("AddWebsiteForm", () => {
     await user.click(screen.getByRole("button"));
 
     await waitFor(() => {
-      expect(screen.getByText("Domain already registered")).toBeInTheDocument();
+      expect(screen.getByText("dashboard.domainAlreadyInList")).toBeInTheDocument();
     });
   });
 

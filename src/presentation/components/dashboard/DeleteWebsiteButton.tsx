@@ -21,8 +21,7 @@ export function DeleteWebsiteButton({ websiteId }: { websiteId: string }) {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? t("deleteError"));
+        setError(t("deleteError"));
         return;
       }
 

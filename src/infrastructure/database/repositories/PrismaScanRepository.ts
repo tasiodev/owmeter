@@ -76,6 +76,16 @@ export class PrismaScanRepository implements IScanRepository {
     return records.map(toScan);
   }
 
+  async findLatestCompletedPerWebsite(websiteIds: string[]): Promise<Map<string, Scan>> {
+    if (websiteIds.length === 0) return new Map();
+    const records = await prisma.scan.findMany({
+      where: { websiteId: { in: websiteIds }, status: "COMPLETED" },
+      orderBy: { startedAt: "desc" },
+      distinct: ["websiteId"],
+    });
+    return new Map(records.map((r) => [r.websiteId, toScan(r)]));
+  }
+
   async findRanking(limit = 50): Promise<Array<Scan & { websiteDomain: string }>> {
     const records = (await prisma.scan.findMany({
       where: { inRanking: true, status: "COMPLETED" },

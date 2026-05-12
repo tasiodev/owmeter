@@ -87,7 +87,9 @@ async function handleJsonRequest(req: NextRequest, userId: string) {
     return NextResponse.json(scan, { status: 201 });
   } catch (err) {
     if (err instanceof CreateScanError || err instanceof CreateCompleteScanError) {
-      return NextResponse.json({ error: err.message }, { status: 400 });
+      const code =
+        err.message === "Website ownership not verified" ? "NOT_VERIFIED" : "SCAN_ERROR";
+      return NextResponse.json({ error: code }, { status: 400 });
     }
     throw err;
   }

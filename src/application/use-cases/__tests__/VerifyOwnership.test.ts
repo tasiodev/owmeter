@@ -22,12 +22,14 @@ function makeWebsite(overrides: Partial<Website> = {}): Website {
 function makeRepo(website: Website | null = makeWebsite()): IWebsiteRepository {
   return {
     findById: vi.fn().mockResolvedValue(website),
-    findByDomain: vi.fn(),
+    findByDomainAndUserId: vi.fn(),
+    findVerifiedByDomain: vi.fn(),
     findByUserId: vi.fn(),
     create: vi.fn(),
     markVerified: vi.fn().mockImplementation((_id, method) =>
       Promise.resolve({ ...makeWebsite(), verified: true, verificationMethod: method })
     ),
+    deleteUnverifiedByDomain: vi.fn().mockResolvedValue(undefined),
     delete: vi.fn(),
   };
 }
@@ -121,5 +123,21 @@ describe("verifyOwnership", () => {
       );
       vi.unstubAllGlobals();
     });
+  });
+
+  it("deletes other users' unverified entries for the same domain after verification", async () => {
+    const repo = makeRepo();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => `<html><head><meta name="owaspchecker-verify" content="TOKEN-XYZ"></head></html>`,
+      })
+    );
+
+    await verifyOwnership("site-1", "user-1", "META_TAG", repo);
+
+    expect(repo.deleteUnverifiedByDomain).toHaveBeenCalledWith("example.com", "user-1");
+    vi.unstubAllGlobals();
   });
 });

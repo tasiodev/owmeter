@@ -24,8 +24,10 @@ export function AddWebsiteForm() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? t("networkError"));
+        const { error: code } = await res.json();
+        if (code === "DOMAIN_ALREADY_IN_LIST") setError(t("domainAlreadyInList"));
+        else if (code === "DOMAIN_CLAIMED_BY_OTHER") setError(t("domainClaimedByOther"));
+        else setError(t("networkError"));
         return;
       }
 

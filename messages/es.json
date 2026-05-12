@@ -52,7 +52,12 @@
     "deleteYes": "Sí, eliminar",
     "deleteNo": "Cancelar",
     "deleting": "Eliminando…",
-    "deleteError": "No se pudo eliminar el sitio. Inténtalo de nuevo."
+    "deleteError": "No se pudo eliminar el sitio. Inténtalo de nuevo.",
+    "lastScanTitle": "Último análisis",
+    "scanRunning": "Análisis en curso…",
+    "viewDetails": "Ver detalles",
+    "domainAlreadyInList": "Este dominio ya está en tu lista.",
+    "domainClaimedByOther": "Este dominio ya ha sido verificado por otro usuario."
   },
   "verify": {
     "title": "Verifica la propiedad de {domain}",
@@ -61,7 +66,9 @@
     "metaTag": "Meta Tag HTML",
     "file": "Archivo (.well-known)",
     "verifyNow": "Verificar ahora",
-    "verifying": "Verificando…"
+    "verifying": "Verificando…",
+    "failed": "Verificación fallida. Asegúrate de que el token está correctamente colocado e inténtalo de nuevo.",
+    "networkError": "Error de red. Por favor, inténtalo de nuevo."
   },
   "scan": {
     "subtitle": "Análisis OWASP Top 10",
@@ -76,6 +83,7 @@
     "score": "/ {max}",
     "newScanDesc": "Ejecuta un nuevo análisis OWASP Top 10 sobre este dominio.",
     "networkError": "Error de red. Por favor, inténtalo de nuevo.",
+    "notVerified": "La propiedad del sitio web no está verificada.",
     "chooseScanType": "Elige el tipo de análisis",
     "basicTitle": "Análisis Básico",
     "basicDesc": "Análisis pasivo de cabeceras + análisis activo con OWASP ZAP. Puntuación máxima 65/100.",

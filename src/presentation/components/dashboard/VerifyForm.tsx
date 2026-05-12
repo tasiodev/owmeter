@@ -28,15 +28,14 @@ export function VerifyForm({ websiteId, method }: Props) {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? "Verification failed");
+        setError(t("failed"));
         return;
       }
 
       router.push(`/dashboard/websites/${websiteId}`, { locale });
       router.refresh();
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("networkError"));
     } finally {
       setLoading(false);
     }

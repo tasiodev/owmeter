@@ -91,7 +91,7 @@ describe("DeleteWebsiteButton", () => {
     await userEvent.click(screen.getByRole("button", { name: t.deleteYes }));
 
     await waitFor(() => {
-      expect(screen.getByText("Internal server error")).toBeInTheDocument();
+      expect(screen.getByText(t.deleteError)).toBeInTheDocument();
     });
     // Stays in confirmation state so user can retry or cancel
     expect(screen.getByRole("button", { name: t.deleteYes })).toBeInTheDocument();

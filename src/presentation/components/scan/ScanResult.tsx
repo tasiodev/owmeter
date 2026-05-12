@@ -35,13 +35,46 @@ const SEVERITY_BADGE_INACTIVE: Record<Severity, string> = {
 };
 
 function ScoreCircle({ score, maxScore }: { score: number; maxScore: number }) {
-  const pct = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
-  const color = pct >= 80 ? "text-emerald-400" : pct >= 50 ? "text-yellow-400" : "text-red-400";
+  const pct = maxScore > 0 ? score / maxScore : 0;
+  const pctRounded = Math.round(pct * 100);
+  const strokeColor =
+    pctRounded >= 80 ? "#34d399" : pctRounded >= 50 ? "#facc15" : "#f87171";
+
+  const size = 112;
+  const strokeWidth = 8;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dash = circumference * pct;
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-full border-4 border-gray-800 w-28 h-28 shrink-0">
-      <span className={`text-3xl font-bold ${color}`}>{score}</span>
-      <span className="text-xs text-gray-500">/ {maxScore}</span>
+    <div className="relative shrink-0 w-28 h-28">
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#1f2937"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circumference}`}
+          style={{ transition: "stroke-dasharray 0.6s ease" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-3xl font-bold" style={{ color: strokeColor }}>
+          {score}
+        </span>
+        <span className="text-xs text-gray-500">/ {maxScore}</span>
+      </div>
     </div>
   );
 }
@@ -254,15 +287,22 @@ export function ScanResult({ scan, domain }: { scan: Scan; domain?: string }) {
         {scan.score !== null && scan.maxScore !== null ? (
           <ScoreCircle score={scan.score} maxScore={scan.maxScore} />
         ) : (
-          <div className="w-28 h-28 rounded-full border-4 border-gray-800 flex items-center justify-center">
-            <span className="text-gray-500 text-sm">—</span>
+          <div className="relative shrink-0 w-28 h-28">
+            <svg width={112} height={112} className="-rotate-90">
+              <circle cx={56} cy={56} r={52} fill="none" stroke="#1f2937" strokeWidth={8} />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-gray-500 text-sm">—</span>
+            </div>
           </div>
         )}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge[scan.status]}`}>
-              {scan.status}
-            </span>
+            {scan.status !== "COMPLETED" && (
+              <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge[scan.status]}`}>
+                {scan.status}
+              </span>
+            )}
             <span className={`text-xs px-2 py-0.5 rounded-full ${
               scan.type === "COMPLETE"
                 ? "bg-violet-900/40 text-violet-300"

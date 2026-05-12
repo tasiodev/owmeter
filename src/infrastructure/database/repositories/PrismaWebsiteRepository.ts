@@ -24,8 +24,13 @@ export class PrismaWebsiteRepository implements IWebsiteRepository {
     return record ? toEntity(record) : null;
   }
 
-  async findByDomain(domain: string): Promise<Website | null> {
-    const record = await prisma.website.findUnique({ where: { domain } });
+  async findByDomainAndUserId(domain: string, userId: string): Promise<Website | null> {
+    const record = await prisma.website.findUnique({ where: { domain_userId: { domain, userId } } });
+    return record ? toEntity(record) : null;
+  }
+
+  async findVerifiedByDomain(domain: string): Promise<Website | null> {
+    const record = await prisma.website.findFirst({ where: { domain, verified: true } });
     return record ? toEntity(record) : null;
   }
 
@@ -52,6 +57,12 @@ export class PrismaWebsiteRepository implements IWebsiteRepository {
       },
     });
     return toEntity(record);
+  }
+
+  async deleteUnverifiedByDomain(domain: string, excludeUserId: string): Promise<void> {
+    await prisma.website.deleteMany({
+      where: { domain, verified: false, userId: { not: excludeUserId } },
+    });
   }
 
   async delete(id: string): Promise<void> {

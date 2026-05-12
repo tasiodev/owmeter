@@ -8,6 +8,7 @@ import { getVerificationInstructions } from "@/domain/entities/Website";
 import { VerifyForm } from "@/presentation/components/dashboard/VerifyForm";
 import { DeleteWebsiteButton } from "@/presentation/components/dashboard/DeleteWebsiteButton";
 import { ScanHistoryList } from "@/presentation/components/scan/ScanHistoryList";
+import { LastScanCard } from "@/presentation/components/scan/LastScanCard";
 
 export default async function WebsiteDetailPage({
   params,
@@ -136,7 +137,18 @@ export default async function WebsiteDetailPage({
           </div>
 
           {scans.length > 0 ? (
-            <ScanHistoryList scans={scans} websiteId={id} />
+            <div className="space-y-6">
+              {(() => {
+                const featured =
+                  scans.find((s) => s.status === "RUNNING") ??
+                  scans.find((s) => s.status === "PENDING") ??
+                  scans.find((s) => s.status === "COMPLETED");
+                return featured ? (
+                  <LastScanCard scan={featured} websiteId={id} />
+                ) : null;
+              })()}
+              <ScanHistoryList scans={scans} websiteId={id} />
+            </div>
           ) : (
             <div className="rounded-xl border border-dashed border-gray-700 p-10 text-center text-sm text-gray-500">
               {ts("noScans")}

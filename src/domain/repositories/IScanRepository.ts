@@ -12,6 +12,7 @@ export interface CreateFindingData {
 export interface IScanRepository {
   findById(id: string): Promise<Scan | null>;
   findByWebsiteId(websiteId: string): Promise<Scan[]>;
+  findLatestCompletedPerWebsite(websiteIds: string[]): Promise<Map<string, Scan>>;
   findRanking(limit?: number): Promise<Array<Scan & { websiteDomain: string }>>;
   create(websiteId: string, type?: ScanType): Promise<Scan>;
   updateStatus(id: string, status: ScanStatus): Promise<void>;
