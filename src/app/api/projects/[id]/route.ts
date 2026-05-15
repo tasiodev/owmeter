@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/infrastructure/auth/auth";
-import { PrismaWebsiteRepository } from "@/infrastructure/database/repositories/PrismaWebsiteRepository";
+import { PrismaProjectRepository } from "@/infrastructure/database/repositories/PrismaProjectRepository";
 
 export async function DELETE(
   _req: NextRequest,
@@ -12,14 +12,14 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const repo = new PrismaWebsiteRepository();
-  const website = await repo.findById(id);
+  const repo = new PrismaProjectRepository();
+  const project = await repo.findById(id);
 
-  if (!website) {
+  if (!project) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (website.userId !== session.user.id) {
+  if (project.userId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "fuser -k 3000/tcp 2>/dev/null; NODE_OPTIONS=--dns-result-order=ipv4first next dev",
-    "dev:kill": "fuser -k 3000/tcp 2>/dev/null && echo 'Port 3000 freed' || echo 'Port 3000 was already free'",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint src/",

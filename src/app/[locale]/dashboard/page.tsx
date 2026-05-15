@@ -1,10 +1,11 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { auth } from "@/infrastructure/auth/auth";
-import { PrismaWebsiteRepository } from "@/infrastructure/database/repositories/PrismaWebsiteRepository";
+import { PrismaProjectRepository } from "@/infrastructure/database/repositories/PrismaProjectRepository";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
-import { AddWebsiteForm } from "@/presentation/components/dashboard/AddWebsiteForm";
+import { AddProjectForm } from "@/presentation/components/dashboard/AddProjectForm";
 import type { Scan } from "@/domain/entities/Scan";
+import type { Project } from "@/domain/entities/Project";
 
 function MiniScoreRing({ scan }: { scan: Scan | undefined }) {
   const size = 48;
@@ -34,16 +35,7 @@ function MiniScoreRing({ scan }: { scan: Scan | undefined }) {
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1f2937" strokeWidth={sw} />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth={sw}
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ}`}
-        />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeDasharray={`${dash} ${circ}`} />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
         <span className="text-xs font-bold tabular-nums" style={{ color }}>
@@ -54,18 +46,32 @@ function MiniScoreRing({ scan }: { scan: Scan | undefined }) {
   );
 }
 
+function ProjectTypeBadge({ type }: { type: Project["type"] }) {
+  if (type === "CODE_REPO") {
+    return (
+      <span className="text-xs bg-purple-900/40 text-purple-400 px-2 py-0.5 rounded-full">
+        Code
+      </span>
+    );
+  }
+  return (
+    <span className="text-xs bg-blue-900/40 text-blue-400 px-2 py-0.5 rounded-full">
+      Website
+    </span>
+  );
+}
+
 export default async function DashboardPage() {
   const session = await auth();
-
   const t = await getTranslations("dashboard");
 
-  const repo = new PrismaWebsiteRepository();
+  const repo = new PrismaProjectRepository();
   const scanRepo = new PrismaScanRepository();
-  let websites: Awaited<ReturnType<typeof repo.findByUserId>> = [];
+  let projects: Awaited<ReturnType<typeof repo.findByUserId>> = [];
   let latestScans = new Map<string, Scan>();
   try {
-    websites = await repo.findByUserId(session!.user!.id!);
-    latestScans = await scanRepo.findLatestCompletedPerWebsite(websites.map((w) => w.id));
+    projects = await repo.findByUserId(session!.user!.id!);
+    latestScans = await scanRepo.findLatestCompletedPerProject(projects.map((p) => p.id));
   } catch {
     // DB not ready during build
   }
@@ -77,38 +83,44 @@ export default async function DashboardPage() {
         <p className="text-gray-400 text-sm">{t("subtitle")}</p>
       </div>
 
-      <AddWebsiteForm />
+      <AddProjectForm />
 
-      {websites.length === 0 ? (
+      {projects.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-700 p-10 text-center text-gray-500">
-          {t("noWebsites")}
+          {t("noProjects")}
         </div>
       ) : (
         <ul className="space-y-4">
-          {websites.map((site) => (
-            <li key={site.id}>
+          {projects.map((project) => (
+            <li key={project.id}>
               <Link
-                href={`/dashboard/websites/${site.id}`}
+                href={`/dashboard/projects/${project.id}`}
                 className="rounded-xl border border-gray-800 p-5 flex items-center justify-between gap-4 hover:border-gray-600 hover:bg-gray-900/40 transition-colors block"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{site.domain}</span>
-                    {site.verified ? (
-                      <span className="text-xs bg-emerald-900/40 text-emerald-400 px-2 py-0.5 rounded-full">
-                        {t("verifiedBadge")}
-                      </span>
-                    ) : (
-                      <span className="text-xs bg-yellow-900/40 text-yellow-400 px-2 py-0.5 rounded-full">
-                        {t("unverifiedBadge")}
-                      </span>
+                    <span className="font-medium">{project.name}</span>
+                    <ProjectTypeBadge type={project.type} />
+                    {project.type === "WEBSITE" && (
+                      project.verified ? (
+                        <span className="text-xs bg-emerald-900/40 text-emerald-400 px-2 py-0.5 rounded-full">
+                          {t("verifiedBadge")}
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-yellow-900/40 text-yellow-400 px-2 py-0.5 rounded-full">
+                          {t("unverifiedBadge")}
+                        </span>
+                      )
                     )}
                   </div>
-                  <p className="text-xs text-gray-500">
-                    {t("addedOn", { date: new Date(site.createdAt).toLocaleDateString() })}
+                  {project.domain && (
+                    <p className="text-xs text-gray-500">{project.domain}</p>
+                  )}
+                  <p className="text-xs text-gray-600">
+                    {t("addedOn", { date: new Date(project.createdAt).toLocaleDateString() })}
                   </p>
                 </div>
-                <MiniScoreRing scan={latestScans.get(site.id)} />
+                <MiniScoreRing scan={latestScans.get(project.id)} />
               </Link>
             </li>
           ))}

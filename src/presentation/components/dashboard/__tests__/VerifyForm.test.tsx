@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { VerifyForm } from "../VerifyForm";
+import { VerifyDomainForm } from "../VerifyDomainForm";
 
 const mockPush = vi.fn();
 vi.mock("@/i18n/navigation", () => ({
@@ -9,27 +9,27 @@ vi.mock("@/i18n/navigation", () => ({
   usePathname: () => "/",
 }));
 
-describe("VerifyForm", () => {
+describe("VerifyDomainForm", () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => vi.unstubAllGlobals());
 
   it("renders a verify button", () => {
-    render(<VerifyForm websiteId="site-1" method="META_TAG" />);
+    render(<VerifyDomainForm projectId="proj-1" method="META_TAG" />);
     expect(screen.getByRole("button")).toBeInTheDocument();
   });
 
-  it("calls the verify API with the correct websiteId and method", async () => {
+  it("calls the verify API with the correct projectId and method", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
     );
 
-    render(<VerifyForm websiteId="site-1" method="DNS_TXT" />);
+    render(<VerifyDomainForm projectId="proj-1" method="DNS_TXT" />);
     await userEvent.click(screen.getByRole("button"));
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        "/api/websites/site-1/verify",
+        "/api/projects/proj-1/verify-domain",
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({ method: "DNS_TXT" }),
@@ -38,18 +38,18 @@ describe("VerifyForm", () => {
     });
   });
 
-  it("navigates to scan page on success", async () => {
+  it("navigates to project page on success", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
     );
 
-    render(<VerifyForm websiteId="site-42" method="FILE" />);
+    render(<VerifyDomainForm projectId="proj-42" method="FILE" />);
     await userEvent.click(screen.getByRole("button"));
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith(
-        "/dashboard/websites/site-42",
+        "/dashboard/projects/proj-42",
         expect.anything()
       );
     });
@@ -64,7 +64,7 @@ describe("VerifyForm", () => {
       })
     );
 
-    render(<VerifyForm websiteId="site-1" method="META_TAG" />);
+    render(<VerifyDomainForm projectId="proj-1" method="META_TAG" />);
     await userEvent.click(screen.getByRole("button"));
 
     await waitFor(() => {

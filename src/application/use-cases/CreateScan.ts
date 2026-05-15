@@ -1,25 +1,27 @@
 import type { IScanRepository } from "@/domain/repositories/IScanRepository";
-import type { IWebsiteRepository } from "@/domain/repositories/IWebsiteRepository";
+import type { IProjectRepository } from "@/domain/repositories/IProjectRepository";
 import type { Scan } from "@/domain/entities/Scan";
 
 export class CreateScanError extends Error {}
 
 export async function createScan(
-  websiteId: string,
+  projectId: string,
   requestingUserId: string,
-  websiteRepo: IWebsiteRepository,
+  projectRepo: IProjectRepository,
   scanRepo: IScanRepository,
   enqueue: (scanId: string, targetUrl: string) => Promise<void>
 ): Promise<Scan> {
-  const website = await websiteRepo.findById(websiteId);
+  const project = await projectRepo.findById(projectId);
 
-  if (!website) throw new CreateScanError("Website not found");
-  if (website.userId !== requestingUserId) throw new CreateScanError("Unauthorized");
-  if (!website.verified) throw new CreateScanError("Website ownership not verified");
+  if (!project) throw new CreateScanError("Project not found");
+  if (project.userId !== requestingUserId) throw new CreateScanError("Unauthorized");
+  if (project.type !== "WEBSITE") throw new CreateScanError("Passive scan only applies to WEBSITE projects");
+  if (!project.verified) throw new CreateScanError("Domain ownership not verified");
+  if (!project.domain) throw new CreateScanError("Project has no domain configured");
 
-  const scan = await scanRepo.create(websiteId);
+  const scan = await scanRepo.create(projectId, "PASSIVE");
 
-  const targetUrl = `https://${website.domain}`;
+  const targetUrl = `https://${project.domain}`;
   await enqueue(scan.id, targetUrl);
 
   return scan;

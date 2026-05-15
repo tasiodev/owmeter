@@ -54,38 +54,52 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
-  websites      Website[]
+  projects      Project[]
   createdAt     DateTime  @default(now())
 }
 
-model Website {
-  id                 String              @id @default(cuid())
-  domain             String
-  userId             String
-  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Project {
+  id   String      @id @default(cuid())
+  type ProjectType @default(WEBSITE)
+  name String
+
+  // ── Domain ownership (WEBSITE type) ──────────────────────────────────────
+  domain             String?
   verified           Boolean             @default(false)
   verificationToken  String              @unique @default(cuid())
   verificationMethod VerificationMethod?
   verifiedAt         DateTime?
-  scans              Scan[]
-  createdAt          DateTime            @default(now())
+
+  // ── Repository ownership (WEBSITE optional / CODE_REPO required) ──────────
+  repoUrl                  String?
+  repoVerified             Boolean  @default(false)
+  repoVerificationToken    String?  @unique @default(cuid())
+  repoVerifiedAt           DateTime?
+
+  // CI/CD integration
+  apiKey    String  @unique @default(cuid())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scans     Scan[]
+  createdAt DateTime @default(now())
 
   @@unique([domain, userId])
 }
 
 model Scan {
-  id           String      @id @default(cuid())
-  websiteId    String
-  website      Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-  status       ScanStatus  @default(PENDING)
-  type         ScanType    @default(BASIC)
-  score        Int?
-  maxScore     Int?
-  inRanking    Boolean     @default(false)
-  errorMessage String?     @db.Text
-  findings     Finding[]
-  startedAt    DateTime    @default(now())
-  completedAt  DateTime?
+  id          String     @id @default(cuid())
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status      ScanStatus @default(PENDING)
+  type        ScanType   @default(PASSIVE)
+  score       Int?
+  maxScore    Int?
+  inRanking   Boolean    @default(false)
+  errorMessage String?   @db.Text
+  findings    Finding[]
+  startedAt   DateTime   @default(now())
+  completedAt DateTime?
 }
 
 model Finding {
@@ -102,6 +116,11 @@ model Finding {
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
+enum ProjectType {
+  WEBSITE
+  CODE_REPO
+}
+
 enum ScanStatus {
   PENDING
   RUNNING
@@ -111,8 +130,9 @@ enum ScanStatus {
 }
 
 enum ScanType {
-  BASIC
-  COMPLETE
+  PASSIVE
+  FULL
+  CODE
 }
 
 enum Severity {

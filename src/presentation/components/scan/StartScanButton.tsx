@@ -5,10 +5,10 @@ import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
 export function StartScanButton({
-  websiteId,
+  projectId,
   redirectTo,
 }: {
-  websiteId: string;
+  projectId: string;
   redirectTo?: string;
 }) {
   const t = useTranslations("scan");
@@ -24,7 +24,7 @@ export function StartScanButton({
       const res = await fetch("/api/scans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ websiteId }),
+        body: JSON.stringify({ scanType: "PASSIVE", projectId }),
       });
 
       if (!res.ok) {

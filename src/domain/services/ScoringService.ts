@@ -1,10 +1,12 @@
 import type { OWASPCategoryId } from "../value-objects/OWASPCategory";
-import { getCategoryMap, getMaxScore } from "../value-objects/OWASPCategory";
+import { OWASP_CATEGORIES, MAX_SCORE, isEvaluated } from "../value-objects/OWASPCategory";
 import type { ScanMode } from "../value-objects/OWASPCategory";
 import type { Severity } from "../value-objects/Severity";
 import { SEVERITY_POINT_LOSS } from "../value-objects/Severity";
 
 export type { ScanMode };
+
+export type CategoryStatus = "evaluated" | "not_evaluated";
 
 export interface RawFinding {
   category: OWASPCategoryId;
@@ -18,15 +20,20 @@ export interface ScoredFinding extends RawFinding {
   pointsLost: number;
 }
 
+export interface CategoryBreakdownEntry {
+  score: number;
+  maxScore: number;
+  status: CategoryStatus;
+}
+
 export interface ScoreResult {
   score: number;
   maxScore: number;
   findings: ScoredFinding[];
-  categoryBreakdown: Record<OWASPCategoryId, { score: number; maxScore: number }>;
+  categoryBreakdown: Record<OWASPCategoryId, CategoryBreakdownEntry>;
 }
 
-export function calculateScore(rawFindings: RawFinding[], mode: ScanMode = "BASIC"): ScoreResult {
-  const categoryMap = getCategoryMap(mode);
+export function calculateScore(rawFindings: RawFinding[], mode: ScanMode = "PASSIVE"): ScoreResult {
   const categoryLost: Partial<Record<OWASPCategoryId, number>> = {};
 
   const findings: ScoredFinding[] = rawFindings.map((f) => {
@@ -35,19 +42,27 @@ export function calculateScore(rawFindings: RawFinding[], mode: ScanMode = "BASI
     return { ...f, pointsLost };
   });
 
-  const categoryBreakdown = {} as Record<OWASPCategoryId, { score: number; maxScore: number }>;
+  const categoryBreakdown = {} as Record<OWASPCategoryId, CategoryBreakdownEntry>;
   let totalScore = 0;
 
-  for (const [id, cat] of Object.entries(categoryMap) as [OWASPCategoryId, { maxPoints: number }][]) {
-    const lost = Math.min(categoryLost[id] ?? 0, cat.maxPoints);
-    const catScore = cat.maxPoints - lost;
-    categoryBreakdown[id] = { score: catScore, maxScore: cat.maxPoints };
-    totalScore += catScore;
+  for (const [id, cat] of Object.entries(OWASP_CATEGORIES) as [OWASPCategoryId, { maxPoints: number }][]) {
+    const evaluated = isEvaluated(id, mode);
+
+    if (!evaluated) {
+      // Not evaluated: category contributes its full max (no deductions possible)
+      categoryBreakdown[id] = { score: cat.maxPoints, maxScore: cat.maxPoints, status: "not_evaluated" };
+      totalScore += cat.maxPoints;
+    } else {
+      const lost = Math.min(categoryLost[id] ?? 0, cat.maxPoints);
+      const catScore = cat.maxPoints - lost;
+      categoryBreakdown[id] = { score: catScore, maxScore: cat.maxPoints, status: "evaluated" };
+      totalScore += catScore;
+    }
   }
 
   return {
     score: Math.max(0, totalScore),
-    maxScore: getMaxScore(mode),
+    maxScore: MAX_SCORE,
     findings,
     categoryBreakdown,
   };

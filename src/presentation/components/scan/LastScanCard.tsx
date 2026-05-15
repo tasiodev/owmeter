@@ -83,10 +83,10 @@ function SpinningRing() {
 
 export async function LastScanCard({
   scan,
-  websiteId,
+  projectId,
 }: {
   scan: Scan;
-  websiteId: string;
+  projectId: string;
 }) {
   const t = await getTranslations("site");
 
@@ -103,7 +103,7 @@ export async function LastScanCard({
     <>
       {isActive && <ScanPoller scanId={scan.id} />}
     <Link
-      href={`/dashboard/websites/${websiteId}/scans/${scan.id}`}
+      href={`/dashboard/projects/${projectId}/scans/${scan.id}`}
       className="group block rounded-xl border border-gray-700 bg-gray-900/40 p-6 hover:border-gray-500 hover:bg-gray-800/40 transition-colors"
     >
       <div className="flex items-center gap-6">

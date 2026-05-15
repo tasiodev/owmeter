@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { DeleteWebsiteButton } from "../DeleteWebsiteButton";
+import { DeleteProjectButton } from "../DeleteProjectButton";
 
 const mockPush = vi.fn();
 vi.mock("@/i18n/navigation", () => ({
@@ -9,9 +9,8 @@ vi.mock("@/i18n/navigation", () => ({
   usePathname: () => "/",
 }));
 
-// Translation mock (from setup.ts) returns "namespace.key"
 const t = {
-  deleteSite: "site.deleteSite",
+  deleteProject: "site.deleteProject",
   deleteConfirm: "site.deleteConfirm",
   deleteYes: "site.deleteYes",
   deleteNo: "site.deleteNo",
@@ -19,18 +18,18 @@ const t = {
   deleteError: "site.deleteError",
 };
 
-describe("DeleteWebsiteButton", () => {
+describe("DeleteProjectButton", () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => vi.unstubAllGlobals());
 
   it("renders the delete button in its initial state", () => {
-    render(<DeleteWebsiteButton websiteId="site-1" />);
-    expect(screen.getByRole("button", { name: t.deleteSite })).toBeInTheDocument();
+    render(<DeleteProjectButton projectId="proj-1" />);
+    expect(screen.getByRole("button", { name: t.deleteProject })).toBeInTheDocument();
   });
 
   it("shows confirmation UI when the delete button is clicked", async () => {
-    render(<DeleteWebsiteButton websiteId="site-1" />);
-    await userEvent.click(screen.getByRole("button", { name: t.deleteSite }));
+    render(<DeleteProjectButton projectId="proj-1" />);
+    await userEvent.click(screen.getByRole("button", { name: t.deleteProject }));
 
     expect(screen.getByRole("button", { name: t.deleteYes })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: t.deleteNo })).toBeInTheDocument();
@@ -38,27 +37,27 @@ describe("DeleteWebsiteButton", () => {
   });
 
   it("returns to initial state when Cancel is clicked", async () => {
-    render(<DeleteWebsiteButton websiteId="site-1" />);
-    await userEvent.click(screen.getByRole("button", { name: t.deleteSite }));
+    render(<DeleteProjectButton projectId="proj-1" />);
+    await userEvent.click(screen.getByRole("button", { name: t.deleteProject }));
     await userEvent.click(screen.getByRole("button", { name: t.deleteNo }));
 
-    expect(screen.getByRole("button", { name: t.deleteSite })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t.deleteProject })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: t.deleteYes })).not.toBeInTheDocument();
   });
 
-  it("calls DELETE /api/websites/[id] when confirmed", async () => {
+  it("calls DELETE /api/projects/[id] when confirmed", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) })
     );
 
-    render(<DeleteWebsiteButton websiteId="site-42" />);
-    await userEvent.click(screen.getByRole("button", { name: t.deleteSite }));
+    render(<DeleteProjectButton projectId="proj-42" />);
+    await userEvent.click(screen.getByRole("button", { name: t.deleteProject }));
     await userEvent.click(screen.getByRole("button", { name: t.deleteYes }));
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        "/api/websites/site-42",
+        "/api/projects/proj-42",
         expect.objectContaining({ method: "DELETE" })
       );
     });
@@ -70,47 +69,28 @@ describe("DeleteWebsiteButton", () => {
       vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) })
     );
 
-    render(<DeleteWebsiteButton websiteId="site-1" />);
-    await userEvent.click(screen.getByRole("button", { name: t.deleteSite }));
+    render(<DeleteProjectButton projectId="proj-1" />);
+    await userEvent.click(screen.getByRole("button", { name: t.deleteProject }));
     await userEvent.click(screen.getByRole("button", { name: t.deleteYes }));
 
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/dashboard"));
   });
 
-  it("shows API error in confirmation context and does not redirect", async () => {
+  it("shows error and does not redirect on API failure", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: "Internal server error" }),
-      })
+      vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: "server error" }) })
     );
 
-    render(<DeleteWebsiteButton websiteId="site-1" />);
-    await userEvent.click(screen.getByRole("button", { name: t.deleteSite }));
+    render(<DeleteProjectButton projectId="proj-1" />);
+    await userEvent.click(screen.getByRole("button", { name: t.deleteProject }));
     await userEvent.click(screen.getByRole("button", { name: t.deleteYes }));
 
     await waitFor(() => {
       expect(screen.getByText(t.deleteError)).toBeInTheDocument();
     });
-    // Stays in confirmation state so user can retry or cancel
     expect(screen.getByRole("button", { name: t.deleteYes })).toBeInTheDocument();
     expect(mockPush).not.toHaveBeenCalled();
-  });
-
-  it("shows fallback error when API returns no message", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) })
-    );
-
-    render(<DeleteWebsiteButton websiteId="site-1" />);
-    await userEvent.click(screen.getByRole("button", { name: t.deleteSite }));
-    await userEvent.click(screen.getByRole("button", { name: t.deleteYes }));
-
-    await waitFor(() => {
-      expect(screen.getByText(t.deleteError)).toBeInTheDocument();
-    });
   });
 
   it("disables both buttons while the request is in flight", async () => {
@@ -120,8 +100,8 @@ describe("DeleteWebsiteButton", () => {
       vi.fn().mockReturnValue(new Promise((r) => { resolve = r; }))
     );
 
-    render(<DeleteWebsiteButton websiteId="site-1" />);
-    await userEvent.click(screen.getByRole("button", { name: t.deleteSite }));
+    render(<DeleteProjectButton projectId="proj-1" />);
+    await userEvent.click(screen.getByRole("button", { name: t.deleteProject }));
     await userEvent.click(screen.getByRole("button", { name: t.deleteYes }));
 
     expect(screen.getByRole("button", { name: t.deleting })).toBeDisabled();

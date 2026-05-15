@@ -58,6 +58,7 @@ This starts PostgreSQL (port 5432), Redis (port 6379), and the ZAP daemon (port 
 
 ```bash
 npx prisma migrate dev
+npx prisma generate
 ```
 
 ### 5. Start the dev server
@@ -78,6 +79,7 @@ npm run test:coverage     # coverage report
 
 # Database
 npx prisma migrate dev --name <migration-name>
+npx prisma generate       # regenerate client after schema changes
 npx prisma studio         # open Prisma Studio GUI
 
 # Production build

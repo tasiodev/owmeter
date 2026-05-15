@@ -1,5 +1,5 @@
-import type { IWebsiteRepository } from "@/domain/repositories/IWebsiteRepository";
-import type { Website, VerificationMethod } from "@/domain/entities/Website";
+import type { IProjectRepository } from "@/domain/repositories/IProjectRepository";
+import type { Project, VerificationMethod } from "@/domain/entities/Project";
 
 export class VerificationError extends Error {}
 
@@ -36,20 +36,22 @@ async function checkFile(domain: string, token: string): Promise<boolean> {
   }
 }
 
-export async function verifyOwnership(
-  websiteId: string,
+export async function verifyDomainOwnership(
+  projectId: string,
   requestingUserId: string,
   method: VerificationMethod,
-  repo: IWebsiteRepository
-): Promise<Website> {
-  const website = await repo.findById(websiteId);
+  repo: IProjectRepository
+): Promise<Project> {
+  const project = await repo.findById(projectId);
 
-  if (!website) throw new VerificationError("Website not found");
-  if (website.userId !== requestingUserId) throw new VerificationError("Unauthorized");
-  if (website.verified) return website;
+  if (!project) throw new VerificationError("Project not found");
+  if (project.userId !== requestingUserId) throw new VerificationError("Unauthorized");
+  if (project.type !== "WEBSITE") throw new VerificationError("Domain verification only applies to WEBSITE projects");
+  if (!project.domain) throw new VerificationError("Project has no domain configured");
+  if (project.verified) return project;
 
-  const token = website.verificationToken;
-  const domain = website.domain;
+  const token = project.verificationToken;
+  const domain = project.domain;
 
   let verified = false;
 
@@ -69,7 +71,7 @@ export async function verifyOwnership(
     throw new VerificationError(`Verification failed. Ensure the ${method} is correctly set.`);
   }
 
-  const result = await repo.markVerified(websiteId, method);
-  await repo.deleteUnverifiedByDomain(website.domain, requestingUserId);
+  const result = await repo.markDomainVerified(projectId, method);
+  await repo.deleteUnverifiedByDomain(domain, requestingUserId);
   return result;
 }

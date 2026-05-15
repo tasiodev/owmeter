@@ -17,7 +17,7 @@ type DbFinding = {
 
 type DbScan = {
   id: string;
-  websiteId: string;
+  projectId: string;
   status: string;
   type: string;
   score: number | null;
@@ -45,7 +45,7 @@ function toFinding(r: DbFinding): Finding {
 function toScan(r: DbScan): Scan {
   return {
     id: r.id,
-    websiteId: r.websiteId,
+    projectId: r.projectId,
     status: r.status as ScanStatus,
     type: r.type as ScanType,
     score: r.score,
@@ -67,38 +67,38 @@ export class PrismaScanRepository implements IScanRepository {
     return r ? toScan(r) : null;
   }
 
-  async findByWebsiteId(websiteId: string): Promise<Scan[]> {
+  async findByProjectId(projectId: string): Promise<Scan[]> {
     const records = await prisma.scan.findMany({
-      where: { websiteId },
+      where: { projectId },
       include: { findings: true },
       orderBy: { startedAt: "desc" },
     });
     return records.map(toScan);
   }
 
-  async findLatestCompletedPerWebsite(websiteIds: string[]): Promise<Map<string, Scan>> {
-    if (websiteIds.length === 0) return new Map();
+  async findLatestCompletedPerProject(projectIds: string[]): Promise<Map<string, Scan>> {
+    if (projectIds.length === 0) return new Map();
     const records = await prisma.scan.findMany({
-      where: { websiteId: { in: websiteIds }, status: "COMPLETED" },
+      where: { projectId: { in: projectIds }, status: "COMPLETED" },
       orderBy: { startedAt: "desc" },
-      distinct: ["websiteId"],
+      distinct: ["projectId"],
     });
-    return new Map(records.map((r) => [r.websiteId, toScan(r)]));
+    return new Map(records.map((r) => [r.projectId, toScan(r)]));
   }
 
-  async findRanking(limit = 50): Promise<Array<Scan & { websiteDomain: string }>> {
+  async findRanking(limit = 50): Promise<Array<Scan & { projectDomain: string }>> {
     const records = (await prisma.scan.findMany({
       where: { inRanking: true, status: "COMPLETED" },
-      include: { findings: true, website: { select: { domain: true } } },
+      include: { findings: true, project: { select: { domain: true } } },
       orderBy: { score: "desc" },
       take: limit,
-    })) as Array<DbScan & { website: { domain: string } }>;
-    return records.map((r) => ({ ...toScan(r), websiteDomain: r.website.domain }));
+    })) as Array<DbScan & { project: { domain: string | null } }>;
+    return records.map((r) => ({ ...toScan(r), projectDomain: r.project.domain ?? "" }));
   }
 
-  async create(websiteId: string, type: ScanType = "BASIC"): Promise<Scan> {
+  async create(projectId: string, type: ScanType = "PASSIVE"): Promise<Scan> {
     const r = await prisma.scan.create({
-      data: { websiteId, type },
+      data: { projectId, type },
       include: { findings: true },
     });
     return toScan(r);

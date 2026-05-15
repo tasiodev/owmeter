@@ -3,68 +3,36 @@ import IORedis from "ioredis";
 import { runPassiveAnalysis } from "@/infrastructure/scanning/PassiveAnalyzer";
 import { runZapActiveScan } from "@/infrastructure/scanning/ZapClient";
 import { calculateScore } from "@/domain/services/ScoringService";
-import type { RawFinding } from "@/domain/services/ScoringService";
+import type { RawFinding, ScanMode } from "@/domain/services/ScoringService";
 import { runSourceCodeAnalysis } from "@/infrastructure/scanning/SourceCodeAnalyzer";
-import { verifyCodeMatchesSite } from "@/infrastructure/scanning/CodeVerifier";
 import { fetchGitHubRepoAsZip } from "@/infrastructure/scanning/GitHubFetcher";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
 
 // ─── Job data types ───────────────────────────────────────────────────────────
 
-export type BasicScanJobData = {
+export type PassiveScanJobData = {
   scanId: string;
   targetUrl: string;
-  type: "BASIC";
+  type: "PASSIVE";
 };
 
-export type CompleteScanZipJobData = {
+export type FullScanJobData = {
   scanId: string;
   targetUrl: string;
-  type: "COMPLETE";
-  sourceZip: string; // base64-encoded Uint8Array
-};
-
-export type CompleteScanGitHubJobData = {
-  scanId: string;
-  targetUrl: string;
-  type: "COMPLETE";
+  type: "FULL";
   githubUrl: string;
 };
 
-export type ScanJobData =
-  | BasicScanJobData
-  | CompleteScanZipJobData
-  | CompleteScanGitHubJobData;
+export type CodeScanJobData = {
+  scanId: string;
+  type: "CODE";
+  githubUrl: string;
+};
 
-// ─── SAST gating ─────────────────────────────────────────────────────────────
-
-export class VerificationError extends Error {
-  constructor() {
-    super("Source code could not be verified as belonging to this site");
-  }
-}
-
-/** Verifies ownership and appends SAST findings to `combined`. Throws VerificationError if not verified. */
-export async function applySastFindings(
-  combined: RawFinding[],
-  zipBuffer: Uint8Array,
-  targetUrl: string,
-  detectedFramework: string | null
-): Promise<void> {
-  const verification = await verifyCodeMatchesSite(zipBuffer, targetUrl, detectedFramework);
-
-  if (!verification.verified) {
-    throw new VerificationError();
-  }
-
-  const sastFindings = await runSourceCodeAnalysis(zipBuffer);
-  combined.push(...sastFindings);
-}
+export type ScanJobData = PassiveScanJobData | FullScanJobData | CodeScanJobData;
 
 // ─── Deduplication ───────────────────────────────────────────────────────────
 
-// Maps known ZAP alert names to their PassiveAnalyzer equivalents so the
-// category:title dedup key collapses findings that describe the same issue.
 const CANONICAL_TITLES: Record<string, string> = {
   "Content Security Policy (CSP) Header Not Set": "Missing Content-Security-Policy header",
   "Missing Anti-clickjacking Header": "Missing X-Frame-Options header",
@@ -82,15 +50,6 @@ export function deduplicateFindings(findings: RawFinding[]): RawFinding[] {
     seen.add(key);
     return true;
   });
-}
-
-// ─── Framework detection helper ───────────────────────────────────────────────
-
-function detectFrameworkFromFindings(findings: RawFinding[]): string | null {
-  const serverInfoFinding = findings.find(
-    (f) => f.title.includes("x-powered-by") && f.evidence
-  );
-  return serverInfoFinding?.evidence ?? null;
 }
 
 // ─── Redis / Queue ────────────────────────────────────────────────────────────
@@ -118,55 +77,45 @@ export function createScanWorker(): Worker<ScanJobData> {
   return new Worker<ScanJobData>(
     "scans",
     async (job: Job<ScanJobData>) => {
-      const { scanId, targetUrl } = job.data;
+      const { scanId } = job.data;
 
       await repo.updateStatus(scanId, "RUNNING");
 
       try {
-        // Step 1: Always run passive + ZAP
-        const [passiveResult, zapResult] = await Promise.allSettled([
-          runPassiveAnalysis(targetUrl),
-          runZapActiveScan(targetUrl),
-        ]);
+        let allRawFindings: RawFinding[];
+        let scanMode: ScanMode;
 
-        const combined: RawFinding[] = [
-          ...(passiveResult.status === "fulfilled" ? passiveResult.value : []),
-          ...(zapResult.status === "fulfilled" ? zapResult.value : []),
-        ];
+        if (job.data.type === "CODE") {
+          // Code-only scan for CODE_REPO projects
+          const zipBuffer = await fetchGitHubRepoAsZip(job.data.githubUrl);
+          allRawFindings = deduplicateFindings(await runSourceCodeAnalysis(zipBuffer));
+          scanMode = "CODE";
+        } else {
+          // Passive or Full scan for WEBSITE projects
+          const { targetUrl } = job.data;
+          const [passiveFindings, zapFindings] = await Promise.all([
+            runPassiveAnalysis(targetUrl),
+            runZapActiveScan(targetUrl),
+          ]);
 
-        // Step 2: SAST analysis for COMPLETE scans
-        if (job.data.type === "COMPLETE") {
-          let zipBuffer: Uint8Array;
+          const combined: RawFinding[] = [...passiveFindings, ...zapFindings];
 
-          if ("sourceZip" in job.data) {
-            zipBuffer = new Uint8Array(Buffer.from(job.data.sourceZip, "base64"));
+          if (job.data.type === "FULL") {
+            const zipBuffer = await fetchGitHubRepoAsZip(job.data.githubUrl);
+            const sastFindings = await runSourceCodeAnalysis(zipBuffer);
+            combined.push(...sastFindings);
+            scanMode = "FULL";
           } else {
-            zipBuffer = await fetchGitHubRepoAsZip(job.data.githubUrl);
+            scanMode = "PASSIVE";
           }
 
-          const detectedFramework = detectFrameworkFromFindings(combined);
-          await applySastFindings(combined, zipBuffer, targetUrl, detectedFramework);
-
-          // Explicit dereference to allow GC
-           
-          zipBuffer = new Uint8Array(0);
+          allRawFindings = deduplicateFindings(combined);
         }
 
-        // Step 3: Deduplicate, score, and persist
-        const allRawFindings = deduplicateFindings(combined);
-        const scanMode = job.data.type === "COMPLETE" ? "COMPLETE" : "BASIC";
         const { score, maxScore, findings: scoredFindings } = calculateScore(allRawFindings, scanMode);
-
         await repo.complete(scanId, score, maxScore, scoredFindings);
       } catch (err) {
-        if (err instanceof VerificationError) {
-          await repo.invalidate(
-            scanId,
-            "Source code could not be verified as belonging to this site. Upload the source code for the correct domain."
-          );
-        } else {
-          await repo.updateStatus(scanId, "FAILED");
-        }
+        await repo.updateStatus(scanId, "FAILED");
         throw err;
       }
     },

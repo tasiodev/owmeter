@@ -1,21 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createCompleteScan, CreateCompleteScanError } from "../CreateCompleteScan";
-import type { IWebsiteRepository } from "@/domain/repositories/IWebsiteRepository";
+import type { IProjectRepository } from "@/domain/repositories/IProjectRepository";
 import type { IScanRepository } from "@/domain/repositories/IScanRepository";
-import type { Website } from "@/domain/entities/Website";
+import type { Project } from "@/domain/entities/Project";
 import type { Scan } from "@/domain/entities/Scan";
 
 const now = new Date();
 
-function makeWebsite(overrides: Partial<Website> = {}): Website {
+function makeProject(overrides: Partial<Project> = {}): Project {
   return {
-    id: "site-1",
+    id: "proj-1",
+    type: "WEBSITE",
+    name: "My Site",
     domain: "example.com",
     userId: "user-1",
     verified: true,
     verificationToken: "token-abc",
     verificationMethod: "DNS_TXT",
     verifiedAt: now,
+    repoUrl: "https://github.com/owner/repo",
+    repoVerified: true,
+    repoVerificationToken: "repo-token",
+    repoVerifiedAt: now,
     createdAt: now,
     ...overrides,
   };
@@ -24,9 +30,9 @@ function makeWebsite(overrides: Partial<Website> = {}): Website {
 function makeScan(): Scan {
   return {
     id: "scan-1",
-    websiteId: "site-1",
+    projectId: "proj-1",
     status: "PENDING",
-    type: "COMPLETE",
+    type: "FULL",
     score: null,
     maxScore: null,
     inRanking: false,
@@ -36,14 +42,15 @@ function makeScan(): Scan {
   };
 }
 
-function makeWebsiteRepo(website: Website | null = makeWebsite()): IWebsiteRepository {
+function makeProjectRepo(project: Project | null = makeProject()): IProjectRepository {
   return {
-    findById: vi.fn().mockResolvedValue(website),
+    findById: vi.fn().mockResolvedValue(project),
     findByDomainAndUserId: vi.fn(),
     findVerifiedByDomain: vi.fn(),
     findByUserId: vi.fn(),
     create: vi.fn(),
-    markVerified: vi.fn(),
+    markDomainVerified: vi.fn(),
+    markRepoVerified: vi.fn(),
     deleteUnverifiedByDomain: vi.fn(),
     delete: vi.fn(),
   };
@@ -52,68 +59,64 @@ function makeWebsiteRepo(website: Website | null = makeWebsite()): IWebsiteRepos
 function makeScanRepo(scan: Scan = makeScan()): IScanRepository {
   return {
     findById: vi.fn(),
-    findByWebsiteId: vi.fn(),
+    findByProjectId: vi.fn(),
+    findLatestCompletedPerProject: vi.fn(),
     findRanking: vi.fn(),
     create: vi.fn().mockResolvedValue(scan),
     updateStatus: vi.fn(),
+    invalidate: vi.fn(),
     complete: vi.fn(),
     updateRanking: vi.fn(),
   };
 }
 
-const smallZip = new Uint8Array(100);
-const FIFTY_MB_PLUS_ONE = new Uint8Array(50 * 1024 * 1024 + 1);
-
-describe("createCompleteScan — ZIP input", () => {
+describe("createCompleteScan (FULL scan — WEBSITE with verified repo)", () => {
   const enqueue = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => vi.clearAllMocks());
 
-  it("creates a COMPLETE scan and enqueues ZIP job", async () => {
-    const websiteRepo = makeWebsiteRepo();
+  it("creates a FULL scan and enqueues the job", async () => {
+    const projectRepo = makeProjectRepo();
     const scanRepo = makeScanRepo();
 
-    const scan = await createCompleteScan(
-      "site-1",
-      "user-1",
-      { kind: "zip", zipBuffer: smallZip },
-      websiteRepo,
-      scanRepo,
-      enqueue
-    );
+    const scan = await createCompleteScan("proj-1", "user-1", projectRepo, scanRepo, enqueue);
 
-    expect(scanRepo.create).toHaveBeenCalledWith("site-1", "COMPLETE");
-    expect(enqueue).toHaveBeenCalledOnce();
-    const jobData = enqueue.mock.calls[0][0] as { type: string; sourceZip: string };
-    expect(jobData.type).toBe("COMPLETE");
-    expect(jobData.sourceZip).toBeTruthy();
+    expect(scanRepo.create).toHaveBeenCalledWith("proj-1", "FULL");
+    const jobData = enqueue.mock.calls[0][0] as { type: string; githubUrl: string };
+    expect(jobData.type).toBe("FULL");
+    expect(jobData.githubUrl).toBe("https://github.com/owner/repo");
     expect(scan.id).toBe("scan-1");
   });
 
-  it("throws when website not found", async () => {
+  it("throws when project not found", async () => {
     await expect(
-      createCompleteScan("site-1", "user-1", { kind: "zip", zipBuffer: smallZip }, makeWebsiteRepo(null), makeScanRepo(), enqueue)
+      createCompleteScan("proj-1", "user-1", makeProjectRepo(null), makeScanRepo(), enqueue)
     ).rejects.toThrow(CreateCompleteScanError);
     expect(enqueue).not.toHaveBeenCalled();
   });
 
-  it("throws when user does not own the website", async () => {
+  it("throws when user does not own the project", async () => {
     await expect(
-      createCompleteScan("site-1", "user-1", { kind: "zip", zipBuffer: smallZip }, makeWebsiteRepo(makeWebsite({ userId: "other" })), makeScanRepo(), enqueue)
+      createCompleteScan("proj-1", "user-1", makeProjectRepo(makeProject({ userId: "other" })), makeScanRepo(), enqueue)
     ).rejects.toThrow(CreateCompleteScanError);
   });
 
-  it("throws when website is not verified", async () => {
+  it("throws when domain is not verified", async () => {
     await expect(
-      createCompleteScan("site-1", "user-1", { kind: "zip", zipBuffer: smallZip }, makeWebsiteRepo(makeWebsite({ verified: false })), makeScanRepo(), enqueue)
+      createCompleteScan("proj-1", "user-1", makeProjectRepo(makeProject({ verified: false })), makeScanRepo(), enqueue)
     ).rejects.toThrow(CreateCompleteScanError);
   });
 
-  it("throws when ZIP exceeds 50 MB", async () => {
+  it("throws when repo is not verified", async () => {
     await expect(
-      createCompleteScan("site-1", "user-1", { kind: "zip", zipBuffer: FIFTY_MB_PLUS_ONE }, makeWebsiteRepo(), makeScanRepo(), enqueue)
+      createCompleteScan("proj-1", "user-1", makeProjectRepo(makeProject({ repoVerified: false, repoUrl: null })), makeScanRepo(), enqueue)
     ).rejects.toThrow(CreateCompleteScanError);
-    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it("throws for CODE_REPO projects", async () => {
+    await expect(
+      createCompleteScan("proj-1", "user-1", makeProjectRepo(makeProject({ type: "CODE_REPO", domain: null })), makeScanRepo(), enqueue)
+    ).rejects.toThrow(CreateCompleteScanError);
   });
 
   it("does not enqueue if scan creation fails", async () => {
@@ -121,46 +124,8 @@ describe("createCompleteScan — ZIP input", () => {
     vi.mocked(scanRepo.create).mockRejectedValue(new Error("DB error"));
 
     await expect(
-      createCompleteScan("site-1", "user-1", { kind: "zip", zipBuffer: smallZip }, makeWebsiteRepo(), scanRepo, enqueue)
+      createCompleteScan("proj-1", "user-1", makeProjectRepo(), scanRepo, enqueue)
     ).rejects.toThrow("DB error");
     expect(enqueue).not.toHaveBeenCalled();
-  });
-});
-
-describe("createCompleteScan — GitHub URL input", () => {
-  const enqueue = vi.fn().mockResolvedValue(undefined);
-
-  beforeEach(() => vi.clearAllMocks());
-
-  it("creates a COMPLETE scan and enqueues GitHub job", async () => {
-    const websiteRepo = makeWebsiteRepo();
-    const scanRepo = makeScanRepo();
-
-    const scan = await createCompleteScan(
-      "site-1",
-      "user-1",
-      { kind: "github", githubUrl: "https://github.com/owner/repo" },
-      websiteRepo,
-      scanRepo,
-      enqueue
-    );
-
-    expect(scanRepo.create).toHaveBeenCalledWith("site-1", "COMPLETE");
-    const jobData = enqueue.mock.calls[0][0] as { type: string; githubUrl: string };
-    expect(jobData.type).toBe("COMPLETE");
-    expect(jobData.githubUrl).toBe("https://github.com/owner/repo");
-    expect(scan.id).toBe("scan-1");
-  });
-
-  it("throws when GitHub URL is invalid", async () => {
-    await expect(
-      createCompleteScan("site-1", "user-1", { kind: "github", githubUrl: "https://gitlab.com/owner/repo" }, makeWebsiteRepo(), makeScanRepo(), enqueue)
-    ).rejects.toThrow(CreateCompleteScanError);
-  });
-
-  it("throws when GitHub URL is not a URL", async () => {
-    await expect(
-      createCompleteScan("site-1", "user-1", { kind: "github", githubUrl: "not-a-url" }, makeWebsiteRepo(), makeScanRepo(), enqueue)
-    ).rejects.toThrow(CreateCompleteScanError);
   });
 });

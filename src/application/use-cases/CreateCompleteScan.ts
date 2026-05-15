@@ -1,68 +1,42 @@
 import type { IScanRepository } from "@/domain/repositories/IScanRepository";
-import type { IWebsiteRepository } from "@/domain/repositories/IWebsiteRepository";
+import type { IProjectRepository } from "@/domain/repositories/IProjectRepository";
 import type { Scan } from "@/domain/entities/Scan";
-import { parseGitHubUrl, GitHubFetchError } from "@/infrastructure/scanning/GitHubFetcher";
 
-export type CompleteScanInput =
-  | { kind: "zip"; zipBuffer: Uint8Array }
-  | { kind: "github"; githubUrl: string };
-
-export type CompleteScanJobData =
-  | { scanId: string; targetUrl: string; type: "COMPLETE"; sourceZip: string }
-  | { scanId: string; targetUrl: string; type: "COMPLETE"; githubUrl: string };
+export type FullScanJobData = {
+  scanId: string;
+  targetUrl: string;
+  type: "FULL";
+  githubUrl: string;
+};
 
 export class CreateCompleteScanError extends Error {}
 
-const MAX_ZIP_BYTES = 50 * 1024 * 1024;
-
 export async function createCompleteScan(
-  websiteId: string,
+  projectId: string,
   requestingUserId: string,
-  input: CompleteScanInput,
-  websiteRepo: IWebsiteRepository,
+  projectRepo: IProjectRepository,
   scanRepo: IScanRepository,
-  enqueue: (jobData: CompleteScanJobData) => Promise<void>
+  enqueue: (jobData: FullScanJobData) => Promise<void>
 ): Promise<Scan> {
-  const website = await websiteRepo.findById(websiteId);
+  const project = await projectRepo.findById(projectId);
 
-  if (!website) throw new CreateCompleteScanError("Website not found");
-  if (website.userId !== requestingUserId) throw new CreateCompleteScanError("Unauthorized");
-  if (!website.verified) throw new CreateCompleteScanError("Website ownership not verified");
-
-  if (input.kind === "zip") {
-    if (input.zipBuffer.byteLength > MAX_ZIP_BYTES) {
-      throw new CreateCompleteScanError("ZIP file exceeds 50 MB limit");
-    }
-  } else {
-    try {
-      parseGitHubUrl(input.githubUrl);
-    } catch (err) {
-      throw new CreateCompleteScanError(
-        err instanceof GitHubFetchError ? err.message : "Invalid GitHub URL"
-      );
-    }
+  if (!project) throw new CreateCompleteScanError("Project not found");
+  if (project.userId !== requestingUserId) throw new CreateCompleteScanError("Unauthorized");
+  if (project.type !== "WEBSITE") throw new CreateCompleteScanError("Full scan only applies to WEBSITE projects");
+  if (!project.verified) throw new CreateCompleteScanError("Domain ownership not verified");
+  if (!project.domain) throw new CreateCompleteScanError("Project has no domain configured");
+  if (!project.repoVerified || !project.repoUrl) {
+    throw new CreateCompleteScanError("Repository ownership not verified");
   }
 
-  const targetUrl = `https://${website.domain}`;
-  const scan = await scanRepo.create(websiteId, "COMPLETE");
+  const scan = await scanRepo.create(projectId, "FULL");
 
-  let jobData: CompleteScanJobData;
-  if (input.kind === "zip") {
-    jobData = {
-      scanId: scan.id,
-      targetUrl,
-      type: "COMPLETE",
-      sourceZip: Buffer.from(input.zipBuffer).toString("base64"),
-    };
-  } else {
-    jobData = {
-      scanId: scan.id,
-      targetUrl,
-      type: "COMPLETE",
-      githubUrl: input.githubUrl,
-    };
-  }
+  await enqueue({
+    scanId: scan.id,
+    targetUrl: `https://${project.domain}`,
+    type: "FULL",
+    githubUrl: project.repoUrl,
+  });
 
-  await enqueue(jobData);
   return scan;
 }

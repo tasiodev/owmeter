@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/infrastructure/auth/auth";
-import { PrismaWebsiteRepository } from "@/infrastructure/database/repositories/PrismaWebsiteRepository";
-import { verifyOwnership, VerificationError } from "@/application/use-cases/VerifyOwnership";
+import { PrismaProjectRepository } from "@/infrastructure/database/repositories/PrismaProjectRepository";
+import { verifyRepoOwnership, RepoVerificationError } from "@/application/use-cases/VerifyRepoOwnership";
 
 const schema = z.object({
-  method: z.enum(["DNS_TXT", "META_TAG", "FILE"]),
+  repoUrl: z.string().url(),
 });
 
 export async function POST(
@@ -30,14 +30,14 @@ export async function POST(
   }
 
   const { id } = await params;
-  const repo = new PrismaWebsiteRepository();
+  const repo = new PrismaProjectRepository();
 
   try {
-    const website = await verifyOwnership(id, session.user.id, parsed.data.method, repo);
-    return NextResponse.json(website);
+    const project = await verifyRepoOwnership(id, session.user.id, parsed.data.repoUrl, repo);
+    return NextResponse.json(project);
   } catch (err) {
-    if (err instanceof VerificationError) {
-      return NextResponse.json({ error: "VERIFY_FAILED" }, { status: 400 });
+    if (err instanceof RepoVerificationError) {
+      return NextResponse.json({ error: "VERIFY_FAILED", message: (err as Error).message }, { status: 400 });
     }
     throw err;
   }

@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/infrastructure/auth/auth";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
-import { PrismaWebsiteRepository } from "@/infrastructure/database/repositories/PrismaWebsiteRepository";
+import { PrismaProjectRepository } from "@/infrastructure/database/repositories/PrismaProjectRepository";
 
 const rankingSchema = z.object({ inRanking: z.boolean() });
 
@@ -21,10 +21,9 @@ export async function GET(
 
   if (!scan) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Verify ownership
-  const websiteRepo = new PrismaWebsiteRepository();
-  const website = await websiteRepo.findById(scan.websiteId);
-  if (website?.userId !== session.user.id) {
+  const projectRepo = new PrismaProjectRepository();
+  const project = await projectRepo.findById(scan.projectId);
+  if (project?.userId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -58,9 +57,9 @@ export async function PATCH(
 
   if (!scan) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const websiteRepo = new PrismaWebsiteRepository();
-  const website = await websiteRepo.findById(scan.websiteId);
-  if (website?.userId !== session.user.id) {
+  const projectRepo = new PrismaProjectRepository();
+  const project = await projectRepo.findById(scan.projectId);
+  if (project?.userId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

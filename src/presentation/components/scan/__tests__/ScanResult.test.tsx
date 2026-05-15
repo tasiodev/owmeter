@@ -8,11 +8,13 @@ const now = new Date("2025-01-15T10:00:00Z");
 function makeScan(overrides: Partial<Scan> = {}): Scan {
   return {
     id: "scan-1",
-    websiteId: "site-1",
+    projectId: "proj-1",
+    type: "PASSIVE",
     status: "COMPLETED",
     score: 55,
-    maxScore: 65,
+    maxScore: 100,
     inRanking: false,
+    errorMessage: null,
     findings: [],
     startedAt: now,
     completedAt: new Date("2025-01-15T10:05:00Z"),
@@ -90,7 +92,8 @@ describe("ScanResult", () => {
     });
 
     render(<ScanResult scan={scan} />);
-    expect(screen.getByText("-6 pts")).toBeInTheDocument();
+    // -6 pts appears both in the category breakdown row and the finding card
+    expect(screen.getAllByText("-6 pts").length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows evidence when present", () => {
@@ -115,6 +118,7 @@ describe("ScanResult", () => {
 
   it("does not render findings section when findings is empty", () => {
     render(<ScanResult scan={makeScan({ findings: [] })} />);
-    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    // The category breakdown list is always present; the findings list should not be
+    expect(screen.getAllByRole("list")).toHaveLength(1);
   });
 });

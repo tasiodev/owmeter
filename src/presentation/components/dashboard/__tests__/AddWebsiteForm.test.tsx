@@ -1,9 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AddWebsiteForm } from "../AddWebsiteForm";
+import { AddProjectForm } from "../AddProjectForm";
 
-// useRouter().refresh is mocked globally in setup.ts
 const mockRefresh = vi.fn();
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: mockRefresh }),
@@ -14,40 +13,80 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 function renderForm() {
-  return render(<AddWebsiteForm />);
+  return render(<AddProjectForm />);
 }
 
-describe("AddWebsiteForm", () => {
+describe("AddProjectForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: "site-1" }) })
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: "proj-1" }) })
     );
   });
 
   afterEach(() => vi.unstubAllGlobals());
 
-  it("renders the domain input and submit button", () => {
+  it("renders type selection buttons initially", () => {
     renderForm();
-    expect(screen.getByRole("textbox")).toBeInTheDocument();
-    expect(screen.getByRole("button")).toBeInTheDocument();
+    expect(screen.getByText("dashboard.typeWebsite")).toBeInTheDocument();
+    expect(screen.getByText("dashboard.typeCodeRepo")).toBeInTheDocument();
   });
 
-  it("submits the form with the domain lowercased", async () => {
+  it("shows name and domain fields after selecting Website type", async () => {
     renderForm();
     const user = userEvent.setup();
 
-    // The component lowercases via .toLowerCase() in handleSubmit
-    await user.type(screen.getByRole("textbox"), "Example.COM");
-    await user.click(screen.getByRole("button"));
+    await user.click(screen.getByText("dashboard.typeWebsite"));
+
+    expect(screen.getByPlaceholderText("dashboard.projectNamePlaceholder")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("dashboard.domainPlaceholder")).toBeInTheDocument();
+  });
+
+  it("shows only name field after selecting Code Repo type", async () => {
+    renderForm();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByText("dashboard.typeCodeRepo"));
+
+    expect(screen.getByPlaceholderText("dashboard.projectNamePlaceholder")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("dashboard.domainPlaceholder")).not.toBeInTheDocument();
+  });
+
+  it("submits WEBSITE project with name and lowercased domain", async () => {
+    renderForm();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByText("dashboard.typeWebsite"));
+    await user.type(screen.getByPlaceholderText("dashboard.projectNamePlaceholder"), "My Site");
+    await user.type(screen.getByPlaceholderText("dashboard.domainPlaceholder"), "Example.COM");
+    await user.click(screen.getByRole("button", { name: /dashboard.addProject/i }));
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        "/api/websites",
+        "/api/projects",
         expect.objectContaining({
           method: "POST",
-          body: JSON.stringify({ domain: "example.com" }),
+          body: JSON.stringify({ type: "WEBSITE", name: "My Site", domain: "example.com" }),
+        })
+      );
+    });
+  });
+
+  it("submits CODE_REPO project with only name", async () => {
+    renderForm();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByText("dashboard.typeCodeRepo"));
+    await user.type(screen.getByPlaceholderText("dashboard.projectNamePlaceholder"), "My Lib");
+    await user.click(screen.getByRole("button", { name: /dashboard.addProject/i }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/projects",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ type: "CODE_REPO", name: "My Lib" }),
         })
       );
     });
@@ -57,13 +96,14 @@ describe("AddWebsiteForm", () => {
     renderForm();
     const user = userEvent.setup();
 
-    await user.type(screen.getByRole("textbox"), "example.com");
-    await user.click(screen.getByRole("button"));
+    await user.click(screen.getByText("dashboard.typeCodeRepo"));
+    await user.type(screen.getByPlaceholderText("dashboard.projectNamePlaceholder"), "My Lib");
+    await user.click(screen.getByRole("button", { name: /dashboard.addProject/i }));
 
     await waitFor(() => expect(mockRefresh).toHaveBeenCalled());
   });
 
-  it("shows an error message on API failure", async () => {
+  it("shows domain error on DOMAIN_ALREADY_IN_LIST response", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -75,22 +115,13 @@ describe("AddWebsiteForm", () => {
     renderForm();
     const user = userEvent.setup();
 
-    await user.type(screen.getByRole("textbox"), "taken.com");
-    await user.click(screen.getByRole("button"));
+    await user.click(screen.getByText("dashboard.typeWebsite"));
+    await user.type(screen.getByPlaceholderText("dashboard.projectNamePlaceholder"), "My Site");
+    await user.type(screen.getByPlaceholderText("dashboard.domainPlaceholder"), "taken.com");
+    await user.click(screen.getByRole("button", { name: /dashboard.addProject/i }));
 
     await waitFor(() => {
       expect(screen.getByText("dashboard.domainAlreadyInList")).toBeInTheDocument();
     });
-  });
-
-  it("clears the input after successful submission", async () => {
-    renderForm();
-    const user = userEvent.setup();
-    const input = screen.getByRole("textbox");
-
-    await user.type(input, "example.com");
-    await user.click(screen.getByRole("button"));
-
-    await waitFor(() => expect(input).toHaveValue(""));
   });
 });

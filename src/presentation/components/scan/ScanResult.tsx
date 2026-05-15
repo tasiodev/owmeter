@@ -5,7 +5,8 @@ import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import type { Scan, Finding } from "@/domain/entities/Scan";
 import type { Severity } from "@/domain/value-objects/Severity";
-import { OWASP_CATEGORIES } from "@/domain/value-objects/OWASPCategory";
+import { OWASP_CATEGORIES, isEvaluated, PASSIVE_UNEVALUATED, CODE_UNEVALUATED } from "@/domain/value-objects/OWASPCategory";
+import type { OWASPCategoryId } from "@/domain/value-objects/OWASPCategory";
 import { generateFindingPrompt, generateAllFindingsPrompt } from "./promptGenerators";
 
 const SEVERITY_ORDER: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"];
@@ -194,6 +195,27 @@ function PromptIAButton({
   );
 }
 
+const SCAN_TYPE_STYLES: Record<string, string> = {
+  FULL: "bg-violet-900/40 text-violet-300",
+  CODE: "bg-blue-900/40 text-blue-300",
+  PASSIVE: "bg-gray-800 text-gray-400",
+};
+
+function ScanTypeBadge({
+  type,
+  t,
+}: {
+  type: string;
+  t: ReturnType<typeof useTranslations<"scan">>;
+}) {
+  const badgeKey = `scanType${type}Badge` as Parameters<typeof t>[0];
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded-full ${SCAN_TYPE_STYLES[type] ?? "bg-gray-800 text-gray-400"}`}>
+      {t(badgeKey)}
+    </span>
+  );
+}
+
 function FindingCard({ finding, t }: { finding: Finding; t: ReturnType<typeof useTranslations<"scan">> }) {
   return (
     <li className="rounded-xl border border-gray-800 p-4 space-y-2">
@@ -204,9 +226,23 @@ function FindingCard({ finding, t }: { finding: Finding; t: ReturnType<typeof us
             <span className={`text-xs px-2 py-0.5 rounded-full ${SEVERITY_COLORS[finding.severity]}`}>
               {finding.severity}
             </span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">
-              {OWASP_CATEGORIES[finding.category]?.name ?? finding.category}
-            </span>
+            {(() => {
+              const cat = OWASP_CATEGORIES[finding.category];
+              return cat ? (
+                <a
+                  href={cat.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 transition-colors"
+                >
+                  {cat.name}
+                </a>
+              ) : (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">
+                  {finding.category}
+                </span>
+              );
+            })()}
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -226,7 +262,101 @@ function FindingCard({ finding, t }: { finding: Finding; t: ReturnType<typeof us
   );
 }
 
-export function ScanResult({ scan, domain }: { scan: Scan; domain?: string }) {
+function CategoryIcon({ state }: { state: "ok" | "warn" | "na" }) {
+  if (state === "ok")
+    return (
+      <svg className="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+      </svg>
+    );
+  if (state === "warn")
+    return (
+      <svg className="w-4 h-4 text-amber-400 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+      </svg>
+    );
+  // na
+  return (
+    <svg className="w-4 h-4 text-gray-600 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path fillRule="evenodd" d="M4 10a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 10Z" clipRule="evenodd" />
+    </svg>
+  );
+}
+
+function CategoryBreakdownSection({
+  scan,
+  t,
+}: {
+  scan: Scan;
+  t: ReturnType<typeof useTranslations<"scan">>;
+}) {
+  const lostByCategory: Partial<Record<OWASPCategoryId, number>> = {};
+  for (const f of scan.findings) {
+    lostByCategory[f.category] = (lostByCategory[f.category] ?? 0) + f.pointsLost;
+  }
+
+  const STATE_ORDER = { ok: 0, warn: 1, na: 2 };
+
+  const entries = (
+    Object.entries(OWASP_CATEGORIES) as [OWASPCategoryId, (typeof OWASP_CATEGORIES)[OWASPCategoryId]][]
+  )
+    .map(([id, cat]) => {
+      const evaluated = isEvaluated(id, scan.type);
+      const lost = lostByCategory[id] ?? 0;
+      const hasFindings = evaluated && lost > 0;
+      const state: "ok" | "warn" | "na" = !evaluated ? "na" : hasFindings ? "warn" : "ok";
+      return { id, cat, evaluated, lost, hasFindings, state };
+    })
+    .sort((a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state]);
+
+  return (
+    <div className="space-y-3">
+      <h2 className="text-lg font-semibold">{t("categoryBreakdown")}</h2>
+      <ul className="rounded-xl border border-gray-800 divide-y divide-gray-800 overflow-hidden">
+        {entries.map(({ id, cat, evaluated, lost, state }) => {
+            const naReason = PASSIVE_UNEVALUATED.has(id)
+              ? t("notEvaluatedDesc")
+              : CODE_UNEVALUATED.has(id)
+              ? t("notEvaluatedServerDesc")
+              : null;
+
+            return (
+              <li key={id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                <CategoryIcon state={state} />
+                <div className="flex-1 min-w-0">
+                  <a
+                    href={cat.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`hover:underline ${
+                      state === "na" ? "text-gray-500" : "text-gray-200 hover:text-white"
+                    }`}
+                  >
+                    {cat.name}
+                  </a>
+                  {state === "na" && naReason && (
+                    <p className="text-xs text-gray-600 mt-0.5">{naReason}</p>
+                  )}
+                </div>
+                {state === "na" && (
+                  <span className="text-xs text-gray-600 shrink-0">{t("notEvaluatedLabel")}</span>
+                )}
+                {state === "warn" && (
+                  <span className="text-xs font-mono text-amber-400 shrink-0">-{lost} pts</span>
+                )}
+                {state === "ok" && evaluated && (
+                  <span className="text-xs font-mono text-emerald-600 shrink-0">{cat.maxPoints}/{cat.maxPoints}</span>
+                )}
+              </li>
+            );
+          }
+        )}
+      </ul>
+    </div>
+  );
+}
+
+export function ScanResult({ scan, domain, projectId }: { scan: Scan; domain?: string; projectId?: string }) {
   const t = useTranslations("scan");
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<Severity | null>(null);
@@ -242,11 +372,7 @@ export function ScanResult({ scan, domain }: { scan: Scan; domain?: string }) {
       <div className="rounded-xl border border-red-800 bg-red-950/30 p-6 space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/60 text-red-400">INVALID</span>
-          <span className={`text-xs px-2 py-0.5 rounded-full ${
-            scan.type === "COMPLETE" ? "bg-violet-900/40 text-violet-300" : "bg-gray-800 text-gray-400"
-          }`}>
-            {scan.type === "COMPLETE" ? t("scanTypeBadge") : t("scanTypeBasicBadge")}
-          </span>
+          <ScanTypeBadge type={scan.type} t={t} />
         </div>
         <h2 className="font-semibold text-red-300">{t("invalidTitle")}</h2>
         <p className="text-sm text-gray-400">{t("invalidDesc")}</p>
@@ -297,19 +423,21 @@ export function ScanResult({ scan, domain }: { scan: Scan; domain?: string }) {
           </div>
         )}
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             {scan.status !== "COMPLETED" && (
               <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge[scan.status]}`}>
                 {scan.status}
               </span>
             )}
-            <span className={`text-xs px-2 py-0.5 rounded-full ${
-              scan.type === "COMPLETE"
-                ? "bg-violet-900/40 text-violet-300"
-                : "bg-gray-800 text-gray-400"
-            }`}>
-              {scan.type === "COMPLETE" ? t("scanTypeBadge") : t("scanTypeBasicBadge")}
-            </span>
+            <ScanTypeBadge type={scan.type} t={t} />
+            {scan.status === "COMPLETED" && projectId && (
+              <a
+                href={`/dashboard/projects/${projectId}/scans/${scan.id}/certificate`}
+                className="text-xs px-2 py-0.5 rounded-full border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200 transition-colors"
+              >
+                {t("certificate")}
+              </a>
+            )}
           </div>
           <p className="text-sm text-gray-400">
             {t("started", { date: new Date(scan.startedAt).toLocaleString() })}
@@ -324,6 +452,10 @@ export function ScanResult({ scan, domain }: { scan: Scan; domain?: string }) {
           )}
         </div>
       </div>
+
+      {scan.status === "COMPLETED" && (
+        <CategoryBreakdownSection scan={scan} t={t} />
+      )}
 
       {scan.findings.length > 0 && (
         <div className="space-y-4">

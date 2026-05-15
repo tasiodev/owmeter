@@ -2,7 +2,7 @@ import type { OWASPCategoryId } from "../value-objects/OWASPCategory";
 import type { Severity } from "../value-objects/Severity";
 
 export type ScanStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "INVALID";
-export type ScanType = "BASIC" | "COMPLETE";
+export type ScanType = "PASSIVE" | "FULL" | "CODE";
 
 export interface Finding {
   id: string;
@@ -17,7 +17,7 @@ export interface Finding {
 
 export interface Scan {
   id: string;
-  websiteId: string;
+  projectId: string;
   status: ScanStatus;
   type: ScanType;
   score: number | null;

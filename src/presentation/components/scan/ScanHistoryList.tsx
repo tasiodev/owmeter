@@ -18,11 +18,11 @@ function scoreColor(pct: number | null) {
 
 export async function ScanHistoryList({
   scans,
-  websiteId,
+  projectId,
   activeScanId,
 }: {
   scans: Scan[];
-  websiteId: string;
+  projectId: string;
   activeScanId?: string;
 }) {
   if (scans.length === 0) return null;
@@ -43,7 +43,7 @@ export async function ScanHistoryList({
           return (
             <li key={scan.id}>
               <Link
-                href={`/dashboard/websites/${websiteId}/scans/${scan.id}`}
+                href={`/dashboard/projects/${projectId}/scans/${scan.id}`}
                 className={`flex items-center justify-between rounded-xl border px-4 py-3 transition-colors ${
                   isActive
                     ? "border-gray-600 bg-gray-800/60"
@@ -58,11 +58,13 @@ export async function ScanHistoryList({
                       </span>
                     )}
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      scan.type === "COMPLETE"
+                      scan.type === "FULL"
                         ? "bg-violet-900/40 text-violet-300"
+                        : scan.type === "CODE"
+                        ? "bg-purple-900/40 text-purple-300"
                         : "bg-gray-800 text-gray-400"
                     }`}>
-                      {scan.type === "COMPLETE" ? t("scanTypeBadge") : t("scanTypeBasicBadge")}
+                      {scan.type === "FULL" ? t("scanTypeFULLBadge") : scan.type === "CODE" ? t("scanTypeCODEBadge") : t("scanTypePASSIVEBadge")}
                     </span>
                     {(scan.status === "RUNNING" || scan.status === "PENDING" || scan.status === "FAILED") && (
                       <span
