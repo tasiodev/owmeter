@@ -74,6 +74,9 @@ END $$;
 DROP TABLE IF EXISTS "Website";
 
 -- 9. Finalize ScanType enum (ScanType_old exists when partial commit occurred)
+-- NOTE: SET DEFAULT 'PASSIVE' is intentionally omitted here because PostgreSQL
+-- forbids using a newly-added enum value in the same transaction. It is applied
+-- in the following migration once the new values are committed.
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ScanType_old') THEN
     ALTER TABLE "Scan" ALTER COLUMN "type" DROP DEFAULT;
@@ -82,9 +85,6 @@ DO $$ BEGIN
     EXCEPTION WHEN duplicate_object THEN NULL;
     END;
     ALTER TABLE "Scan" ALTER COLUMN "type" TYPE "ScanType" USING "type"::text::"ScanType";
-    ALTER TABLE "Scan" ALTER COLUMN "type" SET DEFAULT 'PASSIVE'::"ScanType";
     DROP TYPE "ScanType_old";
-  ELSE
-    ALTER TABLE "Scan" ALTER COLUMN "type" SET DEFAULT 'PASSIVE'::"ScanType";
   END IF;
 END $$;
