@@ -5,7 +5,7 @@ import type { Severity } from "@/domain/value-objects/Severity";
 
 const logger = pino({ name: "ZapClient" });
 
-const ZAP_URL = process.env.ZAP_URL ?? "http://localhost:8080";
+const ZAP_URL = process.env.ZAP_URL ?? "http://localhost:8050";
 const ZAP_API_KEY = process.env.ZAP_API_KEY ?? "changeme";
 
 interface ZapAlert {

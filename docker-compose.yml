@@ -7,7 +7,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-owmeter}:${POSTGRES_PASSWORD:-owmeter}@db:5432/${POSTGRES_DB:-owmeter}
       REDIS_URL: redis://redis:6379
-      ZAP_URL: http://zap:8080
+      ZAP_URL: http://zap:8050
       ZAP_API_KEY: ${ZAP_API_KEY:-changeme}
       AUTH_SECRET: ${AUTH_SECRET}
       AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID}
@@ -58,10 +58,10 @@ services:
     image: ghcr.io/zaproxy/zaproxy:stable
     restart: unless-stopped
     ports:
-      - "8080:8080"
-    command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.key=${ZAP_API_KEY:-changeme} -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
+      - "8050:8050"
+    command: zap.sh -daemon -host 0.0.0.0 -port 8050 -config api.key=${ZAP_API_KEY:-changeme} -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/JSON/core/view/version/?apikey=${ZAP_API_KEY:-changeme} || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8050/JSON/core/view/version/?apikey=${ZAP_API_KEY:-changeme} || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 10
