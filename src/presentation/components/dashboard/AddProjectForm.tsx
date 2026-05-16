@@ -64,14 +64,14 @@ export function AddProjectForm() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             onClick={() => { setProjectType("WEBSITE"); setStep("details"); }}
-            className="rounded-xl border border-gray-700 p-4 text-left space-y-1 hover:border-emerald-600 hover:bg-emerald-950/20 transition-colors"
+            className="cursor-pointer rounded-xl border border-gray-700 p-4 text-left space-y-1 hover:border-emerald-600 hover:bg-emerald-950/20 transition-colors"
           >
             <p className="text-sm font-medium text-gray-200">{t("typeWebsite")}</p>
             <p className="text-xs text-gray-500">{t("typeWebsiteDesc")}</p>
           </button>
           <button
             onClick={() => { setProjectType("CODE_REPO"); setStep("details"); }}
-            className="rounded-xl border border-gray-700 p-4 text-left space-y-1 hover:border-emerald-600 hover:bg-emerald-950/20 transition-colors"
+            className="cursor-pointer rounded-xl border border-gray-700 p-4 text-left space-y-1 hover:border-emerald-600 hover:bg-emerald-950/20 transition-colors"
           >
             <p className="text-sm font-medium text-gray-200">{t("typeCodeRepo")}</p>
             <p className="text-xs text-gray-500">{t("typeCodeRepoDesc")}</p>
@@ -85,7 +85,7 @@ export function AddProjectForm() {
     <div className="space-y-3">
       <button
         onClick={() => { setStep("type"); setError(null); }}
-        className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+        className="cursor-pointer text-xs text-gray-500 hover:text-gray-300 transition-colors"
       >
         ← {t("changeType")}
       </button>
