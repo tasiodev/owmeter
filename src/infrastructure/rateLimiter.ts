@@ -4,7 +4,7 @@ let _redis: IORedis | null = null;
 
 function getRedis(): IORedis {
   if (!_redis) {
-    _redis = new IORedis(process.env.REDIS_URL ?? "redis://localhost:6379", {
+    _redis = new IORedis(process.env.REDIS_URL ?? "redis://localhost:6380", {
       maxRetriesPerRequest: null,
     });
   }

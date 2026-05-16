@@ -72,7 +72,7 @@ export function deduplicateFindings(findings: RawFinding[]): RawFinding[] {
 // ─── Redis / Queue ────────────────────────────────────────────────────────────
 
 function getRedisConnection() {
-  return new IORedis(process.env.REDIS_URL ?? "redis://localhost:6379", {
+  return new IORedis(process.env.REDIS_URL ?? "redis://localhost:6380", {
     maxRetriesPerRequest: null,
   });
 }

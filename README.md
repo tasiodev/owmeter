@@ -80,7 +80,7 @@ Open `.env` and fill in the values:
 | `AUTH_GOOGLE_SECRET` | Google OAuth client secret |
 | `AUTH_GITHUB_ID` | GitHub OAuth App client ID |
 | `AUTH_GITHUB_SECRET` | GitHub OAuth App client secret |
-| `REDIS_URL` | Redis connection string — `redis://localhost:6379` by default |
+| `REDIS_URL` | Redis connection string — `redis://localhost:6380` by default |
 | `ZAP_API_KEY` | API key for the ZAP container — set a strong value in production |
 | `ZAP_URL` | ZAP daemon URL — `http://localhost:8080` by default |
 | `NEXT_PUBLIC_APP_URL` | Public base URL of the app (used in verification tokens and OAuth callbacks) |
@@ -96,7 +96,7 @@ Open `.env` and fill in the values:
 docker compose up -d
 ```
 
-This starts PostgreSQL (port 5432), Redis (port 6379), and OWASP ZAP (port 8080). ZAP takes ~30 seconds to initialize — wait until `docker compose ps` shows all containers as healthy before continuing.
+This starts PostgreSQL (port 5432), Redis (port 6380), and OWASP ZAP (port 8080). ZAP takes ~30 seconds to initialize — wait until `docker compose ps` shows all containers as healthy before continuing.
 
 ### 4. Run database migrations
 
