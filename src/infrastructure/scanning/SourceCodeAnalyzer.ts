@@ -130,6 +130,13 @@ const PATTERNS: SASTPattern[] = [
     title: "JWT 'none' algorithm allowed",
     description: "Accepting the 'none' JWT algorithm allows tokens to be forged without a valid signature.",
   },
+  {
+    regex: /(?:localStorage|sessionStorage)\.setItem\s*\(\s*['"][^'"]*(?:token|auth|jwt|session|credential|api.?key|password)[^'"]*['"]/gi,
+    category: "A02_CRYPTOGRAPHIC_FAILURES",
+    severity: "HIGH",
+    title: "Sensitive token stored in web storage",
+    description: "localStorage and sessionStorage are readable by any JavaScript on the page. Tokens or credentials stored here can be stolen via XSS. Use HttpOnly cookies instead.",
+  },
 
   // A04 Insecure Design
   {

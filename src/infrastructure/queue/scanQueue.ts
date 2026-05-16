@@ -1,5 +1,6 @@
 import { Queue, Worker, type Job } from "bullmq";
 import IORedis from "ioredis";
+import pino from "pino";
 import { runPassiveAnalysis } from "@/infrastructure/scanning/PassiveAnalyzer";
 import { runZapActiveScan } from "@/infrastructure/scanning/ZapClient";
 import { calculateScore } from "@/domain/services/ScoringService";
@@ -7,6 +8,22 @@ import type { RawFinding, ScanMode } from "@/domain/services/ScoringService";
 import { runSourceCodeAnalysis } from "@/infrastructure/scanning/SourceCodeAnalyzer";
 import { fetchRepoAsZip } from "@/infrastructure/scanning/RepoFetcher";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
+
+const logger = pino({ name: "ScanWorker" });
+
+async function assertReachable(targetUrl: string): Promise<void> {
+  try {
+    await fetch(targetUrl, {
+      method: "HEAD",
+      redirect: "follow",
+      signal: AbortSignal.timeout(10000),
+    });
+    // Any HTTP response (even 4xx/5xx) means the server is alive
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : "connection refused";
+    throw new Error(`Target ${targetUrl} is not reachable: ${reason}`);
+  }
+}
 
 // ─── Job data types ───────────────────────────────────────────────────────────
 
@@ -93,6 +110,25 @@ export function createScanWorker(): Worker<ScanJobData> {
         } else {
           // Passive or Full scan for WEBSITE projects
           const { targetUrl } = job.data;
+
+          await assertReachable(targetUrl).catch((err: unknown) => {
+            const reason = err instanceof Error ? err.message : "unreachable";
+            logger.error({ scanId, targetUrl, reason }, "Target not reachable — aborting scan");
+            throw err;
+          });
+
+          // For FULL scans: fetch repo ZIP before running website analysis so an
+          // inaccessible repo fails fast rather than after wasting ZAP scan time.
+          let repoZip: Uint8Array | undefined;
+          if (job.data.type === "FULL") {
+            const { repoUrl } = job.data;
+            repoZip = await fetchRepoAsZip(repoUrl).catch((err: unknown) => {
+              const reason = err instanceof Error ? err.message : "unknown";
+              logger.error({ scanId, repoUrl, reason }, "Repo not accessible — aborting scan");
+              throw err;
+            });
+          }
+
           const [passiveFindings, zapFindings] = await Promise.all([
             runPassiveAnalysis(targetUrl),
             runZapActiveScan(targetUrl),
@@ -100,9 +136,8 @@ export function createScanWorker(): Worker<ScanJobData> {
 
           const combined: RawFinding[] = [...passiveFindings, ...zapFindings];
 
-          if (job.data.type === "FULL") {
-            const zipBuffer = await fetchRepoAsZip(job.data.repoUrl);
-            const sastFindings = await runSourceCodeAnalysis(zipBuffer);
+          if (job.data.type === "FULL" && repoZip) {
+            const sastFindings = await runSourceCodeAnalysis(repoZip);
             combined.push(...sastFindings);
             scanMode = "FULL";
           } else {
@@ -115,7 +150,8 @@ export function createScanWorker(): Worker<ScanJobData> {
         const { score, maxScore, findings: scoredFindings } = calculateScore(allRawFindings, scanMode);
         await repo.complete(scanId, score, maxScore, scoredFindings);
       } catch (err) {
-        await repo.updateStatus(scanId, "FAILED");
+        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+        await repo.updateStatus(scanId, "FAILED", errorMessage);
         throw err;
       }
     },

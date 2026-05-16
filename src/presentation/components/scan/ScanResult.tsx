@@ -373,7 +373,9 @@ function CategoryBreakdownSection({
                     <p className="text-xs text-gray-600 mt-0.5">{naReason}</p>
                   )}
                   {state === "partial" && (
-                    <p className="text-xs text-blue-300/70 mt-0.5">{t("partialEvaluatedDesc")}</p>
+                    <p className="text-xs text-blue-300/70 mt-0.5">
+                      {t((`partialNotes.${scan.type}_${id}`) as Parameters<typeof t>[0])}
+                    </p>
                   )}
                 </div>
                 {state === "na" && (
@@ -431,6 +433,27 @@ export function ScanResult({ scan, domain, projectId }: { scan: Scan; domain?: s
     const interval = setInterval(() => router.refresh(), 5000);
     return () => clearInterval(interval);
   }, [scan.status, router]);
+
+  if (scan.status === "FAILED") {
+    return (
+      <div className="rounded-xl border border-red-800 bg-red-950/30 p-6 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/60 text-red-400">FAILED</span>
+          <ScanTypeBadge type={scan.type} t={t} />
+        </div>
+        <h2 className="font-semibold text-red-300">{t("failedTitle")}</h2>
+        <p className="text-sm text-gray-400">{t("failedDesc")}</p>
+        {scan.errorMessage && (
+          <div className="space-y-1">
+            <p className="text-xs text-gray-500">{t("failedErrorLabel")}</p>
+            <pre className="text-xs text-red-400/80 bg-gray-900 rounded p-2 whitespace-pre-wrap break-all">
+              {scan.errorMessage}
+            </pre>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (scan.status === "INVALID") {
     return (

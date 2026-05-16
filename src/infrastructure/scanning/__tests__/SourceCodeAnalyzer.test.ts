@@ -170,6 +170,36 @@ describe("runSourceCodeAnalysis", () => {
     expect(findings.some((f) => f.title.includes("Hardcoded password"))).toBe(true);
   });
 
+  it("detects localStorage.setItem with token key → A02_CRYPTOGRAPHIC_FAILURES HIGH", async () => {
+    const zip = makeZip({
+      "auth.ts": "localStorage.setItem('access_token', response.token);",
+    });
+    const findings = await runSourceCodeAnalysis(zip);
+    const f = findings.find((f) => f.title.includes("web storage"));
+    expect(f).toBeDefined();
+    expect(f?.category).toBe("A02_CRYPTOGRAPHIC_FAILURES");
+    expect(f?.severity).toBe("HIGH");
+  });
+
+  it("detects sessionStorage.setItem with jwt key → A02_CRYPTOGRAPHIC_FAILURES HIGH", async () => {
+    const zip = makeZip({
+      "session.ts": "sessionStorage.setItem('jwt', token);",
+    });
+    const findings = await runSourceCodeAnalysis(zip);
+    const f = findings.find((f) => f.title.includes("web storage"));
+    expect(f).toBeDefined();
+    expect(f?.category).toBe("A02_CRYPTOGRAPHIC_FAILURES");
+  });
+
+  it("does not flag localStorage.setItem with non-sensitive key", async () => {
+    const zip = makeZip({
+      "ui.ts": "localStorage.setItem('theme', 'dark');",
+    });
+    const findings = await runSourceCodeAnalysis(zip);
+    const f = findings.find((f) => f.title.includes("web storage"));
+    expect(f).toBeUndefined();
+  });
+
   it("detects vulnerable dependency → A06_VULNERABLE_COMPONENTS", async () => {
     const zip = makeZip({
       "package.json": JSON.stringify({

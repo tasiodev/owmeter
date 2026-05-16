@@ -128,14 +128,12 @@ describe("runPassiveAnalysis", () => {
     expect(cookieFinding?.category).toBe("A07_AUTH_FAILURES");
   });
 
-  it("reports CRITICAL finding when target URL is unreachable", async () => {
+  it("throws when target URL is unreachable", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ECONNREFUSED")));
 
-    const findings = await runPassiveAnalysis("https://unreachable.example.com");
-
-    expect(findings).toHaveLength(1);
-    expect(findings[0].severity).toBe("CRITICAL");
-    expect(findings[0].category).toBe("A05_SECURITY_MISCONFIGURATION");
+    await expect(runPassiveAnalysis("https://unreachable.example.com")).rejects.toThrow(
+      "Target https://unreachable.example.com is not reachable"
+    );
   });
 
   it("returns an array (even if empty) on success", async () => {

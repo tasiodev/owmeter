@@ -136,8 +136,15 @@ export class PrismaScanRepository implements IScanRepository {
     return toScan(r);
   }
 
-  async updateStatus(id: string, status: ScanStatus): Promise<void> {
-    await prisma.scan.update({ where: { id }, data: { status } });
+  async updateStatus(id: string, status: ScanStatus, errorMessage?: string): Promise<void> {
+    await prisma.scan.update({
+      where: { id },
+      data: {
+        status,
+        ...(errorMessage !== undefined && { errorMessage }),
+        ...(status === "FAILED" && { completedAt: new Date() }),
+      },
+    });
   }
 
   async invalidate(id: string, errorMessage: string): Promise<void> {

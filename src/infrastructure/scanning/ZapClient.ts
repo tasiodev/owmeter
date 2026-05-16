@@ -1,6 +1,9 @@
+import pino from "pino";
 import type { RawFinding } from "@/domain/services/ScoringService";
 import type { OWASPCategoryId } from "@/domain/value-objects/OWASPCategory";
 import type { Severity } from "@/domain/value-objects/Severity";
+
+const logger = pino({ name: "ZapClient" });
 
 const ZAP_URL = process.env.ZAP_URL ?? "http://localhost:8080";
 const ZAP_API_KEY = process.env.ZAP_API_KEY ?? "changeme";
@@ -84,34 +87,79 @@ function resolveZapTargetUrl(targetUrl: string): string {
 
 export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]> {
   const zapTargetUrl = resolveZapTargetUrl(targetUrl);
+  logger.info({ targetUrl, zapTargetUrl }, "ZAP scan starting");
 
   // 1. Spider the target
-  const spiderRes = await zapGet<{ scan: string }>("spider/action/scan", { url: zapTargetUrl, maxChildren: "3" });
+  const spiderRes = await zapGet<{ scan: string }>("spider/action/scan", {
+    url: zapTargetUrl,
+    maxChildren: "10",
+    maxDuration: "2", // minutes; prevents runaway crawls
+  });
   const spiderId = spiderRes.scan;
+  logger.info({ spiderId }, "Spider started");
 
   await pollUntilComplete(async () => {
     const status = await zapGet<{ status: string }>("spider/view/status", { scanId: spiderId });
-    return parseInt(status.status, 10);
+    const pct = parseInt(status.status, 10);
+    logger.info({ spiderId, pct }, "Spider progress");
+    return pct;
   });
 
-  // 2. Active scan
+  const spiderResults = await zapGet<{ results: string[] }>("spider/view/results", { scanId: spiderId });
+  const discoveredUrls = spiderResults.results ?? [];
+  logger.info(
+    { urlCount: discoveredUrls.length, urls: discoveredUrls },
+    "Spider complete — URLs discovered"
+  );
+
+  // 2. Log which active scan rules are enabled (shows injection, XSS, etc.)
+  const scannersRes = await zapGet<{ scanners: Array<{ id: string; name: string; enabled: string; attackStrength: string }> }>(
+    "ascan/view/scanners"
+  );
+  const enabledScanners = (scannersRes.scanners ?? []).filter((s) => s.enabled === "true");
+  logger.info(
+    {
+      totalEnabled: enabledScanners.length,
+      scanners: enabledScanners.map((s) => ({ id: s.id, name: s.name, strength: s.attackStrength })),
+    },
+    "Active scan rules enabled"
+  );
+
+  // 3. Active scan
   const scanRes = await zapGet<{ scan: string }>("ascan/action/scan", {
     url: zapTargetUrl,
     recurse: "true",
     inScopeOnly: "true",
   });
   const scanId = scanRes.scan;
+  logger.info({ scanId }, "Active scan started");
 
   await pollUntilComplete(async () => {
     const status = await zapGet<{ status: string }>("ascan/view/status", { scanId });
-    return parseInt(status.status, 10);
+    const pct = parseInt(status.status, 10);
+    logger.info({ scanId, pct }, "Active scan progress");
+    return pct;
   });
+  logger.info({ scanId }, "Active scan complete");
 
-  // 3. Get alerts
+  // 4. Get alerts
   const alertsRes = await zapGet<{ alerts: ZapAlert[] }>("core/view/alerts", { baseurl: zapTargetUrl });
   const alerts = alertsRes.alerts ?? [];
+  logger.info(
+    {
+      rawAlertCount: alerts.length,
+      alerts: alerts.map((a) => ({
+        alert: a.alert,
+        risk: a.risk,
+        cweid: a.cweid,
+        wascid: a.wascid,
+        url: a.url,
+      })),
+    },
+    "Raw ZAP alerts retrieved"
+  );
 
-  // 4. Clean up context
+  // 5. Clean up context
   await zapGet("core/action/deleteAllAlerts").catch(() => {});
 
   const targetHost = new URL(zapTargetUrl).hostname;
@@ -157,7 +205,11 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
   const byAlert = new Map<string, { alert: ZapAlert; urls: string[] }>();
   for (const a of alerts) {
     if (a.risk.toLowerCase() === "informational" && !a.cweid) continue;
-    if (isFalsePositive(a)) continue;
+    const fp = isFalsePositive(a);
+    if (fp) {
+      logger.debug({ alert: a.alert, url: a.url }, "Filtered as false positive");
+      continue;
+    }
     const existing = byAlert.get(a.alert);
     if (!existing) {
       byAlert.set(a.alert, { alert: a, urls: [a.url].filter(Boolean) });
@@ -173,11 +225,25 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
     }
   }
 
-  return Array.from(byAlert.values()).map(({ alert: a, urls }): RawFinding => ({
+  const findings = Array.from(byAlert.values()).map(({ alert: a, urls }): RawFinding => ({
     category: mapToOWASPCategory(a.cweid, a.wascid, a.alert),
     severity: zapRiskToSeverity(a.risk),
     title: a.alert,
     description: a.description,
     evidence: buildEvidence(a.evidence, urls),
   }));
+
+  logger.info(
+    {
+      findingCount: findings.length,
+      findings: findings.map((f) => ({
+        title: f.title,
+        severity: f.severity,
+        category: f.category,
+      })),
+    },
+    "ZAP scan finished — findings mapped"
+  );
+
+  return findings;
 }

@@ -68,14 +68,22 @@ export const MAX_SCORE = 100;
 // Scan mode reflects what analysis was performed
 export type ScanMode = "PASSIVE" | "FULL" | "CODE";
 
-// Categories not evaluated in PASSIVE/FULL mode without source code
+// Categories not evaluated in PASSIVE mode (domain + ZAP only, no source code).
 export const PASSIVE_UNEVALUATED: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
-  "A03_INJECTION",               // meaningful detection requires code (ZAP coverage too shallow)
   "A04_INSECURE_DESIGN",         // requires architecture/code review
   "A06_VULNERABLE_COMPONENTS",   // requires dependency manifests (package.json, etc.)
   "A08_DATA_INTEGRITY_FAILURES", // requires code/CI analysis
   "A09_LOGGING_FAILURES",        // requires code/system access
-  "A10_SSRF",                    // meaningful detection requires code (ZAP coverage too shallow)
+]);
+
+// Categories only PARTIALLY evaluable in PASSIVE mode (domain + ZAP, no source code).
+// ZAP and PassiveAnalyzer cover the externally visible surface; code is needed to close the gaps.
+export const PASSIVE_PARTIAL: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
+  "A01_BROKEN_ACCESS_CONTROL",  // ZAP: path traversal + 6 sensitive paths; code: RBAC, auth middleware, IDOR
+  "A02_CRYPTOGRAPHIC_FAILURES", // ZAP+passive: HTTPS/HSTS/TLS/Secure-cookie; code: MD5/SHA-1/JWT algo choice
+  "A03_INJECTION",              // ZAP: SQL/XSS payloads on public endpoints; code: parameterized queries everywhere
+  "A07_AUTH_FAILURES",          // passive: cookie flags; ZAP: brute-force/session; code: JWT secret, bcrypt
+  "A10_SSRF",                   // ZAP: probes on discovered inputs; code: all internal URL fetches
 ]);
 
 // A05 checks HTTP headers, SSL certs, and server config — impossible to verify from source code alone
@@ -84,17 +92,21 @@ export const CODE_UNEVALUATED: ReadonlySet<OWASPCategoryId> = new Set<OWASPCateg
 ]);
 
 // These categories are only PARTIALLY evaluable from source code alone.
-// The code-checkable aspects (crypto algorithms, auth logic) are covered, but
-// the server-side aspects (TLS config, cookie flags in HTTP responses) require a live domain.
+// The code-checkable aspects are covered, but server-side runtime checks require a live domain.
 export const CODE_PARTIAL: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
-  "A02_CRYPTOGRAPHIC_FAILURES", // code: weak crypto, hardcoded secrets; server: TLS/HTTPS config
+  "A01_BROKEN_ACCESS_CONTROL",  // code: CORS wildcard patterns only; runtime: path traversal, IDOR, missing auth
+  "A02_CRYPTOGRAPHIC_FAILURES", // code: weak crypto, hardcoded secrets, web storage tokens; server: TLS/HTTPS config
   "A07_AUTH_FAILURES",          // code: auth logic, password hashing; server: cookie flags (HttpOnly, Secure, SameSite)
 ]);
 
 export type EvaluationLevel = "full" | "partial" | "none";
 
 export function evaluationLevel(category: OWASPCategoryId, mode: ScanMode): EvaluationLevel {
-  if (mode === "PASSIVE") return PASSIVE_UNEVALUATED.has(category) ? "none" : "full";
+  if (mode === "PASSIVE") {
+    if (PASSIVE_UNEVALUATED.has(category)) return "none";
+    if (PASSIVE_PARTIAL.has(category)) return "partial";
+    return "full";
+  }
   if (mode === "CODE") {
     if (CODE_UNEVALUATED.has(category)) return "none";
     if (CODE_PARTIAL.has(category)) return "partial";

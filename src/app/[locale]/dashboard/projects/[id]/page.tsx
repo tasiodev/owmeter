@@ -155,6 +155,16 @@ export default async function ProjectDetailPage({
                     {ts("verifiedOn", { date: new Date(project.verifiedAt!).toLocaleDateString() })}
                   </span>
                 )}
+                {project.verified && project.domain && (
+                  <a
+                    href={resolveBaseUrl(project.domain)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    {project.domain}
+                  </a>
+                )}
               </div>
 
               {!project.verified && (

@@ -231,13 +231,7 @@ export async function runPassiveAnalysis(targetUrl: string): Promise<RawFinding[
     const result = await fetchWithRedirect(targetUrl);
     headers = result.headers;
   } catch (err) {
-    findings.push({
-      category: "A05_SECURITY_MISCONFIGURATION",
-      severity: "CRITICAL",
-      title: "Target URL not reachable",
-      description: `Could not connect to ${targetUrl}: ${err instanceof Error ? err.message : "unknown error"}`,
-    });
-    return findings;
+    throw new Error(`Target ${targetUrl} is not reachable: ${err instanceof Error ? err.message : "connection refused"}`);
   }
 
   // Security headers

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { OWASP_CATEGORIES, PASSIVE_UNEVALUATED, CODE_UNEVALUATED, isEvaluated, MAX_SCORE } from "../OWASPCategory";
+import { OWASP_CATEGORIES, PASSIVE_UNEVALUATED, PASSIVE_PARTIAL, CODE_UNEVALUATED, CODE_PARTIAL, isEvaluated, evaluationLevel, MAX_SCORE } from "../OWASPCategory";
 
 describe("OWASP_CATEGORIES", () => {
   it("has all 10 categories", () => {
@@ -29,46 +29,77 @@ describe("OWASP_CATEGORIES", () => {
   });
 });
 
-describe("isEvaluated", () => {
-  it("PASSIVE_UNEVALUATED categories return false in PASSIVE mode", () => {
+describe("evaluationLevel — PASSIVE mode", () => {
+  it("PASSIVE_UNEVALUATED categories return 'none'", () => {
     for (const id of PASSIVE_UNEVALUATED) {
+      expect(evaluationLevel(id, "PASSIVE")).toBe("none");
       expect(isEvaluated(id, "PASSIVE")).toBe(false);
     }
   });
 
-  it("header/server categories are evaluated in PASSIVE mode", () => {
-    expect(isEvaluated("A01_BROKEN_ACCESS_CONTROL", "PASSIVE")).toBe(true);
-    expect(isEvaluated("A02_CRYPTOGRAPHIC_FAILURES", "PASSIVE")).toBe(true);
-    expect(isEvaluated("A05_SECURITY_MISCONFIGURATION", "PASSIVE")).toBe(true);
-    expect(isEvaluated("A07_AUTH_FAILURES", "PASSIVE")).toBe(true);
-  });
-
-  it("code-dependent categories are not evaluated in PASSIVE mode", () => {
-    expect(isEvaluated("A03_INJECTION", "PASSIVE")).toBe(false);
-    expect(isEvaluated("A06_VULNERABLE_COMPONENTS", "PASSIVE")).toBe(false);
-    expect(isEvaluated("A10_SSRF", "PASSIVE")).toBe(false);
-  });
-
-  it("all categories return true in FULL mode", () => {
-    for (const id of Object.keys(OWASP_CATEGORIES) as (keyof typeof OWASP_CATEGORIES)[]) {
-      expect(isEvaluated(id, "FULL")).toBe(true);
+  it("PASSIVE_PARTIAL categories return 'partial' and count as evaluated", () => {
+    for (const id of PASSIVE_PARTIAL) {
+      expect(evaluationLevel(id, "PASSIVE")).toBe("partial");
+      expect(isEvaluated(id, "PASSIVE")).toBe(true);
     }
   });
 
-  it("CODE_UNEVALUATED categories return false in CODE mode", () => {
+  it("A01/A02/A03/A07/A10 are partial — ZAP covers public surface, code covers the rest", () => {
+    expect(evaluationLevel("A01_BROKEN_ACCESS_CONTROL", "PASSIVE")).toBe("partial");
+    expect(evaluationLevel("A02_CRYPTOGRAPHIC_FAILURES", "PASSIVE")).toBe("partial");
+    expect(evaluationLevel("A03_INJECTION", "PASSIVE")).toBe("partial");
+    expect(evaluationLevel("A07_AUTH_FAILURES", "PASSIVE")).toBe("partial");
+    expect(evaluationLevel("A10_SSRF", "PASSIVE")).toBe("partial");
+  });
+
+  it("A05 is fully evaluated in PASSIVE mode — server config is entirely externally visible", () => {
+    expect(evaluationLevel("A05_SECURITY_MISCONFIGURATION", "PASSIVE")).toBe("full");
+  });
+
+  it("source-code-only categories are not evaluated", () => {
+    expect(isEvaluated("A04_INSECURE_DESIGN", "PASSIVE")).toBe(false);
+    expect(isEvaluated("A06_VULNERABLE_COMPONENTS", "PASSIVE")).toBe(false);
+    expect(isEvaluated("A08_DATA_INTEGRITY_FAILURES", "PASSIVE")).toBe(false);
+    expect(isEvaluated("A09_LOGGING_FAILURES", "PASSIVE")).toBe(false);
+  });
+});
+
+describe("evaluationLevel — FULL mode", () => {
+  it("all categories are evaluated", () => {
+    for (const id of Object.keys(OWASP_CATEGORIES) as (keyof typeof OWASP_CATEGORIES)[]) {
+      expect(isEvaluated(id, "FULL")).toBe(true);
+      expect(evaluationLevel(id, "FULL")).toBe("full");
+    }
+  });
+});
+
+describe("evaluationLevel — CODE mode", () => {
+  it("CODE_UNEVALUATED categories return 'none'", () => {
     for (const id of CODE_UNEVALUATED) {
       expect(isEvaluated(id, "CODE")).toBe(false);
     }
   });
 
-  it("A05 is not evaluated in CODE mode (requires live server)", () => {
-    expect(isEvaluated("A05_SECURITY_MISCONFIGURATION", "CODE")).toBe(false);
+  it("A05 is not evaluated in CODE mode — requires live server", () => {
+    expect(evaluationLevel("A05_SECURITY_MISCONFIGURATION", "CODE")).toBe("none");
   });
 
-  it("non-CODE_UNEVALUATED categories return true in CODE mode", () => {
-    expect(isEvaluated("A01_BROKEN_ACCESS_CONTROL", "CODE")).toBe(true);
-    expect(isEvaluated("A03_INJECTION", "CODE")).toBe(true);
-    expect(isEvaluated("A06_VULNERABLE_COMPONENTS", "CODE")).toBe(true);
+  it("CODE_PARTIAL categories return 'partial' and count as evaluated", () => {
+    for (const id of CODE_PARTIAL) {
+      expect(evaluationLevel(id, "CODE")).toBe("partial");
+      expect(isEvaluated(id, "CODE")).toBe(true);
+    }
+  });
+
+  it("A01/A02/A07 are partial in CODE mode — code checks limited patterns, runtime gaps remain", () => {
+    expect(evaluationLevel("A01_BROKEN_ACCESS_CONTROL", "CODE")).toBe("partial");
+    expect(evaluationLevel("A02_CRYPTOGRAPHIC_FAILURES", "CODE")).toBe("partial");
+    expect(evaluationLevel("A07_AUTH_FAILURES", "CODE")).toBe("partial");
+  });
+
+  it("categories not in CODE_UNEVALUATED or CODE_PARTIAL are fully evaluated", () => {
+    expect(evaluationLevel("A03_INJECTION", "CODE")).toBe("full");
+    expect(evaluationLevel("A06_VULNERABLE_COMPONENTS", "CODE")).toBe("full");
   });
 });
 
