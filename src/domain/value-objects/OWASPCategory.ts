@@ -83,8 +83,27 @@ export const CODE_UNEVALUATED: ReadonlySet<OWASPCategoryId> = new Set<OWASPCateg
   "A05_SECURITY_MISCONFIGURATION",
 ]);
 
+// These categories are only PARTIALLY evaluable from source code alone.
+// The code-checkable aspects (crypto algorithms, auth logic) are covered, but
+// the server-side aspects (TLS config, cookie flags in HTTP responses) require a live domain.
+export const CODE_PARTIAL: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
+  "A02_CRYPTOGRAPHIC_FAILURES", // code: weak crypto, hardcoded secrets; server: TLS/HTTPS config
+  "A07_AUTH_FAILURES",          // code: auth logic, password hashing; server: cookie flags (HttpOnly, Secure, SameSite)
+]);
+
+export type EvaluationLevel = "full" | "partial" | "none";
+
+export function evaluationLevel(category: OWASPCategoryId, mode: ScanMode): EvaluationLevel {
+  if (mode === "PASSIVE") return PASSIVE_UNEVALUATED.has(category) ? "none" : "full";
+  if (mode === "CODE") {
+    if (CODE_UNEVALUATED.has(category)) return "none";
+    if (CODE_PARTIAL.has(category)) return "partial";
+    return "full";
+  }
+  return "full"; // FULL covers both passive (server) + code analysis
+}
+
+// partial counts as evaluated for backwards-compat callers
 export function isEvaluated(category: OWASPCategoryId, mode: ScanMode): boolean {
-  if (mode === "PASSIVE") return !PASSIVE_UNEVALUATED.has(category);
-  if (mode === "CODE") return !CODE_UNEVALUATED.has(category);
-  return true; // FULL covers both passive (server) + code analysis
+  return evaluationLevel(category, mode) !== "none";
 }

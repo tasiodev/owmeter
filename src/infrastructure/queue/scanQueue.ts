@@ -5,7 +5,7 @@ import { runZapActiveScan } from "@/infrastructure/scanning/ZapClient";
 import { calculateScore } from "@/domain/services/ScoringService";
 import type { RawFinding, ScanMode } from "@/domain/services/ScoringService";
 import { runSourceCodeAnalysis } from "@/infrastructure/scanning/SourceCodeAnalyzer";
-import { fetchGitHubRepoAsZip } from "@/infrastructure/scanning/GitHubFetcher";
+import { fetchRepoAsZip } from "@/infrastructure/scanning/RepoFetcher";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
 
 // ─── Job data types ───────────────────────────────────────────────────────────
@@ -20,13 +20,13 @@ export type FullScanJobData = {
   scanId: string;
   targetUrl: string;
   type: "FULL";
-  githubUrl: string;
+  repoUrl: string;
 };
 
 export type CodeScanJobData = {
   scanId: string;
   type: "CODE";
-  githubUrl: string;
+  repoUrl: string;
 };
 
 export type ScanJobData = PassiveScanJobData | FullScanJobData | CodeScanJobData;
@@ -87,7 +87,7 @@ export function createScanWorker(): Worker<ScanJobData> {
 
         if (job.data.type === "CODE") {
           // Code-only scan for CODE_REPO projects
-          const zipBuffer = await fetchGitHubRepoAsZip(job.data.githubUrl);
+          const zipBuffer = await fetchRepoAsZip(job.data.repoUrl);
           allRawFindings = deduplicateFindings(await runSourceCodeAnalysis(zipBuffer));
           scanMode = "CODE";
         } else {
@@ -101,7 +101,7 @@ export function createScanWorker(): Worker<ScanJobData> {
           const combined: RawFinding[] = [...passiveFindings, ...zapFindings];
 
           if (job.data.type === "FULL") {
-            const zipBuffer = await fetchGitHubRepoAsZip(job.data.githubUrl);
+            const zipBuffer = await fetchRepoAsZip(job.data.repoUrl);
             const sastFindings = await runSourceCodeAnalysis(zipBuffer);
             combined.push(...sastFindings);
             scanMode = "FULL";

@@ -2,7 +2,20 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import type { Scan } from "@/domain/entities/Scan";
 import type { Severity } from "@/domain/value-objects/Severity";
+import { OWASP_CATEGORIES, evaluationLevel } from "@/domain/value-objects/OWASPCategory";
+import type { OWASPCategoryId, ScanMode } from "@/domain/value-objects/OWASPCategory";
 import { ScanPoller } from "./ScanPoller";
+
+const TOTAL_CATEGORIES = Object.keys(OWASP_CATEGORIES).length;
+
+function evaluationStats(scanType: ScanMode) {
+  const ids = Object.keys(OWASP_CATEGORIES) as OWASPCategoryId[];
+  const levels = ids.map((id) => evaluationLevel(id, scanType));
+  return {
+    evaluated: levels.filter((l) => l !== "none").length,
+    partial: levels.filter((l) => l === "partial").length,
+  };
+}
 
 const SEVERITY_ORDER: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"];
 
@@ -89,8 +102,10 @@ export async function LastScanCard({
   projectId: string;
 }) {
   const t = await getTranslations("site");
+  const ts = await getTranslations("scan");
 
   const isActive = scan.status === "RUNNING" || scan.status === "PENDING";
+  const { evaluated, partial } = evaluationStats(scan.type as ScanMode);
 
   const countBySeverity = SEVERITY_ORDER.reduce<Record<Severity, number>>(
     (acc, s) => ({ ...acc, [s]: scan.findings.filter((f) => f.severity === s).length }),
@@ -131,6 +146,17 @@ export async function LastScanCard({
               {new Date(scan.startedAt).toLocaleString()}
             </p>
           </div>
+
+          {!isActive && (
+            <p className="text-xs text-gray-500">
+              {ts("categoriesEvaluated", { evaluated, total: TOTAL_CATEGORIES })}
+              {partial > 0 && (
+                <span className="text-blue-300/70">
+                  {ts("categoriesPartial", { partial })}
+                </span>
+              )}
+            </p>
+          )}
 
           {isActive ? (
             <p className="text-sm text-blue-400 animate-pulse">{t("scanRunning")}</p>

@@ -11,14 +11,16 @@ const websiteSchema = z.object({
     .min(3)
     .max(253)
     .regex(
-      /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/,
+      /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*(?::\d{1,5})?$/,
       { message: "Invalid domain format" }
     ),
+  isPublic: z.boolean().optional(),
 });
 
 const codeRepoSchema = z.object({
   type: z.literal("CODE_REPO"),
   name: z.string().min(1).max(100),
+  isPublic: z.boolean().optional(),
 });
 
 const schema = z.discriminatedUnion("type", [websiteSchema, codeRepoSchema]);
@@ -62,6 +64,7 @@ export async function POST(req: NextRequest) {
     name: parsed.data.name,
     domain: parsed.data.type === "WEBSITE" ? parsed.data.domain : undefined,
     userId: session.user.id,
+    isPublic: parsed.data.isPublic,
   });
 
   return NextResponse.json(project, { status: 201 });

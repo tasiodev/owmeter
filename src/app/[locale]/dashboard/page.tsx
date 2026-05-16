@@ -5,7 +5,6 @@ import { PrismaProjectRepository } from "@/infrastructure/database/repositories/
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
 import { AddProjectForm } from "@/presentation/components/dashboard/AddProjectForm";
 import type { Scan } from "@/domain/entities/Scan";
-import type { Project } from "@/domain/entities/Project";
 
 function MiniScoreRing({ scan }: { scan: Scan | undefined }) {
   const size = 48;
@@ -46,17 +45,28 @@ function MiniScoreRing({ scan }: { scan: Scan | undefined }) {
   );
 }
 
-function ProjectTypeBadge({ type }: { type: Project["type"] }) {
-  if (type === "CODE_REPO") {
-    return (
-      <span className="text-xs bg-purple-900/40 text-purple-400 px-2 py-0.5 rounded-full">
-        Code
-      </span>
-    );
-  }
+function RepoIcon() {
   return (
-    <span className="text-xs bg-blue-900/40 text-blue-400 px-2 py-0.5 rounded-full">
-      Website
+    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8Z" />
+    </svg>
+  );
+}
+
+function GlobeIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+function ProjectTypeBadge({ label }: { label: string }) {
+  return (
+    <span className="text-xs border border-gray-600 text-gray-400 px-2 py-0.5 rounded-full">
+      {label}
     </span>
   );
 }
@@ -100,17 +110,22 @@ export default async function DashboardPage() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{project.name}</span>
-                    <ProjectTypeBadge type={project.type} />
+                    <ProjectTypeBadge label={t(project.type === "CODE_REPO" ? "typeBadgeCodeRepo" : "typeBadgeWebsite")} />
+                    <span
+                      title={project.repoVerified ? t("repoVerifiedTitle") : t("repoUnverifiedTitle")}
+                      className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${project.repoVerified ? "bg-emerald-900/40 text-emerald-400" : "bg-orange-900/40 text-orange-400"}`}
+                    >
+                      <RepoIcon />
+                      {project.repoVerified ? t("verifiedBadge") : t("unverifiedBadge")}
+                    </span>
                     {project.type === "WEBSITE" && (
-                      project.verified ? (
-                        <span className="text-xs bg-emerald-900/40 text-emerald-400 px-2 py-0.5 rounded-full">
-                          {t("verifiedBadge")}
-                        </span>
-                      ) : (
-                        <span className="text-xs bg-yellow-900/40 text-yellow-400 px-2 py-0.5 rounded-full">
-                          {t("unverifiedBadge")}
-                        </span>
-                      )
+                      <span
+                        title={project.verified ? t("domainVerifiedTitle") : t("domainUnverifiedTitle")}
+                        className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${project.verified ? "bg-emerald-900/40 text-emerald-400" : "bg-orange-900/40 text-orange-400"}`}
+                      >
+                        <GlobeIcon />
+                        {project.verified ? t("verifiedBadge") : t("unverifiedBadge")}
+                      </span>
                     )}
                   </div>
                   {project.domain && (

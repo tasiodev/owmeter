@@ -5,7 +5,8 @@ export interface IProjectRepository {
   findByDomainAndUserId(domain: string, userId: string): Promise<Project | null>;
   findVerifiedByDomain(domain: string): Promise<Project | null>;
   findByUserId(userId: string): Promise<Project[]>;
-  create(data: { type: Project["type"]; name: string; domain?: string; userId: string }): Promise<Project>;
+  create(data: { type: Project["type"]; name: string; domain?: string; userId: string; isPublic?: boolean }): Promise<Project>;
+  updatePrivacy(id: string, isPublic: boolean): Promise<Project>;
   markDomainVerified(id: string, method: VerificationMethod): Promise<Project>;
   markRepoVerified(id: string, repoUrl: string): Promise<Project>;
   findByApiKey(apiKey: string): Promise<Project | null>;

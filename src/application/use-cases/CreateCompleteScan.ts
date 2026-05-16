@@ -1,12 +1,13 @@
 import type { IScanRepository } from "@/domain/repositories/IScanRepository";
 import type { IProjectRepository } from "@/domain/repositories/IProjectRepository";
 import type { Scan } from "@/domain/entities/Scan";
+import { resolveBaseUrl } from "@/domain/entities/Project";
 
 export type FullScanJobData = {
   scanId: string;
   targetUrl: string;
   type: "FULL";
-  githubUrl: string;
+  repoUrl: string;
 };
 
 export class CreateCompleteScanError extends Error {}
@@ -33,9 +34,9 @@ export async function createCompleteScan(
 
   await enqueue({
     scanId: scan.id,
-    targetUrl: `https://${project.domain}`,
+    targetUrl: resolveBaseUrl(project.domain),
     type: "FULL",
-    githubUrl: project.repoUrl,
+    repoUrl: project.repoUrl,
   });
 
   return scan;

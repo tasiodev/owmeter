@@ -9,12 +9,14 @@ type Step = "type" | "details";
 
 export function AddProjectForm() {
   const t = useTranslations("dashboard");
+  const tp = useTranslations("privacy");
   const router = useRouter();
 
   const [step, setStep] = useState<Step>("type");
   const [projectType, setProjectType] = useState<ProjectType>("WEBSITE");
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -26,8 +28,8 @@ export function AddProjectForm() {
     try {
       const body =
         projectType === "WEBSITE"
-          ? { type: "WEBSITE", name: name.trim(), domain: domain.trim().toLowerCase() }
-          : { type: "CODE_REPO", name: name.trim() };
+          ? { type: "WEBSITE", name: name.trim(), domain: domain.trim().toLowerCase(), isPublic }
+          : { type: "CODE_REPO", name: name.trim(), isPublic };
 
       const res = await fetch("/api/projects", {
         method: "POST",
@@ -45,6 +47,7 @@ export function AddProjectForm() {
 
       setName("");
       setDomain("");
+      setIsPublic(true);
       setStep("type");
       router.refresh();
     } catch {
@@ -102,11 +105,29 @@ export function AddProjectForm() {
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
             placeholder={t("domainPlaceholder")}
-            pattern="[a-zA-Z0-9][a-zA-Z0-9\-\.]*[a-zA-Z0-9]"
+            pattern="[a-zA-Z0-9][a-zA-Z0-9\-\.]*[a-zA-Z0-9](:\d{1,5})?"
             required
             className="w-full px-4 py-2.5 rounded-lg bg-gray-900 border border-gray-700 focus:border-emerald-500 focus:outline-none text-sm placeholder-gray-500"
           />
         )}
+        <label className="flex items-start gap-3 cursor-pointer py-1 group">
+          <div className="relative mt-0.5 shrink-0">
+            <input
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => setIsPublic(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-10 h-6 rounded-full bg-gray-700 peer-checked:bg-emerald-600 transition-colors" />
+            <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-4" />
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-sm text-gray-300 group-hover:text-white transition-colors leading-snug">
+              {tp("isPublicLabel")}
+            </p>
+            <p className="text-xs text-gray-500">{tp("isPublicHint")}</p>
+          </div>
+        </label>
         <button
           type="submit"
           disabled={loading}

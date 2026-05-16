@@ -76,6 +76,9 @@ model Project {
   repoVerificationToken    String?  @unique @default(cuid())
   repoVerifiedAt           DateTime?
 
+  // Visibility
+  isPublic  Boolean  @default(true)
+
   // CI/CD integration
   apiKey    String  @unique @default(cuid())
 

@@ -54,7 +54,7 @@ export default async function RankingPage() {
               <li key={entry.id} className="rounded-xl border border-gray-800 p-4 flex items-center gap-4">
                 <span className="text-gray-500 font-mono text-sm w-6 text-right shrink-0">{idx + 1}</span>
                 <div className="flex-1 min-w-0">
-                  <span className="font-medium truncate block">{entry.websiteDomain}</span>
+                  <span className="font-medium truncate block">{entry.projectDomain}</span>
                   <span className="text-xs text-gray-500">
                     {t("scannedOn", { date: new Date(entry.startedAt).toLocaleDateString() })}
                   </span>

@@ -41,90 +41,137 @@ function makeRepo(project: Project | null = makeProject()): IProjectRepository {
   };
 }
 
-const VALID_REPO_URL = "https://github.com/owner/my-lib";
+function stubFetch(ok: boolean, body = "owaspchecker-verify=REPO-TOKEN-XYZ") {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({ ok, text: async () => body })
+  );
+}
 
-describe("verifyRepoOwnership", () => {
+describe("verifyRepoOwnership — access control", () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => vi.unstubAllGlobals());
 
-  it("throws RepoVerificationError when project not found", async () => {
-    const repo = makeRepo(null);
-    await expect(verifyRepoOwnership("proj-1", "user-1", VALID_REPO_URL, repo)).rejects.toThrow(
-      RepoVerificationError
-    );
-  });
-
-  it("throws RepoVerificationError when user does not own the project", async () => {
-    const repo = makeRepo(makeProject({ userId: "other" }));
-    await expect(verifyRepoOwnership("proj-1", "user-1", VALID_REPO_URL, repo)).rejects.toThrow(
-      RepoVerificationError
-    );
-  });
-
-  it("throws RepoVerificationError for invalid GitHub URL", async () => {
-    const repo = makeRepo();
+  it("throws when project not found", async () => {
     await expect(
-      verifyRepoOwnership("proj-1", "user-1", "https://gitlab.com/owner/repo", repo)
+      verifyRepoOwnership("proj-1", "user-1", "https://github.com/owner/repo", makeRepo(null))
     ).rejects.toThrow(RepoVerificationError);
   });
 
-  it("returns the project immediately if already repo-verified", async () => {
-    const verified = makeProject({ repoVerified: true, repoUrl: VALID_REPO_URL });
+  it("throws when user does not own the project", async () => {
+    await expect(
+      verifyRepoOwnership("proj-1", "user-1", "https://github.com/owner/repo", makeRepo(makeProject({ userId: "other" })))
+    ).rejects.toThrow(RepoVerificationError);
+  });
+
+  it("returns project immediately if already repo-verified", async () => {
+    const verified = makeProject({ repoVerified: true, repoUrl: "https://github.com/owner/repo" });
     const repo = makeRepo(verified);
-    const result = await verifyRepoOwnership("proj-1", "user-1", VALID_REPO_URL, repo);
+    const result = await verifyRepoOwnership("proj-1", "user-1", "https://github.com/owner/repo", repo);
     expect(result.repoVerified).toBe(true);
     expect(repo.markRepoVerified).not.toHaveBeenCalled();
   });
 
-  it("marks repo verified when .owaspchecker file contains the correct token", async () => {
-    const repo = makeRepo();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        text: async () => "owaspchecker-verify=REPO-TOKEN-XYZ",
-      })
-    );
+  it("throws for unsupported host", async () => {
+    await expect(
+      verifyRepoOwnership("proj-1", "user-1", "https://codeberg.org/owner/repo", makeRepo())
+    ).rejects.toThrow(RepoVerificationError);
+  });
+});
 
-    const result = await verifyRepoOwnership("proj-1", "user-1", VALID_REPO_URL, repo);
+describe("verifyRepoOwnership — GitHub", () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("marks verified when .owaspchecker has correct token", async () => {
+    const repo = makeRepo();
+    stubFetch(true);
+    const result = await verifyRepoOwnership("proj-1", "user-1", "https://github.com/owner/my-lib", repo);
     expect(result.repoVerified).toBe(true);
-    expect(repo.markRepoVerified).toHaveBeenCalledWith("proj-1", VALID_REPO_URL);
+    expect(repo.markRepoVerified).toHaveBeenCalledWith("proj-1", "https://github.com/owner/my-lib");
   });
 
-  it("throws RepoVerificationError when file has wrong content", async () => {
-    const repo = makeRepo();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        text: async () => "owaspchecker-verify=WRONG-TOKEN",
-      })
-    );
-
-    await expect(verifyRepoOwnership("proj-1", "user-1", VALID_REPO_URL, repo)).rejects.toThrow(
-      RepoVerificationError
-    );
+  it("throws when file has wrong content", async () => {
+    stubFetch(true, "owaspchecker-verify=WRONG");
+    await expect(
+      verifyRepoOwnership("proj-1", "user-1", "https://github.com/owner/repo", makeRepo())
+    ).rejects.toThrow(RepoVerificationError);
   });
 
-  it("throws RepoVerificationError when file not found (404)", async () => {
-    const repo = makeRepo();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
-
-    await expect(verifyRepoOwnership("proj-1", "user-1", VALID_REPO_URL, repo)).rejects.toThrow(
-      RepoVerificationError
-    );
+  it("throws when file not found (404)", async () => {
+    stubFetch(false);
+    await expect(
+      verifyRepoOwnership("proj-1", "user-1", "https://github.com/owner/repo", makeRepo())
+    ).rejects.toThrow(RepoVerificationError);
   });
 
   it("tries both main and master branches", async () => {
-    const repo = makeRepo();
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce({ ok: false }) // main fails
-      .mockResolvedValueOnce({ ok: true, text: async () => "owaspchecker-verify=REPO-TOKEN-XYZ" }); // master succeeds
+      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({ ok: true, text: async () => "owaspchecker-verify=REPO-TOKEN-XYZ" });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await verifyRepoOwnership("proj-1", "user-1", VALID_REPO_URL, repo);
+    const result = await verifyRepoOwnership("proj-1", "user-1", "https://github.com/owner/repo", makeRepo());
     expect(result.repoVerified).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("verifyRepoOwnership — GitLab", () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("marks verified for a gitlab.com repo", async () => {
+    const repo = makeRepo();
+    stubFetch(true);
+    const result = await verifyRepoOwnership("proj-1", "user-1", "https://gitlab.com/owner/my-lib", repo);
+    expect(result.repoVerified).toBe(true);
+    expect(repo.markRepoVerified).toHaveBeenCalledWith("proj-1", "https://gitlab.com/owner/my-lib");
+  });
+
+  it("marks verified for a nested namespace", async () => {
+    stubFetch(true);
+    const result = await verifyRepoOwnership("proj-1", "user-1", "https://gitlab.com/group/subgroup/repo", makeRepo());
+    expect(result.repoVerified).toBe(true);
+  });
+
+  it("uses /-/raw/ URL pattern for the verification fetch", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => "owaspchecker-verify=REPO-TOKEN-XYZ",
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await verifyRepoOwnership("proj-1", "user-1", "https://gitlab.com/owner/repo", makeRepo());
+
+    const calledUrl = fetchMock.mock.calls[0][0] as string;
+    expect(calledUrl).toContain("gitlab.com/owner/repo/-/raw/");
+  });
+});
+
+describe("verifyRepoOwnership — Bitbucket", () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("marks verified for a bitbucket.org repo", async () => {
+    const repo = makeRepo();
+    stubFetch(true);
+    const result = await verifyRepoOwnership("proj-1", "user-1", "https://bitbucket.org/owner/my-lib", repo);
+    expect(result.repoVerified).toBe(true);
+    expect(repo.markRepoVerified).toHaveBeenCalledWith("proj-1", "https://bitbucket.org/owner/my-lib");
+  });
+
+  it("uses /raw/ URL pattern for the verification fetch", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => "owaspchecker-verify=REPO-TOKEN-XYZ",
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await verifyRepoOwnership("proj-1", "user-1", "https://bitbucket.org/owner/repo", makeRepo());
+
+    const calledUrl = fetchMock.mock.calls[0][0] as string;
+    expect(calledUrl).toContain("bitbucket.org/owner/repo/raw/");
   });
 });

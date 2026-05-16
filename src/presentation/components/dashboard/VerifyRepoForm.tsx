@@ -52,7 +52,7 @@ export function VerifyRepoForm({ projectId, token }: Props) {
       <form onSubmit={handleVerify} className="space-y-2">
         <input
           type="url"
-          placeholder="https://github.com/owner/repo"
+          placeholder="https://github.com/owner/repo  or  gitlab.com/…  or  bitbucket.org/…"
           value={repoUrl}
           onChange={(e) => setRepoUrl(e.target.value)}
           required

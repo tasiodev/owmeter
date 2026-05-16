@@ -26,10 +26,11 @@ function CopyButton({ text, label, copiedLabel }: { text: string; label: string;
 
 export function BadgeCard({ projectId }: { projectId: string }) {
   const t = useTranslations("apiKey");
+  const [lang, setLang] = useState<"en" | "es">("en");
 
   const origin = typeof window !== "undefined" ? window.location.origin : "https://owaspchecker.app";
-  const badgeUrl = `${origin}/api/badge/${projectId}`;
-  const badgeMarkdown = `[![OWASP Score](${badgeUrl})](https://owaspchecker.app/dashboard/projects/${projectId})`;
+  const badgeUrl = `${origin}/api/badge/${projectId}?lang=${lang}`;
+  const badgeMarkdown = `![OWASP Score](${badgeUrl})`;
 
   return (
     <div className="rounded-xl border border-gray-800 p-6 space-y-4">
@@ -37,8 +38,29 @@ export function BadgeCard({ projectId }: { projectId: string }) {
         <h2 className="text-base font-semibold text-white">{t("badgeTitle")}</h2>
         <p className="text-sm text-gray-400 mt-1">{t("badgeDescription")}</p>
       </div>
+
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-gray-500">{t("badgeLang")}</span>
+        <div className="flex rounded-lg overflow-hidden border border-gray-700">
+          {(["en", "es"] as const).map((l) => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              className={`px-3 py-1 text-xs font-medium transition-colors ${
+                lang === l
+                  ? "bg-emerald-700 text-white"
+                  : "bg-gray-800 text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              {l.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={badgeUrl} alt="OWASP Score badge preview" className="h-5" />
+      <img key={badgeUrl} src={badgeUrl} alt="OWASP Score badge preview" className="h-10" />
+
       <div className="relative rounded-lg bg-gray-900 border border-gray-800 p-3">
         <code className="text-xs text-gray-300 font-mono break-all pr-16">{badgeMarkdown}</code>
         <div className="absolute top-2 right-2">

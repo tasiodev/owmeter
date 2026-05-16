@@ -16,7 +16,10 @@
     "feature2Title": "Passive + Active Scan",
     "feature2Desc": "We check headers, SSL/TLS, cookie flags, run OWASP ZAP, and optionally analyse your source code.",
     "feature3Title": "Security Score",
-    "feature3Desc": "Get a score out of 100 mapped to all OWASP Top 10 categories, with clear indication of what was checked."
+    "feature3Desc": "Get a score out of 100 mapped to all OWASP Top 10 categories, with clear indication of what was checked.",
+    "showcaseTitle": "Latest secure sites analysed",
+    "showcaseSubtitle": "Sites that reached a perfect OWASP Top 10 score",
+    "showcaseEmpty": "Be the first to reach a perfect score and appear here."
   },
   "login": {
     "title": "Sign in to OwaspChecker",
@@ -33,14 +36,20 @@
     "typeWebsite": "Website",
     "typeWebsiteDesc": "For published websites. Requires domain ownership verification.",
     "typeCodeRepo": "Code Repository",
-    "typeCodeRepoDesc": "For libraries and projects not published on a domain. Requires GitHub repo ownership verification.",
+    "typeCodeRepoDesc": "For libraries and projects not published on a domain. Requires repository ownership verification (GitHub, GitLab, or Bitbucket).",
     "changeType": "Change type",
     "addProject": "Add Project",
     "adding": "Adding…",
     "projectNamePlaceholder": "Project name",
     "domainPlaceholder": "example.com",
+    "typeBadgeWebsite": "Type: Website",
+    "typeBadgeCodeRepo": "Type: Repository",
     "verifiedBadge": "Verified",
-    "unverifiedBadge": "Unverified",
+    "unverifiedBadge": "Not verified",
+    "repoVerifiedTitle": "Repository verified",
+    "repoUnverifiedTitle": "Repository not verified",
+    "domainVerifiedTitle": "Domain verified",
+    "domainUnverifiedTitle": "Domain not verified",
     "addedOn": "Added {date}",
     "networkError": "Network error. Please try again.",
     "domainAlreadyInList": "This domain is already in your list.",
@@ -79,8 +88,8 @@
     "networkError": "Network error. Please try again."
   },
   "verifyRepo": {
-    "subtitleRequired": "You must verify ownership of your GitHub repository before scanning.",
-    "subtitleOptional": "Optionally verify your GitHub repository to enable full code analysis (score up to 100/100).",
+    "subtitleRequired": "You must verify ownership of your repository before scanning. Supported: GitHub, GitLab, and Bitbucket.",
+    "subtitleOptional": "Optionally verify your repository (GitHub, GitLab, or Bitbucket) to enable full code analysis.",
     "instructions": "Create a file named .owaspchecker at the root of your repository with this exact content:",
     "fileHint": "Commit the file, then enter your repository URL below and click Verify.",
     "verifyNow": "Verify repository",
@@ -133,7 +142,12 @@
       "title": "Scan History",
       "latest": "Latest",
       "scanFrom": "Scan from {date}"
-    }
+    },
+    "categoriesEvaluated": "{evaluated}/{total} categories evaluated",
+    "categoriesPartial": " · {partial} partial",
+    "validatedLabel": "Validated",
+    "partialEvaluatedLabel": "Partial",
+    "partialEvaluatedDesc": "Partially evaluated — server aspects (TLS, cookie flags) require a live domain"
   },
   "certificate": {
     "title": "Security Certificate",
@@ -155,6 +169,7 @@
     "exampleTitle": "GitHub Actions example",
     "badgeTitle": "Badge",
     "badgeDescription": "Add this badge to your README to display the live security score.",
+    "badgeLang": "Badge language",
     "copy": "Copy",
     "copied": "Copied!"
   },
@@ -163,5 +178,12 @@
     "subtitle": "Projects that opted in to show their OWASP score publicly.",
     "noSites": "No projects in the ranking yet.",
     "scannedOn": "Scanned {date}"
+  },
+  "privacy": {
+    "sectionTitle": "Privacy",
+    "isPublicLabel": "Allow this project to appear publicly when it achieves a score of 100",
+    "isPublicHint": "Sites with a perfect score may appear in the home page showcase. You can change this at any time.",
+    "saving": "Saving…",
+    "saveError": "Could not save. Please try again."
   }
 }

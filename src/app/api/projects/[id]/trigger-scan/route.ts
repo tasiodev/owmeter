@@ -6,6 +6,11 @@ import { createScan, CreateScanError } from "@/application/use-cases/CreateScan"
 import { createCompleteScan, CreateCompleteScanError } from "@/application/use-cases/CreateCompleteScan";
 import { createCodeScan, CreateCodeScanError } from "@/application/use-cases/CreateCodeScan";
 import { getScanQueue } from "@/infrastructure/queue/scanQueue";
+import { checkRateLimit } from "@/infrastructure/rateLimiter";
+
+// 10 trigger-scan requests per project per hour (override via env)
+const RATE_LIMIT = parseInt(process.env.TRIGGER_SCAN_RATE_LIMIT ?? "10", 10);
+const RATE_WINDOW_SECS = 3600;
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +35,21 @@ export async function POST(
 
   if (!project || project.apiKey !== apiKey) {
     return NextResponse.json({ error: "INVALID_API_KEY" }, { status: 401 });
+  }
+
+  const rl = await checkRateLimit(`rl:trigger_scan:${id}`, RATE_LIMIT, RATE_WINDOW_SECS);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "RATE_LIMIT_EXCEEDED", retryAfter: rl.retryAfter },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rl.retryAfter),
+          "X-RateLimit-Limit": String(RATE_LIMIT),
+          "X-RateLimit-Remaining": "0",
+        },
+      }
+    );
   }
 
   let body: unknown;

@@ -142,6 +142,18 @@ function checkServerInfoLeak(headers: Record<string, string>): RawFinding[] {
     }
   }
 
+  // CORS wildcard is a deterministic header check — moved here from ZAP to guarantee consistency
+  const acao = headers["access-control-allow-origin"];
+  if (acao === "*") {
+    findings.push({
+      category: "A05_SECURITY_MISCONFIGURATION",
+      severity: "MEDIUM",
+      title: "CORS wildcard origin (Access-Control-Allow-Origin: *)",
+      description: "The server allows requests from any origin. This disables same-origin protection and exposes APIs to any website.",
+      evidence: `access-control-allow-origin: *`,
+    });
+  }
+
   return findings;
 }
 

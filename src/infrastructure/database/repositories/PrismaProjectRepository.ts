@@ -16,6 +16,7 @@ type DbProject = {
   repoVerified: boolean;
   repoVerificationToken: string | null;
   repoVerifiedAt: Date | null;
+  isPublic: boolean;
   apiKey: string;
   createdAt: Date;
 };
@@ -52,15 +53,21 @@ export class PrismaProjectRepository implements IProjectRepository {
     return records.map(toEntity);
   }
 
-  async create(data: { type: Project["type"]; name: string; domain?: string; userId: string }): Promise<Project> {
+  async create(data: { type: Project["type"]; name: string; domain?: string; userId: string; isPublic?: boolean }): Promise<Project> {
     const r = await prisma.project.create({
       data: {
         type: data.type,
         name: data.name,
         domain: data.domain ?? null,
         userId: data.userId,
+        isPublic: data.isPublic ?? true,
       },
     });
+    return toEntity(r);
+  }
+
+  async updatePrivacy(id: string, isPublic: boolean): Promise<Project> {
+    const r = await prisma.project.update({ where: { id }, data: { isPublic } });
     return toEntity(r);
   }
 

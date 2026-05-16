@@ -1,6 +1,19 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import type { Scan } from "@/domain/entities/Scan";
+import { OWASP_CATEGORIES, evaluationLevel } from "@/domain/value-objects/OWASPCategory";
+import type { OWASPCategoryId, ScanMode } from "@/domain/value-objects/OWASPCategory";
+
+const TOTAL_CATEGORIES = Object.keys(OWASP_CATEGORIES).length;
+
+function evaluationStats(scanType: ScanMode) {
+  const ids = Object.keys(OWASP_CATEGORIES) as OWASPCategoryId[];
+  const levels = ids.map((id) => evaluationLevel(id, scanType));
+  return {
+    evaluated: levels.filter((l) => l !== "none").length,
+    partial: levels.filter((l) => l === "partial").length,
+  };
+}
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-gray-800 text-gray-400",
@@ -77,6 +90,19 @@ export async function ScanHistoryList({
                   <p className="text-xs text-gray-500">
                     {new Date(scan.startedAt).toLocaleString()}
                   </p>
+                  {scan.status === "COMPLETED" && (() => {
+                    const { evaluated, partial } = evaluationStats(scan.type as ScanMode);
+                    return (
+                      <p className="text-xs text-gray-600">
+                        {t("categoriesEvaluated", { evaluated, total: TOTAL_CATEGORIES })}
+                        {partial > 0 && (
+                          <span className="text-blue-300/70">
+                            {t("categoriesPartial", { partial })}
+                          </span>
+                        )}
+                      </p>
+                    );
+                  })()}
                 </div>
                 <span className={`text-base font-mono font-bold ${scoreColor(pct)}`}>
                   {scan.score !== null && scan.maxScore !== null

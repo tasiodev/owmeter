@@ -5,7 +5,7 @@ import type { Scan } from "@/domain/entities/Scan";
 export type CodeScanJobData = {
   scanId: string;
   type: "CODE";
-  githubUrl: string;
+  repoUrl: string;
 };
 
 export class CreateCodeScanError extends Error {}
@@ -31,7 +31,7 @@ export async function createCodeScan(
   await enqueue({
     scanId: scan.id,
     type: "CODE",
-    githubUrl: project.repoUrl,
+    repoUrl: project.repoUrl,
   });
 
   return scan;

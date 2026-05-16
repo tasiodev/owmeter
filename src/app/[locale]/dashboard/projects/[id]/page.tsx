@@ -4,10 +4,11 @@ import { Link } from "@/i18n/navigation";
 import { auth } from "@/infrastructure/auth/auth";
 import { PrismaProjectRepository } from "@/infrastructure/database/repositories/PrismaProjectRepository";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
-import { getDomainVerificationInstructions } from "@/domain/entities/Project";
+import { getDomainVerificationInstructions, resolveBaseUrl } from "@/domain/entities/Project";
 import { VerifyDomainForm } from "@/presentation/components/dashboard/VerifyDomainForm";
 import { VerifyRepoForm } from "@/presentation/components/dashboard/VerifyRepoForm";
 import { DeleteProjectButton } from "@/presentation/components/dashboard/DeleteProjectButton";
+import { PrivacyToggle } from "@/presentation/components/dashboard/PrivacyToggle";
 import { ScanHistoryList } from "@/presentation/components/scan/ScanHistoryList";
 import { LastScanCard } from "@/presentation/components/scan/LastScanCard";
 import { ApiKeyCard } from "@/presentation/components/dashboard/ApiKeyCard";
@@ -26,7 +27,8 @@ export default async function ProjectDetailPage({
   const tv = await getTranslations("verify");
   const tvr = await getTranslations("verifyRepo");
   const ta = await getTranslations("apiKey");
-  const tsh = await getTranslations("scan"); // used for sidebar label only
+  const tsh = await getTranslations("scan");
+  const tpr = await getTranslations("privacy");
 
   const projectRepo = new PrismaProjectRepository();
   const scanRepo = new PrismaScanRepository();
@@ -56,6 +58,7 @@ export default async function ProjectDetailPage({
     { href: "#repo", label: ts("repoOwnership") },
     { href: "#cicd", label: ta("title") },
     { href: "#badge", label: ta("badgeTitle") },
+    { href: "#privacy", label: tpr("sectionTitle") },
     scans.length > 0 && { href: "#history", label: tsh("history.title") },
   ].filter(Boolean) as { href: string; label: string }[];
 
@@ -71,7 +74,7 @@ export default async function ProjectDetailPage({
             {project.name}
             {project.type === "WEBSITE" && project.domain && (
               <a
-                href={`https://${project.domain}`}
+                href={resolveBaseUrl(project.domain)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-500 hover:text-blue-400 transition-colors"
@@ -222,6 +225,11 @@ export default async function ProjectDetailPage({
           {/* Badge */}
           <section id="badge">
             <BadgeCard projectId={id} />
+          </section>
+
+          {/* Privacy */}
+          <section id="privacy">
+            <PrivacyToggle projectId={id} initialIsPublic={project.isPublic} />
           </section>
 
           {/* Scan history */}

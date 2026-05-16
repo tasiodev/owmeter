@@ -16,7 +16,10 @@
     "feature2Title": "Análisis Pasivo + Activo",
     "feature2Desc": "Comprobamos cabeceras, SSL/TLS, flags de cookies, ejecutamos OWASP ZAP y opcionalmente analizamos tu código fuente.",
     "feature3Title": "Puntuación de Seguridad",
-    "feature3Desc": "Obtén una puntuación sobre 100 mapeada a las 10 categorías OWASP, con indicación clara de qué se ha comprobado."
+    "feature3Desc": "Obtén una puntuación sobre 100 mapeada a las 10 categorías OWASP, con indicación clara de qué se ha comprobado.",
+    "showcaseTitle": "Últimos sitios seguros analizados",
+    "showcaseSubtitle": "Sitios que han alcanzado una puntuación perfecta en el OWASP Top 10",
+    "showcaseEmpty": "Sé el primero en alcanzar la puntuación perfecta y aparecer aquí."
   },
   "login": {
     "title": "Accede a OwaspChecker",
@@ -33,14 +36,20 @@
     "typeWebsite": "Sitio Web",
     "typeWebsiteDesc": "Para webs publicadas. Requiere verificar la propiedad del dominio.",
     "typeCodeRepo": "Repositorio de Código",
-    "typeCodeRepoDesc": "Para librerías y proyectos no publicados en un dominio. Requiere verificar la propiedad del repositorio en GitHub.",
+    "typeCodeRepoDesc": "Para librerías y proyectos no publicados en un dominio. Requiere verificar la propiedad del repositorio (GitHub, GitLab o Bitbucket).",
     "changeType": "Cambiar tipo",
     "addProject": "Añadir Proyecto",
     "adding": "Añadiendo…",
     "projectNamePlaceholder": "Nombre del proyecto",
     "domainPlaceholder": "ejemplo.com",
+    "typeBadgeWebsite": "Tipo: Sitio web",
+    "typeBadgeCodeRepo": "Tipo: Repositorio",
     "verifiedBadge": "Verificado",
-    "unverifiedBadge": "Sin verificar",
+    "unverifiedBadge": "No verificado",
+    "repoVerifiedTitle": "Repositorio verificado",
+    "repoUnverifiedTitle": "Repositorio no verificado",
+    "domainVerifiedTitle": "Dominio verificado",
+    "domainUnverifiedTitle": "Dominio no verificado",
     "addedOn": "Añadido el {date}",
     "networkError": "Error de red. Por favor, inténtalo de nuevo.",
     "domainAlreadyInList": "Este dominio ya está en tu lista.",
@@ -79,8 +88,8 @@
     "networkError": "Error de red. Por favor, inténtalo de nuevo."
   },
   "verifyRepo": {
-    "subtitleRequired": "Debes verificar la propiedad de tu repositorio GitHub antes de analizar.",
-    "subtitleOptional": "Verifica opcionalmente tu repositorio GitHub para habilitar el análisis completo de código (puntuación hasta 100/100).",
+    "subtitleRequired": "Debes verificar la propiedad de tu repositorio antes de analizar. Compatible con GitHub, GitLab y Bitbucket.",
+    "subtitleOptional": "Verifica opcionalmente tu repositorio (GitHub, GitLab o Bitbucket) para habilitar el análisis completo de código.",
     "instructions": "Crea un archivo llamado .owaspchecker en la raíz de tu repositorio con exactamente este contenido:",
     "fileHint": "Haz commit del archivo, introduce la URL de tu repositorio y haz clic en Verificar.",
     "verifyNow": "Verificar repositorio",
@@ -133,7 +142,12 @@
       "title": "Historial de Análisis",
       "latest": "Último",
       "scanFrom": "Análisis del {date}"
-    }
+    },
+    "categoriesEvaluated": "{evaluated}/{total} categorías evaluadas",
+    "categoriesPartial": " · {partial} parciales",
+    "validatedLabel": "Validada",
+    "partialEvaluatedLabel": "Parcial",
+    "partialEvaluatedDesc": "Evaluación parcial — aspectos de servidor (TLS, flags de cookies) requieren dominio publicado"
   },
   "certificate": {
     "title": "Certificado de Seguridad",
@@ -155,6 +169,7 @@
     "exampleTitle": "Ejemplo para GitHub Actions",
     "badgeTitle": "Badge",
     "badgeDescription": "Añade este badge a tu README para mostrar la puntuación de seguridad en tiempo real.",
+    "badgeLang": "Idioma del badge",
     "copy": "Copiar",
     "copied": "¡Copiado!"
   },
@@ -163,5 +178,12 @@
     "subtitle": "Proyectos que optaron por mostrar su puntuación OWASP públicamente.",
     "noSites": "Aún no hay proyectos en el ranking.",
     "scannedOn": "Analizado el {date}"
+  },
+  "privacy": {
+    "sectionTitle": "Privacidad",
+    "isPublicLabel": "Permitir que este proyecto aparezca públicamente cuando tenga puntuación 100",
+    "isPublicHint": "Los sitios con puntuación perfecta pueden aparecer en el showcase de la página principal. Puedes cambiarlo en cualquier momento.",
+    "saving": "Guardando…",
+    "saveError": "No se pudo guardar. Inténtalo de nuevo."
   }
 }

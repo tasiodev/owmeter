@@ -5,8 +5,8 @@ import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import type { Scan, Finding } from "@/domain/entities/Scan";
 import type { Severity } from "@/domain/value-objects/Severity";
-import { OWASP_CATEGORIES, isEvaluated, PASSIVE_UNEVALUATED, CODE_UNEVALUATED } from "@/domain/value-objects/OWASPCategory";
-import type { OWASPCategoryId } from "@/domain/value-objects/OWASPCategory";
+import { OWASP_CATEGORIES, evaluationLevel, PASSIVE_UNEVALUATED, CODE_UNEVALUATED } from "@/domain/value-objects/OWASPCategory";
+import type { OWASPCategoryId, ScanMode } from "@/domain/value-objects/OWASPCategory";
 import { generateFindingPrompt, generateAllFindingsPrompt } from "./promptGenerators";
 
 const SEVERITY_ORDER: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"];
@@ -218,7 +218,7 @@ function ScanTypeBadge({
 
 function FindingCard({ finding, t }: { finding: Finding; t: ReturnType<typeof useTranslations<"scan">> }) {
   return (
-    <li className="rounded-xl border border-gray-800 p-4 space-y-2">
+    <li id={`finding-${finding.id}`} className="rounded-xl border border-gray-800 p-4 space-y-2">
       <div className="flex items-start gap-3 justify-between">
         <div className="space-y-1">
           <span className="font-medium text-sm">{finding.title}</span>
@@ -246,9 +246,6 @@ function FindingCard({ finding, t }: { finding: Finding; t: ReturnType<typeof us
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          {finding.pointsLost > 0 && (
-            <span className="text-sm font-mono text-red-400">-{finding.pointsLost} pts</span>
-          )}
           <PromptIAButton getText={() => generateFindingPrompt(finding)} t={t} />
         </div>
       </div>
@@ -262,7 +259,7 @@ function FindingCard({ finding, t }: { finding: Finding; t: ReturnType<typeof us
   );
 }
 
-function CategoryIcon({ state }: { state: "ok" | "warn" | "na" }) {
+function CategoryIcon({ state }: { state: "ok" | "warn" | "partial" | "na" }) {
   if (state === "ok")
     return (
       <svg className="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -273,6 +270,14 @@ function CategoryIcon({ state }: { state: "ok" | "warn" | "na" }) {
     return (
       <svg className="w-4 h-4 text-amber-400 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
         <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+      </svg>
+    );
+  if (state === "partial")
+    // dashed circle + checkmark: "evaluated but not fully"
+    return (
+      <svg className="w-4 h-4 text-blue-300/70 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" strokeDasharray="3 2" />
+        <path d="M9 12l2 2 4-4" />
       </svg>
     );
   // na
@@ -290,67 +295,127 @@ function CategoryBreakdownSection({
   scan: Scan;
   t: ReturnType<typeof useTranslations<"scan">>;
 }) {
+  const [expandedId, setExpandedId] = useState<OWASPCategoryId | null>(null);
+
   const lostByCategory: Partial<Record<OWASPCategoryId, number>> = {};
+  const findingsByCategory: Partial<Record<OWASPCategoryId, Finding[]>> = {};
   for (const f of scan.findings) {
     lostByCategory[f.category] = (lostByCategory[f.category] ?? 0) + f.pointsLost;
+    if (!findingsByCategory[f.category]) findingsByCategory[f.category] = [];
+    findingsByCategory[f.category]!.push(f);
   }
 
-  const STATE_ORDER = { ok: 0, warn: 1, na: 2 };
+  const STATE_ORDER = { ok: 0, warn: 1, partial: 2, na: 3 };
 
   const entries = (
     Object.entries(OWASP_CATEGORIES) as [OWASPCategoryId, (typeof OWASP_CATEGORIES)[OWASPCategoryId]][]
   )
     .map(([id, cat]) => {
-      const evaluated = isEvaluated(id, scan.type);
+      const level = evaluationLevel(id, scan.type as ScanMode);
       const lost = lostByCategory[id] ?? 0;
-      const hasFindings = evaluated && lost > 0;
-      const state: "ok" | "warn" | "na" = !evaluated ? "na" : hasFindings ? "warn" : "ok";
-      return { id, cat, evaluated, lost, hasFindings, state };
+      const hasFindings = level !== "none" && lost > 0;
+      const state: "ok" | "warn" | "partial" | "na" =
+        level === "none" ? "na" :
+        hasFindings ? "warn" :
+        level === "partial" ? "partial" :
+        "ok";
+      const categoryFindings = findingsByCategory[id] ?? [];
+      return { id, cat, lost, hasFindings, state, categoryFindings };
     })
     .sort((a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state]);
+
+  function scrollToFinding(findingId: string) {
+    const el = document.getElementById(`finding-${findingId}`);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 96;
+    window.scrollTo({ top, behavior: "smooth" });
+  }
 
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-semibold">{t("categoryBreakdown")}</h2>
       <ul className="rounded-xl border border-gray-800 divide-y divide-gray-800 overflow-hidden">
-        {entries.map(({ id, cat, evaluated, lost, state }) => {
-            const naReason = PASSIVE_UNEVALUATED.has(id)
-              ? t("notEvaluatedDesc")
-              : CODE_UNEVALUATED.has(id)
-              ? t("notEvaluatedServerDesc")
-              : null;
+        {entries.map(({ id, cat, lost, state, categoryFindings }) => {
+          const naReason = PASSIVE_UNEVALUATED.has(id)
+            ? t("notEvaluatedDesc")
+            : CODE_UNEVALUATED.has(id)
+            ? t("notEvaluatedServerDesc")
+            : null;
 
-            return (
-              <li key={id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+          const isExpanded = expandedId === id;
+          const canExpand = categoryFindings.length > 0;
+
+          return (
+            <li key={id}>
+              <div
+                className={`flex items-center gap-3 px-4 py-2.5 text-sm ${canExpand ? "cursor-pointer hover:bg-gray-800/40" : ""}`}
+                onClick={canExpand ? () => setExpandedId(isExpanded ? null : id) : undefined}
+              >
                 <CategoryIcon state={state} />
                 <div className="flex-1 min-w-0">
+                  <span className={state === "na" ? "text-gray-500" : "text-gray-200"}>
+                    {cat.name}
+                  </span>
                   <a
                     href={cat.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`hover:underline ${
-                      state === "na" ? "text-gray-500" : "text-gray-200 hover:text-white"
-                    }`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center ml-1.5 text-blue-500 hover:text-blue-300 transition-colors align-middle"
+                    aria-label={cat.name}
                   >
-                    {cat.name}
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M7 17L17 7" />
+                      <path d="M7 7h10v10" />
+                    </svg>
                   </a>
                   {state === "na" && naReason && (
                     <p className="text-xs text-gray-600 mt-0.5">{naReason}</p>
+                  )}
+                  {state === "partial" && (
+                    <p className="text-xs text-blue-300/70 mt-0.5">{t("partialEvaluatedDesc")}</p>
                   )}
                 </div>
                 {state === "na" && (
                   <span className="text-xs text-gray-600 shrink-0">{t("notEvaluatedLabel")}</span>
                 )}
+                {state === "partial" && (
+                  <span className="text-xs text-blue-300/70 shrink-0">{t("partialEvaluatedLabel")}</span>
+                )}
                 {state === "warn" && (
-                  <span className="text-xs font-mono text-amber-400 shrink-0">-{lost} pts</span>
+                  <span className="text-xs font-mono text-amber-400 shrink-0">-{Math.min(lost, cat.maxPoints)} pts</span>
                 )}
-                {state === "ok" && evaluated && (
-                  <span className="text-xs font-mono text-emerald-600 shrink-0">{cat.maxPoints}/{cat.maxPoints}</span>
+                {state === "ok" && (
+                  <span className="text-xs text-emerald-600 shrink-0">{t("validatedLabel")}</span>
                 )}
-              </li>
-            );
-          }
-        )}
+                {canExpand && (
+                  <svg
+                    className={`w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                )}
+              </div>
+              {isExpanded && (
+                <ul className="px-11 pb-3 pt-1 space-y-0.5 bg-gray-900/30">
+                  {categoryFindings.map((f) => (
+                    <li key={f.id}>
+                      <button
+                        onClick={() => scrollToFinding(f.id)}
+                        className="cursor-pointer text-xs text-gray-400 hover:text-gray-100 text-left w-full py-1 transition-colors flex items-center gap-2"
+                      >
+                        <span className="text-gray-600 shrink-0">›</span>
+                        {f.title}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

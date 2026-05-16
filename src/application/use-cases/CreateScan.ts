@@ -1,6 +1,7 @@
 import type { IScanRepository } from "@/domain/repositories/IScanRepository";
 import type { IProjectRepository } from "@/domain/repositories/IProjectRepository";
 import type { Scan } from "@/domain/entities/Scan";
+import { resolveBaseUrl } from "@/domain/entities/Project";
 
 export class CreateScanError extends Error {}
 
@@ -21,7 +22,7 @@ export async function createScan(
 
   const scan = await scanRepo.create(projectId, "PASSIVE");
 
-  const targetUrl = `https://${project.domain}`;
+  const targetUrl = resolveBaseUrl(project.domain);
   await enqueue(scan.id, targetUrl);
 
   return scan;

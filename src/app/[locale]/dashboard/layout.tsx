@@ -20,7 +20,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex flex-col flex-1 min-h-screen">
       <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <Link href="/dashboard" className="text-xl font-bold">
+        <Link href="/" className="text-xl font-bold">
           <span className="text-emerald-400">OWASP</span>Checker
         </Link>
         <div className="flex items-center gap-4">

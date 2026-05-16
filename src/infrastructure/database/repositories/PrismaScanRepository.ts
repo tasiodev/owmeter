@@ -86,6 +86,38 @@ export class PrismaScanRepository implements IScanRepository {
     return new Map(records.map((r) => [r.projectId, toScan(r)]));
   }
 
+  async findPublicPerfectScoreScans(
+    limit = 20
+  ): Promise<Array<{ url: string; completedAt: Date; scanType: string; projectType: string }>> {
+    const records = await prisma.scan.findMany({
+      where: {
+        status: "COMPLETED",
+        score: 100,
+        project: {
+          isPublic: true,
+          OR: [
+            { type: "WEBSITE", verified: true },
+            { type: "CODE_REPO", repoVerified: true },
+          ],
+        },
+      },
+      select: {
+        completedAt: true,
+        type: true,
+        project: { select: { type: true, domain: true, repoUrl: true } },
+      },
+      orderBy: { completedAt: "desc" },
+      distinct: ["projectId"],
+      take: limit,
+    });
+    return records
+      .filter((r): r is typeof r & { completedAt: Date } => r.completedAt !== null)
+      .flatMap((r) => {
+        const url = r.project.type === "WEBSITE" ? r.project.domain : r.project.repoUrl;
+        return url ? [{ url, completedAt: r.completedAt, scanType: r.type, projectType: r.project.type }] : [];
+      });
+  }
+
   async findRanking(limit = 50): Promise<Array<Scan & { projectDomain: string }>> {
     const records = (await prisma.scan.findMany({
       where: { inRanking: true, status: "COMPLETED" },

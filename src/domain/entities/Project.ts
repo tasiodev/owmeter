@@ -17,9 +17,17 @@ export interface Project {
   repoVerified: boolean;
   repoVerificationToken: string | null;
   repoVerifiedAt: Date | null;
+  // Visibility
+  isPublic: boolean;
   // CI/CD integration
   apiKey: string;
   createdAt: Date;
+}
+
+// Returns http:// for localhost/127.0.0.1 (with optional port), https:// for everything else.
+export function resolveBaseUrl(domain: string): string {
+  const isLocal = /^(localhost|127\.0\.0\.1)(:\d{1,5})?$/.test(domain);
+  return `${isLocal ? "http" : "https"}://${domain}`;
 }
 
 export function getDomainVerificationInstructions(
@@ -33,7 +41,7 @@ export function getDomainVerificationInstructions(
     case "META_TAG":
       return `Add this tag to the <head> of your homepage:\n<meta name="owaspchecker-verify" content="${token}">`;
     case "FILE":
-      return `Create a file at:\nhttps://${domain}/.well-known/owaspchecker.txt\nWith content: ${token}`;
+      return `Create a file at:\n${resolveBaseUrl(domain)}/.well-known/owaspchecker.txt\nWith content: ${token}`;
   }
 }
 

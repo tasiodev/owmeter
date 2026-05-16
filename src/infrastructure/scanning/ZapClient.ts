@@ -72,9 +72,21 @@ function buildEvidence(zapEvidence: string | undefined, urls: string[]): string 
   return urls.length > 0 ? urls.join("\n") : undefined;
 }
 
+// ZAP runs inside Docker — translate localhost/127.0.0.1 to host.docker.internal
+// so the container can reach services on the host machine.
+function resolveZapTargetUrl(targetUrl: string): string {
+  const url = new URL(targetUrl);
+  if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+    url.hostname = "host.docker.internal";
+  }
+  return url.toString();
+}
+
 export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]> {
+  const zapTargetUrl = resolveZapTargetUrl(targetUrl);
+
   // 1. Spider the target
-  const spiderRes = await zapGet<{ scan: string }>("spider/action/scan", { url: targetUrl, maxChildren: "3" });
+  const spiderRes = await zapGet<{ scan: string }>("spider/action/scan", { url: zapTargetUrl, maxChildren: "3" });
   const spiderId = spiderRes.scan;
 
   await pollUntilComplete(async () => {
@@ -84,7 +96,7 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
 
   // 2. Active scan
   const scanRes = await zapGet<{ scan: string }>("ascan/action/scan", {
-    url: targetUrl,
+    url: zapTargetUrl,
     recurse: "true",
     inScopeOnly: "true",
   });
@@ -96,13 +108,13 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
   });
 
   // 3. Get alerts
-  const alertsRes = await zapGet<{ alerts: ZapAlert[] }>("core/view/alerts", { baseurl: targetUrl });
+  const alertsRes = await zapGet<{ alerts: ZapAlert[] }>("core/view/alerts", { baseurl: zapTargetUrl });
   const alerts = alertsRes.alerts ?? [];
 
   // 4. Clean up context
   await zapGet("core/action/deleteAllAlerts").catch(() => {});
 
-  const targetHost = new URL(targetUrl).hostname;
+  const targetHost = new URL(zapTargetUrl).hostname;
 
   function isSameDomainUrl(raw: string | undefined): boolean {
     if (!raw) return false;

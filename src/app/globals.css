@@ -32,3 +32,18 @@ html {
 section[id] {
   scroll-margin-top: 2rem;
 }
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-110%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+@keyframes slide-out-right {
+  from { transform: translateX(0);     opacity: 1; }
+  to   { transform: translateX(110%);  opacity: 0; }
+}

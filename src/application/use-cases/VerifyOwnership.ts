@@ -1,5 +1,6 @@
 import type { IProjectRepository } from "@/domain/repositories/IProjectRepository";
 import type { Project, VerificationMethod } from "@/domain/entities/Project";
+import { resolveBaseUrl } from "@/domain/entities/Project";
 
 export class VerificationError extends Error {}
 
@@ -15,7 +16,7 @@ async function checkDnsTxt(domain: string, token: string): Promise<boolean> {
 
 async function checkMetaTag(domain: string, token: string): Promise<boolean> {
   try {
-    const res = await fetch(`https://${domain}`, { signal: AbortSignal.timeout(10000) });
+    const res = await fetch(resolveBaseUrl(domain), { signal: AbortSignal.timeout(10000) });
     const html = await res.text();
     return html.includes(`owaspchecker-verify" content="${token}"`);
   } catch {
@@ -25,7 +26,7 @@ async function checkMetaTag(domain: string, token: string): Promise<boolean> {
 
 async function checkFile(domain: string, token: string): Promise<boolean> {
   try {
-    const res = await fetch(`https://${domain}/.well-known/owaspchecker.txt`, {
+    const res = await fetch(`${resolveBaseUrl(domain)}/.well-known/owaspchecker.txt`, {
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) return false;
