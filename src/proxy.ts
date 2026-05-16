@@ -7,16 +7,6 @@ import type { NextRequest } from "next/server";
 const intlProxy = createIntlMiddleware(routing);
 
 export async function proxy(req: NextRequest) {
-  // Strip internal port from host header so next-intl builds clean redirect URLs.
-  // Cloudflare Tunnel / Coolify proxies can leak the container port (e.g. :3000).
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (appUrl) {
-    const { host, protocol } = new URL(appUrl);
-    req.headers.set("host", host);
-    req.headers.set("x-forwarded-host", host);
-    req.headers.set("x-forwarded-proto", protocol.replace(":", ""));
-  }
-
   const { pathname } = req.nextUrl;
 
   // Pass API and static paths through unchanged
