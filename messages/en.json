@@ -4,8 +4,9 @@
     "signIn": "Sign in",
     "signOut": "Sign out",
     "dashboard": "Dashboard",
-
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "betaLabel": "BETA",
+    "betaTooltip": "This platform is still in development and may have bugs. Use with caution."
   },
   "home": {
     "metaTitle": "Free OWASP Top 10 Security Scanner",

@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { auth, signOut } from "@/infrastructure/auth/auth";
 import { LanguageSwitcher } from "@/presentation/components/ui/LanguageSwitcher";
 import { Logo } from "@/presentation/components/ui/Logo";
+import { BetaBadge } from "@/presentation/components/ui/BetaBadge";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -26,9 +27,12 @@ export default async function DashboardLayout({
   return (
     <div className="flex flex-col flex-1 min-h-screen">
       <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <Link href="/">
-          <Logo variant="topbar" />
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/">
+            <Logo variant="topbar" />
+          </Link>
+          <BetaBadge />
+        </div>
         <div className="flex items-center gap-4">
           <LanguageSwitcher />
           <span className="text-sm text-gray-400">{session.user.email}</span>

@@ -4,8 +4,9 @@
     "signIn": "Iniciar sesión",
     "signOut": "Cerrar sesión",
     "dashboard": "Panel",
-
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "betaLabel": "BETA",
+    "betaTooltip": "Esta plataforma aún está en desarrollo y puede tener fallos. Úsala con precaución."
   },
   "home": {
     "metaTitle": "Escáner OWASP Top 10 Gratuito",

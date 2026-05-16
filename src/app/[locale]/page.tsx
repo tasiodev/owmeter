@@ -11,6 +11,7 @@ import type { OWASPCategoryId, ScanMode } from "@/domain/value-objects/OWASPCate
 import { ShowcaseCarousel } from "@/presentation/components/home/ShowcaseCarousel";
 import type { CardData } from "@/presentation/components/home/ShowcaseCarousel";
 import { Footer } from "@/presentation/components/ui/Footer";
+import { BetaBadge } from "@/presentation/components/ui/BetaBadge";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://owmeter.dev";
 
@@ -229,9 +230,12 @@ export default async function HomePage({
       />
 
       <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <Link href="/">
-          <Logo variant="topbar" />
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/">
+            <Logo variant="topbar" />
+          </Link>
+          <BetaBadge />
+        </div>
         <div className="flex items-center gap-4">
           <LanguageSwitcher />
           {session ? (
