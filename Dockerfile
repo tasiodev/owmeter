@@ -4,6 +4,7 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json* ./
+ENV HUSKY=0
 RUN npm ci
 
 FROM base AS builder
