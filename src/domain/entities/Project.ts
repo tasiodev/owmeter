@@ -39,7 +39,7 @@ export function getDomainVerificationInstructions(
     case "DNS_TXT":
       return `Add a DNS TXT record to ${domain}:\nName: _owmeter\nValue: ${token}`;
     case "META_TAG":
-      return `Add this tag to the <head> of your homepage:\n<meta name="owmeter-verify" content="${token}">`;
+      return `Add this tag to the <head> of your homepage:\n<meta name="owmeter-verify" content="${token}" />`;
     case "FILE":
       return `Create a file at:\n${resolveBaseUrl(domain)}/.well-known/owmeter.txt\nWith content: ${token}`;
   }
