@@ -67,7 +67,7 @@ describe("AddProjectForm", () => {
         "/api/projects",
         expect.objectContaining({
           method: "POST",
-          body: JSON.stringify({ type: "WEBSITE", name: "My Site", domain: "example.com" }),
+          body: JSON.stringify({ type: "WEBSITE", name: "My Site", domain: "example.com", isPublic: true }),
         })
       );
     });
@@ -86,7 +86,7 @@ describe("AddProjectForm", () => {
         "/api/projects",
         expect.objectContaining({
           method: "POST",
-          body: JSON.stringify({ type: "CODE_REPO", name: "My Lib" }),
+          body: JSON.stringify({ type: "CODE_REPO", name: "My Lib", isPublic: true }),
         })
       );
     });

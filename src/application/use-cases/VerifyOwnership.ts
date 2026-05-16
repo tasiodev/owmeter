@@ -51,6 +51,7 @@ export async function verifyDomainOwnership(
   if (!project.domain) throw new VerificationError("Project has no domain configured");
   if (project.verified) return project;
 
+
   const token = project.verificationToken;
   const domain = project.domain;
 

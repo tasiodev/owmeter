@@ -81,10 +81,11 @@ describe("ScanResult", () => {
         {
           id: "f1",
           scanId: "scan-1",
-          category: "A03_INJECTION",
+          // A05 is evaluated in PASSIVE mode (not in PASSIVE_UNEVALUATED)
+          category: "A05_SECURITY_MISCONFIGURATION",
           severity: "CRITICAL",
-          title: "SQL Injection",
-          description: "Critical SQL injection",
+          title: "Missing Security Headers",
+          description: "Critical misconfiguration",
           evidence: null,
           pointsLost: 6,
         },
@@ -92,7 +93,6 @@ describe("ScanResult", () => {
     });
 
     render(<ScanResult scan={scan} />);
-    // -6 pts appears both in the category breakdown row and the finding card
     expect(screen.getAllByText("-6 pts").length).toBeGreaterThanOrEqual(1);
   });
 

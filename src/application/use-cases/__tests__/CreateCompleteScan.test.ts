@@ -82,9 +82,11 @@ describe("createCompleteScan (FULL scan — WEBSITE with verified repo)", () => 
     const scan = await createCompleteScan("proj-1", "user-1", projectRepo, scanRepo, enqueue);
 
     expect(scanRepo.create).toHaveBeenCalledWith("proj-1", "FULL");
-    const jobData = enqueue.mock.calls[0][0] as { type: string; githubUrl: string };
+    const jobData = enqueue.mock.calls[0][0] as { type: string; repoUrl: string; targetUrl: string; scanId: string };
     expect(jobData.type).toBe("FULL");
-    expect(jobData.githubUrl).toBe("https://github.com/owner/repo");
+    expect(jobData.repoUrl).toBe("https://github.com/owner/repo");
+    expect(jobData.targetUrl).toBe("https://example.com");
+    expect(jobData.scanId).toBe("scan-1");
     expect(scan.id).toBe("scan-1");
   });
 
