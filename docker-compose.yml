@@ -16,6 +16,7 @@ services:
       AUTH_GITHUB_SECRET: ${AUTH_GITHUB_SECRET}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
       NEXT_PUBLIC_GITHUB_URL: ${NEXT_PUBLIC_GITHUB_URL}
+      AUTH_TRUST_HOST: "1"
     depends_on:
       db:
         condition: service_healthy
