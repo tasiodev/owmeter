@@ -50,7 +50,7 @@ export default async function ProjectDetailPage({
   const featuredScan =
     scans.find((s) => s.status === "RUNNING") ??
     scans.find((s) => s.status === "PENDING") ??
-    scans.find((s) => s.status === "COMPLETED");
+    scans[0];
 
   const navItems = [
     canScan && { href: "#scan", label: ts("lastScanTitle") },

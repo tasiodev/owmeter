@@ -1,31 +1,144 @@
+import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { auth, signOut } from "@/infrastructure/auth/auth";
 import { Link } from "@/i18n/navigation";
 import { LanguageSwitcher } from "@/presentation/components/ui/LanguageSwitcher";
+import { Logo } from "@/presentation/components/ui/Logo";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
 import { OWASP_CATEGORIES, evaluationLevel } from "@/domain/value-objects/OWASPCategory";
 import type { OWASPCategoryId, ScanMode } from "@/domain/value-objects/OWASPCategory";
 import { ShowcaseCarousel } from "@/presentation/components/home/ShowcaseCarousel";
 import type { CardData } from "@/presentation/components/home/ShowcaseCarousel";
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://owmeter.dev";
+
+const OWASP_ITEMS = [
+  { id: "A01", name: "Broken Access Control", desc: "Auth guards, CORS policies, path traversal, IDOR" },
+  { id: "A02", name: "Cryptographic Failures", desc: "HTTPS, HSTS, TLS config, Secure cookie flag, weak algorithms" },
+  { id: "A03", name: "Injection", desc: "SQL, XSS, and command injection via OWASP ZAP active scan" },
+  { id: "A04", name: "Insecure Design", desc: "Input validation and security patterns in source code" },
+  { id: "A05", name: "Security Misconfiguration", desc: "HTTP headers, CSP, X-Frame-Options, server info leakage" },
+  { id: "A06", name: "Vulnerable Components", desc: "Known CVEs and outdated dependency detection" },
+  { id: "A07", name: "Auth Failures", desc: "Cookie flags, JWT signing, password hashing, brute-force protection" },
+  { id: "A08", name: "Data Integrity Failures", desc: "Unsafe deserialization and supply chain patterns in code" },
+  { id: "A09", name: "Logging Failures", desc: "Logging practices and sensitive data in logs" },
+  { id: "A10", name: "SSRF", desc: "Server-side request forgery probes on public endpoints" },
+] as const;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "home" });
-  return { title: `OwaspChecker — ${t("headline")}` };
+  const title = t("metaTitle");
+  const description = t("metaDesc");
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `${BASE_URL}/${locale}`,
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${BASE_URL}/${locale}`,
+    },
+    twitter: {
+      title,
+      description,
+    },
+  };
 }
 
 function Features() {
   const t = useTranslations("home");
+  const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL ?? "#";
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8 text-left">
-      {(["feature1", "feature2", "feature3"] as const).map((key) => (
-        <div key={key} className="rounded-xl border border-gray-800 p-6 space-y-2">
-          <h3 className="font-semibold text-gray-100">{t(`${key}Title`)}</h3>
-          <p className="text-sm text-gray-400">{t(`${key}Desc`)}</p>
+    <div className="pt-8 text-left space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {(["feature1", "feature2", "feature3"] as const).map((key) => (
+          <div key={key} className="rounded-xl border border-gray-800 p-6 space-y-2">
+            <h3 className="font-semibold text-gray-100">{t(`${key}Title`)}</h3>
+            <p className="text-sm text-gray-400">{t(`${key}Desc`)}</p>
+          </div>
+        ))}
+      </div>
+      <a
+        href={githubUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-start gap-4 rounded-xl border border-gray-800 hover:border-gray-600 p-6 transition-colors group"
+      >
+        <svg className="w-5 h-5 fill-white shrink-0 mt-0.5" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
+        </svg>
+        <div className="flex-1 space-y-1">
+          <h3 className="font-semibold text-gray-100">{t("openSourceTitle")}</h3>
+          <p className="text-sm text-gray-400">{t("openSourceDesc")}</p>
         </div>
-      ))}
+        <span className="text-sm text-emerald-400 group-hover:text-emerald-300 shrink-0 mt-0.5">{t("viewSource")} →</span>
+      </a>
     </div>
+  );
+}
+
+function HowItWorks() {
+  const t = useTranslations("home");
+  const steps = (["step1", "step2", "step3"] as const).map((key, i) => ({
+    num: i + 1,
+    title: t(`${key}Title`),
+    desc: t(`${key}Desc`),
+  }));
+
+  return (
+    <section className="w-full py-16 border-t border-gray-800">
+      <div className="max-w-3xl mx-auto px-6">
+        <div className="text-center mb-10 space-y-2">
+          <h2 className="text-2xl font-bold text-gray-100">{t("howItWorksTitle")}</h2>
+          <p className="text-sm text-gray-500">{t("howItWorksSubtitle")}</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+          {steps.map(({ num, title, desc }) => (
+            <div key={num} className="space-y-3">
+              <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm">
+                {num}
+              </div>
+              <h3 className="font-semibold text-gray-100">{title}</h3>
+              <p className="text-sm text-gray-400">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function OWASPGrid() {
+  const t = useTranslations("home");
+  return (
+    <section className="w-full py-16 border-t border-gray-800">
+      <div className="max-w-3xl mx-auto px-6">
+        <div className="text-center mb-10 space-y-2">
+          <h2 className="text-2xl font-bold text-gray-100">{t("owaspTitle")}</h2>
+          <p className="text-sm text-gray-500 max-w-xl mx-auto">{t("owaspSubtitle")}</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {OWASP_ITEMS.map(({ id, name, desc }) => (
+            <div key={id} className="flex gap-3 rounded-lg border border-gray-800 p-4">
+              <span className="text-xs font-mono text-emerald-400 shrink-0 pt-0.5 w-7">{id}</span>
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium text-gray-100">{name}</p>
+                <p className="text-xs text-gray-500">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -93,11 +206,28 @@ export default async function HomePage({
   const tc = await getTranslations("common");
   const session = await auth();
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "OWMeter",
+    url: BASE_URL,
+    description: t("metaDesc"),
+    applicationCategory: "SecurityApplication",
+    operatingSystem: "Web",
+    isAccessibleForFree: true,
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="text-xl font-bold">
-          <span className="text-emerald-400">OWASP</span>Checker
+        <Link href="/">
+          <Logo variant="topbar" />
         </Link>
         <div className="flex items-center gap-4">
           <LanguageSwitcher />
@@ -122,35 +252,37 @@ export default async function HomePage({
         </div>
       </header>
 
-      <main className="flex flex-col items-center justify-center flex-1 px-6 py-16 text-center">
-        <div className="max-w-3xl mx-auto space-y-8">
-          <div className="space-y-4">
-            <h1 className="text-5xl font-bold tracking-tight">
-              <span className="text-emerald-400">OWASP</span>Checker
+      <main className="flex-1">
+        <section className="flex flex-col items-center px-6 py-20 text-center">
+          <div className="max-w-3xl mx-auto space-y-6">
+            <Logo variant="hero" aria-hidden="true" />
+            <h1 className="text-3xl font-bold text-white leading-tight">
+              {t("headline")}
             </h1>
-            <p className="text-xl text-gray-400 max-w-xl mx-auto">{t("description")}</p>
+            <p className="text-lg text-gray-400 max-w-xl mx-auto">{t("description")}</p>
+            <div className="flex justify-center">
+              {session ? (
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center px-8 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-semibold transition-colors"
+                >
+                  {t("ctaDashboard")}
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center px-8 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-semibold transition-colors"
+                >
+                  {t("ctaStart")}
+                </Link>
+              )}
+            </div>
+            <Features />
           </div>
+        </section>
 
-          <div className="flex justify-center">
-            {session ? (
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center justify-center px-8 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-semibold transition-colors"
-              >
-                {t("ctaDashboard")}
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center px-8 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-semibold transition-colors"
-              >
-                {t("ctaStart")}
-              </Link>
-            )}
-          </div>
-
-          <Features />
-        </div>
+        <HowItWorks />
+        <OWASPGrid />
       </main>
 
       <SecureShowcase />

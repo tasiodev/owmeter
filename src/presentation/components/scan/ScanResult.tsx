@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import type { Scan, Finding } from "@/domain/entities/Scan";
 import type { Severity } from "@/domain/value-objects/Severity";
 import { OWASP_CATEGORIES, evaluationLevel, PASSIVE_UNEVALUATED, CODE_UNEVALUATED } from "@/domain/value-objects/OWASPCategory";
@@ -425,6 +425,7 @@ function CategoryBreakdownSection({
 
 export function ScanResult({ scan, domain, projectId }: { scan: Scan; domain?: string; projectId?: string }) {
   const t = useTranslations("scan");
+  const locale = useLocale();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<Severity | null>(null);
 
@@ -497,48 +498,72 @@ export function ScanResult({ scan, domain, projectId }: { scan: Scan; domain?: s
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-gray-800 p-6 flex items-center gap-6">
-        {scan.score !== null && scan.maxScore !== null ? (
-          <ScoreCircle score={scan.score} maxScore={scan.maxScore} />
-        ) : (
-          <div className="relative shrink-0 w-28 h-28">
-            <svg width={112} height={112} className="-rotate-90">
-              <circle cx={56} cy={56} r={52} fill="none" stroke="#1f2937" strokeWidth={8} />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-gray-500 text-sm">—</span>
+      <div className="rounded-xl border border-gray-800 overflow-hidden">
+        <div className="p-6 flex items-center gap-6">
+          {scan.score !== null && scan.maxScore !== null ? (
+            <ScoreCircle score={scan.score} maxScore={scan.maxScore} />
+          ) : (
+            <div className="relative shrink-0 w-28 h-28">
+              <svg width={112} height={112} className="-rotate-90">
+                <circle cx={56} cy={56} r={52} fill="none" stroke="#1f2937" strokeWidth={8} />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-gray-500 text-sm">—</span>
+              </div>
             </div>
-          </div>
-        )}
-        <div className="space-y-1">
-          <div className="flex items-center flex-wrap gap-2">
-            {scan.status !== "COMPLETED" && (
-              <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge[scan.status]}`}>
-                {scan.status}
-              </span>
-            )}
-            <ScanTypeBadge type={scan.type} t={t} />
-            {scan.status === "COMPLETED" && projectId && (
-              <a
-                href={`/dashboard/projects/${projectId}/scans/${scan.id}/certificate`}
-                className="text-xs px-2 py-0.5 rounded-full border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200 transition-colors"
-              >
-                {t("certificate")}
-              </a>
-            )}
-          </div>
-          <p className="text-sm text-gray-400">
-            {t("started", { date: new Date(scan.startedAt).toLocaleString() })}
-          </p>
-          {scan.completedAt && (
+          )}
+          <div className="space-y-1">
+            <div className="flex items-center flex-wrap gap-2">
+              {scan.status !== "COMPLETED" && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge[scan.status]}`}>
+                  {scan.status}
+                </span>
+              )}
+              <ScanTypeBadge type={scan.type} t={t} />
+            </div>
             <p className="text-sm text-gray-400">
-              {t("completed", { date: new Date(scan.completedAt).toLocaleString() })}
+              {t("started", { date: new Date(scan.startedAt).toLocaleString() })}
             </p>
-          )}
-          {scan.status === "RUNNING" && (
-            <p className="text-sm text-blue-400 animate-pulse">{t("running")}</p>
-          )}
+            {scan.completedAt && (
+              <p className="text-sm text-gray-400">
+                {t("completed", { date: new Date(scan.completedAt).toLocaleString() })}
+              </p>
+            )}
+            {scan.status === "RUNNING" && (
+              <p className="text-sm text-blue-400 animate-pulse">{t("running")}</p>
+            )}
+          </div>
         </div>
+
+        {scan.status === "COMPLETED" && projectId && (
+          <a
+            href={`/api/projects/${projectId}/scans/${scan.id}/certificate?locale=${locale}`}
+            download
+            className="flex items-center gap-4 px-6 py-4 border-t border-gray-800 bg-emerald-950/20 hover:bg-emerald-950/40 transition-colors group"
+          >
+            <div className="shrink-0 w-9 h-9 rounded-lg bg-emerald-900/40 group-hover:bg-emerald-900/60 transition-colors flex items-center justify-center">
+              <svg className="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="12" y1="18" x2="12" y2="12" />
+                <polyline points="9 15 12 18 15 15" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-emerald-400 group-hover:text-emerald-300 transition-colors">
+                {t("certificate")}
+              </p>
+              <p className="text-xs text-emerald-700 group-hover:text-emerald-600 transition-colors">
+                {t("certificateSub")}
+              </p>
+            </div>
+            <svg className="w-4 h-4 text-emerald-700 group-hover:text-emerald-500 transition-colors shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 16V4" />
+              <path d="M8 12l4 4 4-4" />
+              <path d="M20 20H4" />
+            </svg>
+          </a>
+        )}
       </div>
 
       {scan.status === "COMPLETED" && (

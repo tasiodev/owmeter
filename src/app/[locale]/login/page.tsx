@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { signIn, auth } from "@/infrastructure/auth/auth";
 import { LanguageSwitcher } from "@/presentation/components/ui/LanguageSwitcher";
+import { Logo } from "@/presentation/components/ui/Logo";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function LoginPage({
   params,
@@ -25,9 +31,7 @@ export default async function LoginPage({
       </div>
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">
-            <span className="text-emerald-400">OWASP</span>Checker
-          </h1>
+          <Logo variant="topbar" className="justify-center" />
           <p className="text-gray-400 text-sm">{t("subtitle")}</p>
         </div>
 

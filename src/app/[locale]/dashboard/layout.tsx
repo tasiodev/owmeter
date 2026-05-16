@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { auth, signOut } from "@/infrastructure/auth/auth";
 import { LanguageSwitcher } from "@/presentation/components/ui/LanguageSwitcher";
+import { Logo } from "@/presentation/components/ui/Logo";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function DashboardLayout({
   children,
@@ -20,8 +26,8 @@ export default async function DashboardLayout({
   return (
     <div className="flex flex-col flex-1 min-h-screen">
       <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="text-xl font-bold">
-          <span className="text-emerald-400">OWASP</span>Checker
+        <Link href="/">
+          <Logo variant="topbar" />
         </Link>
         <div className="flex items-center gap-4">
           <LanguageSwitcher />

@@ -64,6 +64,28 @@ function ScoreRing({ score, maxScore }: { score: number; maxScore: number }) {
   );
 }
 
+function FailedRing() {
+  const size = 140;
+  const sw = 10;
+  const r = (size - sw) / 2;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1f2937" strokeWidth={sw} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f87171" strokeWidth={sw}
+          strokeLinecap="round" strokeDasharray={`${circ * 0.12} ${circ * 0.88}`} />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <svg className="w-10 h-10 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M15 9l-6 6M9 9l6 6" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 function SpinningRing() {
   const size = 140;
   const sw = 10;
@@ -105,6 +127,7 @@ export async function LastScanCard({
   const ts = await getTranslations("scan");
 
   const isActive = scan.status === "RUNNING" || scan.status === "PENDING";
+  const isFailed = scan.status === "FAILED" || scan.status === "INVALID";
   const { evaluated, partial } = evaluationStats(scan.type as ScanMode);
 
   const countBySeverity = SEVERITY_ORDER.reduce<Record<Severity, number>>(
@@ -124,6 +147,8 @@ export async function LastScanCard({
       <div className="flex items-center gap-6">
         {isActive ? (
           <SpinningRing />
+        ) : isFailed ? (
+          <FailedRing />
         ) : scan.score !== null && scan.maxScore !== null ? (
           <ScoreRing score={scan.score} maxScore={scan.maxScore} />
         ) : (
@@ -147,7 +172,7 @@ export async function LastScanCard({
             </p>
           </div>
 
-          {!isActive && (
+          {scan.status === "COMPLETED" && (
             <p className="text-xs text-gray-500">
               {ts("categoriesEvaluated", { evaluated, total: TOTAL_CATEGORIES })}
               {partial > 0 && (
@@ -160,6 +185,15 @@ export async function LastScanCard({
 
           {isActive ? (
             <p className="text-sm text-blue-400 animate-pulse">{t("scanRunning")}</p>
+          ) : isFailed ? (
+            <div className="space-y-1.5">
+              <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-red-900/40 text-red-400">
+                {scan.status}
+              </span>
+              {scan.errorMessage && (
+                <p className="text-sm text-red-300/70">{scan.errorMessage}</p>
+              )}
+            </div>
           ) : hasFindings ? (
             <div className="flex flex-wrap gap-2">
               {SEVERITY_ORDER.map((s) =>

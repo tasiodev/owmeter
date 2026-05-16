@@ -46,11 +46,8 @@ src/
 # Start services
 docker compose up -d
 
-# Dev server (kills port 3000 first to avoid ghost processes)
+# Dev server
 npm run dev
-
-# If port 3000 is stuck after Ctrl+C
-npm run dev:kill
 
 # Tests
 npm test                 # run all tests once

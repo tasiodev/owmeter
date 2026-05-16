@@ -13,6 +13,12 @@ const websiteSchema = z.object({
     .regex(
       /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*(?::\d{1,5})?$/,
       { message: "Invalid domain format" }
+    )
+    .refine(
+      (domain) =>
+        process.env.NODE_ENV === "development" ||
+        !/^(localhost|127\.0\.0\.1)(:\d{1,5})?$/.test(domain),
+      { message: "Localhost domains are not allowed" }
     ),
   isPublic: z.boolean().optional(),
 });
