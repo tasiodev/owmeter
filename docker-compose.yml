@@ -3,7 +3,7 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "3100:80"
+      - "3100:3000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-owmeter}:${POSTGRES_PASSWORD:-owmeter}@db:5432/${POSTGRES_DB:-owmeter}
       REDIS_URL: redis://redis:6379
@@ -17,7 +17,7 @@ services:
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
       NEXT_PUBLIC_GITHUB_URL: ${NEXT_PUBLIC_GITHUB_URL}
       AUTH_TRUST_HOST: "1"
-      PORT: "80"
+      PORT: "3000"
     depends_on:
       db:
         condition: service_healthy
