@@ -46,7 +46,7 @@ export function VerifyRepoForm({ projectId, token }: Props) {
     <div className="space-y-4">
       <p className="text-sm text-gray-400">{t("instructions")}</p>
       <pre className="text-xs bg-gray-900 rounded-lg p-3 overflow-x-auto text-emerald-300 whitespace-pre-wrap break-all">
-        {`owaspchecker-verify=${token}`}
+        {`owmeter-verify=${token}`}
       </pre>
       <p className="text-xs text-gray-500">{t("fileHint")}</p>
       <form onSubmit={handleVerify} className="space-y-2">

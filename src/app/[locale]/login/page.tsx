@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { signIn, auth } from "@/infrastructure/auth/auth";
 import { LanguageSwitcher } from "@/presentation/components/ui/LanguageSwitcher";
 import { Logo } from "@/presentation/components/ui/Logo";
+import { Link } from "@/i18n/navigation";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -25,13 +26,17 @@ export default async function LoginPage({
   const defaultCallback = `/${locale}/dashboard`;
 
   return (
-    <main className="flex flex-col items-center justify-center flex-1 px-6 min-h-screen">
-      <div className="absolute top-4 right-4">
+    <div className="flex flex-col min-h-screen">
+      <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+        <Link href="/">
+          <Logo variant="topbar" />
+        </Link>
         <LanguageSwitcher />
-      </div>
+      </header>
+
+      <main className="flex flex-col items-center justify-center flex-1 px-6">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-2">
-          <Logo variant="topbar" className="justify-center" />
           <p className="text-gray-400 text-sm">{t("subtitle")}</p>
         </div>
 
@@ -76,6 +81,7 @@ export default async function LoginPage({
 
         <p className="text-center text-xs text-gray-500">{t("terms")}</p>
       </div>
-    </main>
+      </main>
+    </div>
   );
 }

@@ -9,20 +9,20 @@ describe("getDomainVerificationInstructions", () => {
     const result = getDomainVerificationInstructions(domain, token, "DNS_TXT");
     expect(result).toContain(token);
     expect(result).toContain(domain);
-    expect(result).toContain("_owaspchecker");
+    expect(result).toContain("_owmeter");
   });
 
   it("META_TAG includes the token as content attribute", () => {
     const result = getDomainVerificationInstructions(domain, token, "META_TAG");
     expect(result).toContain(token);
-    expect(result).toContain("owaspchecker-verify");
+    expect(result).toContain("owmeter-verify");
     expect(result).toContain('<meta');
   });
 
   it("FILE includes the token and the correct URL path", () => {
     const result = getDomainVerificationInstructions(domain, token, "FILE");
     expect(result).toContain(token);
-    expect(result).toContain(".well-known/owaspchecker.txt");
+    expect(result).toContain(".well-known/owmeter.txt");
     expect(result).toContain(domain);
   });
 
@@ -39,7 +39,7 @@ describe("getDomainVerificationInstructions", () => {
 describe("getRepoVerificationInstructions", () => {
   it("includes the token with the correct prefix", () => {
     const result = getRepoVerificationInstructions("my-token-abc");
-    expect(result).toContain("owaspchecker-verify=my-token-abc");
-    expect(result).toContain(".owaspchecker");
+    expect(result).toContain("owmeter-verify=my-token-abc");
+    expect(result).toContain(".owmeter");
   });
 });

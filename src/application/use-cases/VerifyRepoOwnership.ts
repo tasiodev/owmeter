@@ -6,7 +6,7 @@ export { RepoFetchError as RepoVerificationError };
 
 async function checkRepoFile(repoUrl: string, token: string): Promise<boolean> {
   const candidates = buildVerificationUrls(repoUrl);
-  const expected = `owaspchecker-verify=${token}`;
+  const expected = `owmeter-verify=${token}`;
 
   for (const { url } of candidates) {
     try {
@@ -44,7 +44,7 @@ export async function verifyRepoOwnership(
 
   if (!verified) {
     throw new RepoFetchError(
-      "Verification failed. Ensure the .owaspchecker file exists at the root of your repository with the correct content."
+      "Verification failed. Ensure the .owmeter file exists at the root of your repository with the correct content."
     );
   }
 

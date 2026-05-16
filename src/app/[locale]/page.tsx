@@ -10,6 +10,7 @@ import { OWASP_CATEGORIES, evaluationLevel } from "@/domain/value-objects/OWASPC
 import type { OWASPCategoryId, ScanMode } from "@/domain/value-objects/OWASPCategory";
 import { ShowcaseCarousel } from "@/presentation/components/home/ShowcaseCarousel";
 import type { CardData } from "@/presentation/components/home/ShowcaseCarousel";
+import { Footer } from "@/presentation/components/ui/Footer";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://owmeter.dev";
 
@@ -104,10 +105,12 @@ function HowItWorks() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
           {steps.map(({ num, title, desc }) => (
             <div key={num} className="space-y-3">
-              <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm">
-                {num}
-              </div>
-              <h3 className="font-semibold text-gray-100">{title}</h3>
+              <h3 className="font-semibold text-gray-100 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-xs shrink-0">
+                  {num}
+                </span>
+                {title}
+              </h3>
               <p className="text-sm text-gray-400">{desc}</p>
             </div>
           ))}
@@ -184,7 +187,7 @@ async function SecureShowcase() {
   return (
     <section className="w-full pt-12 pb-6 border-t border-gray-800">
       <div className="max-w-3xl mx-auto px-6 text-center mb-8 space-y-1">
-        <h2 className="text-base font-semibold text-gray-100">{t("showcaseTitle")}</h2>
+        <h2 className="text-2xl font-bold text-gray-100">{t("showcaseTitle")}</h2>
         <p className="text-sm text-gray-500">{t("showcaseSubtitle")}</p>
       </div>
       {groups.length > 0 ? (
@@ -231,7 +234,7 @@ export default async function HomePage({
         </Link>
         <div className="flex items-center gap-4">
           <LanguageSwitcher />
-          {session && (
+          {session ? (
             <>
               <span className="text-sm text-gray-400">{session.user?.email}</span>
               <form
@@ -248,6 +251,13 @@ export default async function HomePage({
                 </button>
               </form>
             </>
+          ) : (
+            <Link
+              href="/login"
+              className="text-sm px-4 py-1.5 rounded-lg border border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-gray-950 font-medium transition-colors"
+            >
+              {tc("signIn")}
+            </Link>
           )}
         </div>
       </header>
@@ -281,11 +291,12 @@ export default async function HomePage({
           </div>
         </section>
 
+        <SecureShowcase />
         <HowItWorks />
         <OWASPGrid />
       </main>
 
-      <SecureShowcase />
+      <Footer />
     </div>
   );
 }

@@ -73,11 +73,11 @@ function buildRawFileUrl(parsed: ParsedRepo, branch: string): string {
   const { provider, namespace, repo } = parsed;
   switch (provider) {
     case "github":
-      return `https://raw.githubusercontent.com/${namespace}/${repo}/${branch}/.owaspchecker`;
+      return `https://raw.githubusercontent.com/${namespace}/${repo}/${branch}/.owmeter`;
     case "gitlab":
-      return `https://gitlab.com/${namespace}/${repo}/-/raw/${branch}/.owaspchecker`;
+      return `https://gitlab.com/${namespace}/${repo}/-/raw/${branch}/.owmeter`;
     case "bitbucket":
-      return `https://bitbucket.org/${namespace}/${repo}/raw/${branch}/.owaspchecker`;
+      return `https://bitbucket.org/${namespace}/${repo}/raw/${branch}/.owmeter`;
   }
 }
 
@@ -105,7 +105,7 @@ async function fetchZipFromUrl(url: string): Promise<Uint8Array | null> {
   const res = await fetch(url, {
     redirect: "follow",
     signal: AbortSignal.timeout(60_000),
-    headers: { "User-Agent": "OwaspChecker/1.0" },
+    headers: { "User-Agent": "Owmeter/1.0" },
   });
   if (!res.ok) return null;
 

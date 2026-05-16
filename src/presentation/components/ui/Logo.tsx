@@ -5,7 +5,7 @@ interface LogoProps {
   className?: string;
 }
 
-function GaugeSVG() {
+function GaugeSVG({ animated = false }: { animated?: boolean }) {
   return (
     <>
       <path
@@ -32,10 +32,26 @@ function GaugeSVG() {
       <circle cx={114.9} cy={-96.42} r={6} fill="#10B981" />
       <circle cx={140.95} cy={-51.3} r={6} fill="#10B981" />
       <circle cx={150} cy={0} r={6} fill="#10B981" />
-      <g transform="rotate(55)">
+
+      {/* Needle — starts in red zone when animated, static at green otherwise */}
+      <g transform={animated ? "rotate(-90)" : "rotate(55)"}>
         <path d="M -8,0 L 0,-155 L 8,0 Z" fill="#F9FAFB" />
         <circle cx={0} cy={0} r={16} fill="#F9FAFB" />
         <circle cx={0} cy={0} r={6} fill="#111827" />
+        {animated && (
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            values="-90; 62; 55"
+            keyTimes="0; 0.82; 1"
+            calcMode="spline"
+            keySplines="0.25 0.1 0.25 1; 0.4 0 0.6 1"
+            dur="1.8s"
+            begin="0.4s"
+            fill="freeze"
+            repeatCount="1"
+          />
+        )}
       </g>
     </>
   );
@@ -52,7 +68,7 @@ export function Logo({ variant = "topbar", className }: LogoProps) {
           aria-hidden="true"
         >
           <g transform="translate(400, 260)">
-            <GaugeSVG />
+            <GaugeSVG animated />
           </g>
         </svg>
         <span className="text-5xl font-extrabold tracking-tight text-white">

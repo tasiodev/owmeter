@@ -28,7 +28,7 @@ export function BadgeCard({ projectId }: { projectId: string }) {
   const t = useTranslations("apiKey");
   const [lang, setLang] = useState<"en" | "es">("en");
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://owaspchecker.app";
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://owmeter.app";
   const badgeUrl = `${origin}/api/badge/${projectId}?lang=${lang}`;
   const badgeMarkdown = `![OWASP Score](${badgeUrl})`;
 

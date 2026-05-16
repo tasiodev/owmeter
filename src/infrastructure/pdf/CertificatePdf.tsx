@@ -246,7 +246,7 @@ export function CertificatePdf({ project, scan, locale }: CertificatePdfProps) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.brand}>OWASPCHECKER</Text>
+          <Text style={styles.brand}>OWMETER</Text>
           <Text style={styles.title}>{s.title}</Text>
           <Text style={styles.subtitle}>{s.subtitle}</Text>
         </View>

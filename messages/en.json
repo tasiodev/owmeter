@@ -1,9 +1,10 @@
 {
   "common": {
     "appName": "OWMeter",
+    "signIn": "Sign in",
     "signOut": "Sign out",
     "dashboard": "Dashboard",
-    "viewRankings": "View Rankings",
+
     "loading": "Loading…"
   },
   "home": {
@@ -33,7 +34,7 @@
     "openSourceDesc": "No paid plans, no vendor lock-in. OWMeter is open source — inspect the code, contribute, or self-host.",
     "viewSource": "View on GitHub",
     "showcaseTitle": "Latest secure sites analysed",
-    "showcaseSubtitle": "Sites that reached a perfect OWASP Top 10 score",
+    "showcaseSubtitle": "Sites that reached a perfect score on OWMeter",
     "showcaseEmpty": "Be the first to reach a perfect score and appear here."
   },
   "login": {
@@ -41,7 +42,7 @@
     "subtitle": "Scan your projects against the OWASP Top 10",
     "continueGoogle": "Continue with Google",
     "continueGithub": "Continue with GitHub",
-    "terms": "By signing in you agree to our Terms of Service. We only request read access to your email."
+    "terms": "We only request read access to your email."
   },
   "dashboard": {
     "title": "My Projects",
@@ -105,11 +106,11 @@
   "verifyRepo": {
     "subtitleRequired": "You must verify ownership of your repository before scanning. Supported: GitHub, GitLab, and Bitbucket.",
     "subtitleOptional": "Optionally verify your repository (GitHub, GitLab, or Bitbucket) to enable full code analysis.",
-    "instructions": "Create a file named .owaspchecker at the root of your repository with this exact content:",
+    "instructions": "Create a file named .owmeter at the root of your repository with this exact content:",
     "fileHint": "Commit the file, then enter your repository URL below and click Verify.",
     "verifyNow": "Verify repository",
     "verifying": "Verifying…",
-    "failed": "Verification failed. Make sure the .owaspchecker file exists with the correct content.",
+    "failed": "Verification failed. Make sure the .owmeter file exists with the correct content.",
     "networkError": "Network error. Please try again."
   },
   "scan": {
@@ -205,11 +206,51 @@
     "copy": "Copy",
     "copied": "Copied!"
   },
-  "ranking": {
-    "title": "Security Ranking",
-    "subtitle": "Projects that opted in to show their OWASP score publicly.",
-    "noSites": "No projects in the ranking yet.",
-    "scannedOn": "Scanned {date}"
+
+  "footer": {
+    "tagline": "Free OWASP Top 10 scanner for websites and repositories.",
+    "about": "About",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "copyright": "© {year} OWMeter — open source"
+  },
+  "about": {
+    "title": "About OWMeter",
+    "backHome": "← Back to home"
+  },
+  "legalPrivacy": {
+    "title": "Privacy Policy",
+    "updated": "Last updated: May 2025",
+    "backHome": "← Back to home",
+    "s1Title": "What we collect",
+    "s1Body": "Your email address and display name, provided by Google or GitHub when you sign in. The website URLs and repository links you add to your projects. Security scan results generated for your verified projects.",
+    "s2Title": "How we use it",
+    "s2Body": "To authenticate you, maintain your session, and run OWASP Top 10 security scans on your verified projects. We do not sell, share, or use your data for advertising or third-party analytics.",
+    "s3Title": "Source code",
+    "s3Body": "Access to source code is exclusively for analysis purposes, processed entirely in memory and discarded immediately after the scan completes. It is never written to disk, logged, or stored in any form.",
+    "s4Title": "Cookies",
+    "s4Body": "We use a single session cookie (HttpOnly, Secure, SameSite=Strict) for authentication. We do not use tracking cookies or advertising cookies of any kind.",
+    "s5Title": "Third parties",
+    "s5Body": "Google and GitHub OAuth are used for authentication only. We receive your email address and display name. No other third-party services receive your personal data.",
+    "s6Title": "Data deletion",
+    "s6Body": "You can delete your projects and all associated scan results from the dashboard at any time. To delete your account entirely, open an issue on our GitHub repository.",
+    "s7Title": "Open source",
+    "s7Body": "OWMeter is open source. You can inspect how your data is handled in the public repository and verify these claims directly in the code."
+  },
+  "legalTerms": {
+    "title": "Terms of Service",
+    "updated": "Last updated: May 2025",
+    "backHome": "← Back to home",
+    "s1Title": "Authorised use",
+    "s1Body": "You may only scan websites or repositories that you own or have explicit written permission to scan. Domain and repository ownership verification is required before any scan is performed — this is enforced by the platform. Using OWMeter to scan systems you do not control is strictly prohibited.",
+    "s2Title": "No warranty",
+    "s2Body": "OWMeter is provided \"as is\" without warranties of any kind, express or implied. Scan results are informational only and do not guarantee complete security coverage or the absence of vulnerabilities.",
+    "s3Title": "Limitation of liability",
+    "s3Body": "To the fullest extent permitted by law, we are not liable for any direct, indirect, or consequential damages arising from your use of OWMeter or from acting on scan results.",
+    "s4Title": "Open source",
+    "s4Body": "OWMeter is open source software. You may inspect, fork, and self-host it under the terms of its open source licence. The hosted service at owmeter.dev is free to use.",
+    "s5Title": "Changes",
+    "s5Body": "We may update these terms at any time. Continued use of the service after changes are posted implies acceptance of the updated terms."
   },
   "privacy": {
     "sectionTitle": "Privacy",

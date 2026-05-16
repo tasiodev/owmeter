@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to OwaspChecker are documented here.
+All notable changes to Owmeter are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — Semantic Versioning.
 
 ## [Unreleased]

@@ -7,7 +7,7 @@ export class VerificationError extends Error {}
 async function checkDnsTxt(domain: string, token: string): Promise<boolean> {
   try {
     const { promises: dns } = await import("dns");
-    const records = await dns.resolveTxt(`_owaspchecker.${domain}`);
+    const records = await dns.resolveTxt(`_owmeter.${domain}`);
     return records.some((r) => r.join("") === token);
   } catch {
     return false;
@@ -18,7 +18,7 @@ async function checkMetaTag(domain: string, token: string): Promise<boolean> {
   try {
     const res = await fetch(resolveBaseUrl(domain), { signal: AbortSignal.timeout(10000) });
     const html = await res.text();
-    return html.includes(`owaspchecker-verify" content="${token}"`);
+    return html.includes(`owmeter-verify" content="${token}"`);
   } catch {
     return false;
   }
@@ -26,7 +26,7 @@ async function checkMetaTag(domain: string, token: string): Promise<boolean> {
 
 async function checkFile(domain: string, token: string): Promise<boolean> {
   try {
-    const res = await fetch(`${resolveBaseUrl(domain)}/.well-known/owaspchecker.txt`, {
+    const res = await fetch(`${resolveBaseUrl(domain)}/.well-known/owmeter.txt`, {
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) return false;

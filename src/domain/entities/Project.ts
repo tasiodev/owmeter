@@ -37,14 +37,14 @@ export function getDomainVerificationInstructions(
 ): string {
   switch (method) {
     case "DNS_TXT":
-      return `Add a DNS TXT record to ${domain}:\nName: _owaspchecker\nValue: ${token}`;
+      return `Add a DNS TXT record to ${domain}:\nName: _owmeter\nValue: ${token}`;
     case "META_TAG":
-      return `Add this tag to the <head> of your homepage:\n<meta name="owaspchecker-verify" content="${token}">`;
+      return `Add this tag to the <head> of your homepage:\n<meta name="owmeter-verify" content="${token}">`;
     case "FILE":
-      return `Create a file at:\n${resolveBaseUrl(domain)}/.well-known/owaspchecker.txt\nWith content: ${token}`;
+      return `Create a file at:\n${resolveBaseUrl(domain)}/.well-known/owmeter.txt\nWith content: ${token}`;
   }
 }
 
 export function getRepoVerificationInstructions(token: string): string {
-  return `Create a file named \`.owaspchecker\` at the root of your repository with this exact content:\nowaspchecker-verify=${token}`;
+  return `Create a file named \`.owmeter\` at the root of your repository with this exact content:\nowmeter-verify=${token}`;
 }

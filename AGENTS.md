@@ -6,7 +6,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ---
 
-# OwaspChecker — Agent Instructions
+# Owmeter — Agent Instructions
 
 ## What this project is
 

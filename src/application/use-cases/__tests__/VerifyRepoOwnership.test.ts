@@ -41,7 +41,7 @@ function makeRepo(project: Project | null = makeProject()): IProjectRepository {
   };
 }
 
-function stubFetch(ok: boolean, body = "owaspchecker-verify=REPO-TOKEN-XYZ") {
+function stubFetch(ok: boolean, body = "owmeter-verify=REPO-TOKEN-XYZ") {
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue({ ok, text: async () => body })
@@ -83,7 +83,7 @@ describe("verifyRepoOwnership — GitHub", () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => vi.unstubAllGlobals());
 
-  it("marks verified when .owaspchecker has correct token", async () => {
+  it("marks verified when .owmeter has correct token", async () => {
     const repo = makeRepo();
     stubFetch(true);
     const result = await verifyRepoOwnership("proj-1", "user-1", "https://github.com/owner/my-lib", repo);
@@ -92,7 +92,7 @@ describe("verifyRepoOwnership — GitHub", () => {
   });
 
   it("throws when file has wrong content", async () => {
-    stubFetch(true, "owaspchecker-verify=WRONG");
+    stubFetch(true, "owmeter-verify=WRONG");
     await expect(
       verifyRepoOwnership("proj-1", "user-1", "https://github.com/owner/repo", makeRepo())
     ).rejects.toThrow(RepoVerificationError);
@@ -109,7 +109,7 @@ describe("verifyRepoOwnership — GitHub", () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce({ ok: false })
-      .mockResolvedValueOnce({ ok: true, text: async () => "owaspchecker-verify=REPO-TOKEN-XYZ" });
+      .mockResolvedValueOnce({ ok: true, text: async () => "owmeter-verify=REPO-TOKEN-XYZ" });
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await verifyRepoOwnership("proj-1", "user-1", "https://github.com/owner/repo", makeRepo());
@@ -139,7 +139,7 @@ describe("verifyRepoOwnership — GitLab", () => {
   it("uses /-/raw/ URL pattern for the verification fetch", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      text: async () => "owaspchecker-verify=REPO-TOKEN-XYZ",
+      text: async () => "owmeter-verify=REPO-TOKEN-XYZ",
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -165,7 +165,7 @@ describe("verifyRepoOwnership — Bitbucket", () => {
   it("uses /raw/ URL pattern for the verification fetch", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      text: async () => "owaspchecker-verify=REPO-TOKEN-XYZ",
+      text: async () => "owmeter-verify=REPO-TOKEN-XYZ",
     });
     vi.stubGlobal("fetch", fetchMock);
 

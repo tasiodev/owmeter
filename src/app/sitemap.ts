@@ -8,17 +8,15 @@ function url(path: string) {
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const publicPaths = ["", "/ranking"];
+  const publicPaths = ["", "/privacy", "/terms"];
 
-  return LOCALES.flatMap((locale) =>
-    publicPaths.map((path) => ({
-      url: url(`/${locale}${path}`),
-      lastModified: new Date(),
-      changeFrequency: path === "" ? ("weekly" as const) : ("monthly" as const),
-      priority: path === "" ? 1.0 : 0.6,
-      alternates: {
-        languages: Object.fromEntries(LOCALES.map((l) => [l, url(`/${l}${path}`)])),
-      },
-    }))
-  );
+  return publicPaths.map((path) => ({
+    url: url(`/en${path}`),
+    lastModified: new Date(),
+    changeFrequency: path === "" ? ("weekly" as const) : ("monthly" as const),
+    priority: path === "" ? 1.0 : 0.6,
+    alternates: {
+      languages: Object.fromEntries(LOCALES.map((l) => [l, url(`/${l}${path}`)])),
+    },
+  }));
 }

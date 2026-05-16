@@ -1,4 +1,4 @@
-# OwaspChecker
+# Owmeter
 
 A web application for scanning websites against the OWASP Top 10 and generating a security score. Site owners must verify domain ownership before running any scan.
 
@@ -22,8 +22,8 @@ A web application for scanning websites against the OWASP Top 10 and generating 
 ### 1. Clone and install dependencies
 
 ```bash
-git clone https://github.com/tespanol/OwaspChecker.git
-cd OwaspChecker
+git clone https://github.com/tasiodev/owmeter.git
+cd owmeter
 npm install
 ```
 

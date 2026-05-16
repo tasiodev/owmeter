@@ -94,18 +94,18 @@ describe("parseRepoUrl — errors", () => {
 describe("buildVerificationUrls", () => {
   it("builds correct raw URLs for GitHub", () => {
     const urls = buildVerificationUrls("https://github.com/owner/repo");
-    expect(urls[0].url).toBe("https://raw.githubusercontent.com/owner/repo/main/.owaspchecker");
-    expect(urls[1].url).toBe("https://raw.githubusercontent.com/owner/repo/master/.owaspchecker");
+    expect(urls[0].url).toBe("https://raw.githubusercontent.com/owner/repo/main/.owmeter");
+    expect(urls[1].url).toBe("https://raw.githubusercontent.com/owner/repo/master/.owmeter");
   });
 
   it("builds correct raw URLs for GitLab", () => {
     const urls = buildVerificationUrls("https://gitlab.com/owner/repo");
-    expect(urls[0].url).toBe("https://gitlab.com/owner/repo/-/raw/main/.owaspchecker");
+    expect(urls[0].url).toBe("https://gitlab.com/owner/repo/-/raw/main/.owmeter");
   });
 
   it("builds correct raw URLs for Bitbucket", () => {
     const urls = buildVerificationUrls("https://bitbucket.org/owner/repo");
-    expect(urls[0].url).toBe("https://bitbucket.org/owner/repo/raw/main/.owaspchecker");
+    expect(urls[0].url).toBe("https://bitbucket.org/owner/repo/raw/main/.owmeter");
   });
 });
 

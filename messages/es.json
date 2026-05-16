@@ -1,9 +1,10 @@
 {
   "common": {
     "appName": "OWMeter",
+    "signIn": "Iniciar sesión",
     "signOut": "Cerrar sesión",
     "dashboard": "Panel",
-    "viewRankings": "Ver Ranking",
+
     "loading": "Cargando…"
   },
   "home": {
@@ -33,7 +34,7 @@
     "openSourceDesc": "Sin planes de pago, sin vendor lock-in. OWMeter es open source — inspecciona el código, contribuye o alójalo tú mismo.",
     "viewSource": "Ver en GitHub",
     "showcaseTitle": "Últimos sitios seguros analizados",
-    "showcaseSubtitle": "Sitios que han alcanzado una puntuación perfecta en el OWASP Top 10",
+    "showcaseSubtitle": "Sitios que han alcanzado una puntuación perfecta en OWMeter",
     "showcaseEmpty": "Sé el primero en alcanzar la puntuación perfecta y aparecer aquí."
   },
   "login": {
@@ -41,7 +42,7 @@
     "subtitle": "Analiza tus proyectos contra el OWASP Top 10",
     "continueGoogle": "Continuar con Google",
     "continueGithub": "Continuar con GitHub",
-    "terms": "Al iniciar sesión aceptas nuestros Términos de Servicio. Solo solicitamos acceso de lectura a tu email."
+    "terms": "Solo solicitamos acceso de lectura a tu email."
   },
   "dashboard": {
     "title": "Mis Proyectos",
@@ -105,11 +106,11 @@
   "verifyRepo": {
     "subtitleRequired": "Debes verificar la propiedad de tu repositorio antes de analizar. Compatible con GitHub, GitLab y Bitbucket.",
     "subtitleOptional": "Verifica opcionalmente tu repositorio (GitHub, GitLab o Bitbucket) para habilitar el análisis completo de código.",
-    "instructions": "Crea un archivo llamado .owaspchecker en la raíz de tu repositorio con exactamente este contenido:",
+    "instructions": "Crea un archivo llamado .owmeter en la raíz de tu repositorio con exactamente este contenido:",
     "fileHint": "Haz commit del archivo, introduce la URL de tu repositorio y haz clic en Verificar.",
     "verifyNow": "Verificar repositorio",
     "verifying": "Verificando…",
-    "failed": "Verificación fallida. Asegúrate de que el archivo .owaspchecker existe con el contenido correcto.",
+    "failed": "Verificación fallida. Asegúrate de que el archivo .owmeter existe con el contenido correcto.",
     "networkError": "Error de red. Por favor, inténtalo de nuevo."
   },
   "scan": {
@@ -205,11 +206,51 @@
     "copy": "Copiar",
     "copied": "¡Copiado!"
   },
-  "ranking": {
-    "title": "Ranking de Seguridad",
-    "subtitle": "Proyectos que optaron por mostrar su puntuación OWASP públicamente.",
-    "noSites": "Aún no hay proyectos en el ranking.",
-    "scannedOn": "Analizado el {date}"
+
+  "footer": {
+    "tagline": "Escáner OWASP Top 10 gratuito para webs y repositorios.",
+    "about": "Sobre el proyecto",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "copyright": "© {year} OWMeter — open source"
+  },
+  "about": {
+    "title": "Sobre OWMeter",
+    "backHome": "← Volver al inicio"
+  },
+  "legalPrivacy": {
+    "title": "Política de Privacidad",
+    "updated": "Última actualización: mayo 2025",
+    "backHome": "← Volver al inicio",
+    "s1Title": "Qué recopilamos",
+    "s1Body": "Tu dirección de email y nombre proporcionados por Google o GitHub al iniciar sesión. Las URLs de webs y repositorios que añades a tus proyectos. Los resultados de análisis de seguridad generados para tus proyectos verificados.",
+    "s2Title": "Cómo lo usamos",
+    "s2Body": "Para autenticarte, mantener tu sesión y ejecutar análisis OWASP Top 10 en tus proyectos verificados. No vendemos, compartimos ni usamos tus datos para publicidad ni analíticas de terceros.",
+    "s3Title": "Código fuente",
+    "s3Body": "El acceso al código fuente será exclusivamente para el análisis, se procesa completamente en memoria y se descarta inmediatamente al completarse. Nunca se escribe en disco, se registra ni se almacena de ninguna forma.",
+    "s4Title": "Cookies",
+    "s4Body": "Usamos una única cookie de sesión (HttpOnly, Secure, SameSite=Strict) para autenticación. No usamos cookies de rastreo ni publicidad de ningún tipo.",
+    "s5Title": "Terceros",
+    "s5Body": "Google y GitHub OAuth se usan únicamente para autenticación. Recibimos tu email y nombre. Ningún otro servicio de terceros recibe tus datos personales.",
+    "s6Title": "Eliminación de datos",
+    "s6Body": "Puedes eliminar tus proyectos y todos los resultados de análisis desde el panel en cualquier momento. Para eliminar tu cuenta completa, abre un issue en nuestro repositorio de GitHub.",
+    "s7Title": "Open source",
+    "s7Body": "OWMeter es open source. Puedes inspeccionar cómo se gestionan tus datos en el repositorio público y verificar estas afirmaciones directamente en el código."
+  },
+  "legalTerms": {
+    "title": "Términos de Servicio",
+    "updated": "Última actualización: mayo 2025",
+    "backHome": "← Volver al inicio",
+    "s1Title": "Uso autorizado",
+    "s1Body": "Solo puedes analizar webs o repositorios que sean de tu propiedad o para los que tengas permiso explícito por escrito. La verificación de propiedad del dominio o repositorio es obligatoria antes de cualquier análisis — la plataforma lo impone. Usar OWMeter para analizar sistemas que no controlas está estrictamente prohibido.",
+    "s2Title": "Sin garantías",
+    "s2Body": "OWMeter se proporciona «tal cual» sin garantías de ningún tipo, explícitas o implícitas. Los resultados de los análisis son informativos y no garantizan una cobertura de seguridad completa ni la ausencia de vulnerabilidades.",
+    "s3Title": "Limitación de responsabilidad",
+    "s3Body": "En la medida máxima permitida por la ley, no somos responsables de ningún daño directo, indirecto o consecuente derivado del uso de OWMeter o de actuar en base a los resultados de los análisis.",
+    "s4Title": "Open source",
+    "s4Body": "OWMeter es software open source. Puedes inspeccionarlo, bifurcarlo y alojarlo tú mismo bajo los términos de su licencia. El servicio alojado en owmeter.dev es de uso gratuito.",
+    "s5Title": "Cambios",
+    "s5Body": "Podemos actualizar estos términos en cualquier momento. El uso continuado del servicio tras publicar cambios implica la aceptación de los términos actualizados."
   },
   "privacy": {
     "sectionTitle": "Privacidad",

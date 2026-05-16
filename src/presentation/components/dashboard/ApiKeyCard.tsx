@@ -58,11 +58,11 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger OwaspChecker scan
+      - name: Trigger Owmeter scan
         run: |
           curl -s -X POST \\
-            -H "Authorization: Bearer \${{ secrets.OWASPCHECKER_API_KEY }}" \\
-            https://owaspchecker.app/api/projects/${projectId}/trigger-scan`;
+            -H "Authorization: Bearer \${{ secrets.OWMETER_API_KEY }}" \\
+            https://owmeter.app/api/projects/${projectId}/trigger-scan`;
 
   return (
     <div className="rounded-xl border border-gray-800 p-6 space-y-6">
@@ -97,7 +97,7 @@ jobs:
           </div>
         </div>
         <p className="text-xs text-gray-500">
-          Add <code className="text-gray-300">OWASPCHECKER_API_KEY</code> as a repository secret in GitHub → Settings → Secrets.
+          Add <code className="text-gray-300">OWMETER_API_KEY</code> as a repository secret in GitHub → Settings → Secrets.
         </p>
       </div>
     </div>

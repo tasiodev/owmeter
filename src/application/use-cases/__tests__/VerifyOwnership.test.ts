@@ -81,7 +81,7 @@ describe("verifyDomainOwnership", () => {
         vi.fn().mockResolvedValue({
           ok: true,
           text: async () =>
-            `<html><head><meta name="owaspchecker-verify" content="TOKEN-XYZ"></head></html>`,
+            `<html><head><meta name="owmeter-verify" content="TOKEN-XYZ"></head></html>`,
         })
       );
 
@@ -137,7 +137,7 @@ describe("verifyDomainOwnership", () => {
       vi.fn().mockResolvedValue({
         ok: true,
         text: async () =>
-          `<html><head><meta name="owaspchecker-verify" content="TOKEN-XYZ"></head></html>`,
+          `<html><head><meta name="owmeter-verify" content="TOKEN-XYZ"></head></html>`,
       })
     );
 

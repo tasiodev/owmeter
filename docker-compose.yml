@@ -3,15 +3,15 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-owaspchecker}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-owaspchecker}
-      POSTGRES_DB: ${POSTGRES_DB:-owaspchecker}
+      POSTGRES_USER: ${POSTGRES_USER:-owmeter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-owmeter}
+      POSTGRES_DB: ${POSTGRES_DB:-owmeter}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-owaspchecker}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-owmeter}"]
       interval: 5s
       timeout: 5s
       retries: 5
