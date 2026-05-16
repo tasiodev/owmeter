@@ -32,7 +32,29 @@ export async function proxy(req: NextRequest) {
   }
 
   // Let next-intl handle locale routing/detection
-  return intlProxy(req);
+  const response = intlProxy(req);
+
+  // next-intl redirects can include the internal port (e.g. :3000) when the
+  // app runs behind a proxy with x-forwarded-proto:https. Rewrite the Location
+  // header using NEXT_PUBLIC_APP_URL so the browser sees the correct public URL.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (appUrl && response.status >= 300 && response.status < 400) {
+    const location = response.headers.get("location");
+    if (location) {
+      try {
+        const locUrl = new URL(location);
+        const baseUrl = new URL(appUrl);
+        locUrl.protocol = baseUrl.protocol;
+        locUrl.hostname = baseUrl.hostname;
+        locUrl.port = baseUrl.port;
+        return NextResponse.redirect(locUrl.toString(), { status: response.status });
+      } catch {
+        return response;
+      }
+    }
+  }
+
+  return response;
 }
 
 export const config = {
