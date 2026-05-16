@@ -5,7 +5,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json* ./
 ENV HUSKY=0
-RUN npm ci --omit=optional
+RUN npm ci --omit=optional --ignore-scripts
 
 FROM base AS builder
 WORKDIR /app
