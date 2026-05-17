@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-175 -175 350 240" width="280" height="192">
+  <rect x="-175" y="-175" width="350" height="240" rx="16" ry="16" fill="#ffffff"/>
   <!-- gauge track -->
   <path d="M -150,0 A 150,150 0 0,1 150,0" fill="none" stroke="#d1d5db" stroke-width="24" stroke-linecap="round"/>
   <!-- green arc (high-score zone) -->
