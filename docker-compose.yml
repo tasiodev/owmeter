@@ -62,7 +62,7 @@ services:
     restart: unless-stopped
     ports:
       - "8050:8050"
-    command: zap.sh -daemon -host 0.0.0.0 -port 8050 -config api.key=${ZAP_API_KEY:-changeme} -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
+    command: zap.sh -daemon -host 0.0.0.0 -port 8050 -addonupdate -config api.key=${ZAP_API_KEY:-changeme} -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8050/JSON/core/view/version/?apikey=${ZAP_API_KEY:-changeme} || exit 1"]
       interval: 15s

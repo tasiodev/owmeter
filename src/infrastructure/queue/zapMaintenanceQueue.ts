@@ -29,14 +29,10 @@ export function initZapMaintenanceWorker(): { worker: Worker; queue: Queue } {
   });
 
   // Daily repeatable job — upsert so restarts don't create duplicates.
+  // Startup updates are handled by ZAP's -addonupdate flag in docker-compose.
   queue
     .upsertJobScheduler("zap-addon-update-daily", { every: EVERY_24H_MS }, { name: "update-addons", data: {} })
     .catch((err) => logger.error({ err }, "Failed to schedule daily ZAP addon update"));
-
-  // Immediate startup job — jobId deduplicates if the process restarts quickly.
-  queue
-    .add("update-addons", {}, { jobId: "zap-addon-update-startup" })
-    .catch((err) => logger.error({ err }, "Failed to enqueue startup ZAP addon update"));
 
   return { queue, worker };
 }

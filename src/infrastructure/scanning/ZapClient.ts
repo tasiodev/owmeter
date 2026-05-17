@@ -85,10 +85,13 @@ function resolveZapTargetUrl(targetUrl: string): string {
   return url.toString();
 }
 
+// retire.js is the addon responsible for vulnerable-library detection.
+// installAddon fetches the latest version directly from the ZAP marketplace
+// without requiring a prior update check (unlike updateAllAddons).
 export async function updateZapAddons(): Promise<void> {
-  logger.info("Triggering ZAP addon update");
-  await zapGet<{ Result: string }>("autoupdate/action/updateAllAddons");
-  logger.info("ZAP addon update triggered — ZAP will apply changes in background");
+  logger.info("Updating ZAP retire.js addon");
+  const res = await zapGet<{ Result: string }>("autoupdate/action/installAddon", { id: "retire" });
+  logger.info({ result: res.Result }, "ZAP retire.js addon update complete");
 }
 
 export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]> {
