@@ -286,14 +286,32 @@ function stripRootPrefix(files: Record<string, Uint8Array>): Record<string, Uint
   return stripped;
 }
 
+/**
+ * Removes // and /* comments from JS/TS source while keeping string literals intact.
+ * Non-newline characters in comments are replaced with spaces so that byte offsets
+ * (and therefore line numbers derived from them) stay correct.
+ */
+function stripComments(code: string): string {
+  return code.replace(
+    /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g,
+    (match) => {
+      if (match.startsWith("//") || match.startsWith("/*")) {
+        return match.replace(/[^\n]/g, " ");
+      }
+      return match;
+    }
+  );
+}
+
 function analyzeFile(filePath: string, content: string): RawFinding[] {
   const findings: RawFinding[] = [];
   const seen = new Set<string>();
+  const stripped = stripComments(content);
 
   for (const pattern of PATTERNS) {
     if (pattern.fileFilter && !pattern.fileFilter(filePath)) continue;
 
-    const matches = [...content.matchAll(pattern.regex)];
+    const matches = [...stripped.matchAll(pattern.regex)];
     if (matches.length === 0) continue;
 
     const key = `${pattern.category}:${pattern.title}:${filePath}`;
@@ -301,8 +319,8 @@ function analyzeFile(filePath: string, content: string): RawFinding[] {
     seen.add(key);
 
     const match = matches[0];
-    const lineNumber = content.slice(0, match.index ?? 0).split("\n").length;
-    const snippet = match[0].trim().slice(0, 120);
+    const lineNumber = stripped.slice(0, match.index ?? 0).split("\n").length;
+    const snippet = content.split("\n")[lineNumber - 1]?.trim().slice(0, 120) ?? match[0].trim().slice(0, 120);
 
     findings.push({
       category: pattern.category,

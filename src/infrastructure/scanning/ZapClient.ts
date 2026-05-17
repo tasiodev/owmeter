@@ -85,6 +85,12 @@ function resolveZapTargetUrl(targetUrl: string): string {
   return url.toString();
 }
 
+export async function updateZapAddons(): Promise<void> {
+  logger.info("Triggering ZAP addon update");
+  await zapGet<{ Result: string }>("autoupdate/action/updateAllAddons");
+  logger.info("ZAP addon update triggered — ZAP will apply changes in background");
+}
+
 export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]> {
   const zapTargetUrl = resolveZapTargetUrl(targetUrl);
   logger.info({ targetUrl, zapTargetUrl }, "ZAP scan starting");

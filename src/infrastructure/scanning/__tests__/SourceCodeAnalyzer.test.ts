@@ -222,4 +222,41 @@ describe("runSourceCodeAnalysis", () => {
     const f = findings.find((f) => f.title.includes("jsonwebtoken"));
     expect(f).toBeUndefined();
   });
+
+  // False-positive regression tests — eval() in comments/strings must NOT be flagged
+  it("does not flag eval() in a single-line comment", async () => {
+    const zip = makeZip({
+      "next.config.js":
+        "// react-refresh (hot reload) uses eval(); NOT included in production\nmodule.exports = {};",
+    });
+    const findings = await runSourceCodeAnalysis(zip);
+    expect(findings.find((f) => f.title.includes("eval"))).toBeUndefined();
+  });
+
+  it("does not flag eval() in a block comment", async () => {
+    const zip = makeZip({
+      "config.js": "/* This lib uses eval() internally */\nmodule.exports = {};",
+    });
+    const findings = await runSourceCodeAnalysis(zip);
+    expect(findings.find((f) => f.title.includes("eval"))).toBeUndefined();
+  });
+
+  it("does not flag new Function() in a comment", async () => {
+    const zip = makeZip({
+      "util.js": "// new Function() is like eval — avoid it\nexport const noop = () => {};",
+    });
+    const findings = await runSourceCodeAnalysis(zip);
+    expect(findings.find((f) => f.title.includes("Function constructor"))).toBeUndefined();
+  });
+
+  it("still flags real eval() calls after comment stripping", async () => {
+    const zip = makeZip({
+      "run.js":
+        "// safe comment mentioning eval()\nfunction execute(code) { eval(code); }",
+    });
+    const findings = await runSourceCodeAnalysis(zip);
+    const f = findings.find((f) => f.title.includes("eval"));
+    expect(f).toBeDefined();
+    expect(f?.severity).toBe("CRITICAL");
+  });
 });
