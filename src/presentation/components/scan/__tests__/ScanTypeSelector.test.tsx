@@ -16,12 +16,13 @@ vi.mock("@/i18n/navigation", () => ({
 beforeEach(() => vi.clearAllMocks());
 afterEach(() => vi.unstubAllGlobals());
 
-describe("ScanTypeSelector — WEBSITE without repo (PASSIVE only)", () => {
-  it("renders only the start button (no type selector) when one option available", () => {
+describe("ScanTypeSelector — WEBSITE without repo (PASSIVE + FULL with ZIP)", () => {
+  it("renders PASSIVE and FULL radio buttons even without verified repo", () => {
     render(
       <ScanTypeSelector projectId="proj-1" projectType="WEBSITE" hasVerifiedRepo={false} />
     );
-    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue("PASSIVE")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("FULL")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: T("startScan") })).toBeInTheDocument();
   });
 

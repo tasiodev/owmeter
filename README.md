@@ -96,7 +96,7 @@ Open `.env` and fill in the values:
 docker compose up zap redis db -d
 ```
 
-This starts PostgreSQL (port 5432), Redis (port 6380), and OWASP ZAP (port 8050). ZAP takes ~30 seconds to initialize — wait until `docker compose ps` shows all containers as healthy before continuing.
+This starts PostgreSQL (port 5433), Redis (port 6380), and OWASP ZAP (port 8050). ZAP takes ~30 seconds to initialize — wait until `docker compose ps` shows all containers as healthy before continuing.
 
 ### 4. Run database migrations
 

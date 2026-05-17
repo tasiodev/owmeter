@@ -26,16 +26,18 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex flex-col flex-1 min-h-screen">
-      <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="border-b border-gray-800 px-4 sm:px-6 py-4 flex items-center justify-between gap-2 overflow-hidden">
+        <div className="flex items-center gap-3 shrink-0">
           <Link href="/">
             <Logo variant="topbar" />
           </Link>
           <BetaBadge />
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <LanguageSwitcher />
-          <span className="text-sm text-gray-400">{session.user.email}</span>
+          <span className="text-sm text-gray-400 hidden sm:block truncate max-w-[180px]">
+            {session.user.email}
+          </span>
           <form
             action={async () => {
               "use server";
@@ -44,7 +46,7 @@ export default async function DashboardLayout({
           >
             <button
               type="submit"
-              className="text-sm text-gray-400 hover:text-white transition-colors"
+              className="text-sm text-gray-400 hover:text-white transition-colors shrink-0"
             >
               {tc("signOut")}
             </button>

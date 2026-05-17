@@ -5,7 +5,7 @@ services:
     ports:
       - "3100:3000"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-owmeter}:${POSTGRES_PASSWORD:-owmeter}@db:5432/${POSTGRES_DB:-owmeter}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-owmeter}:${POSTGRES_PASSWORD:-owmeter}@db:5433/${POSTGRES_DB:-owmeter}
       REDIS_URL: redis://redis:6379
       ZAP_URL: http://zap:8050
       ZAP_API_KEY: ${ZAP_API_KEY:-changeme}
@@ -30,7 +30,7 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-owmeter}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-owmeter}
