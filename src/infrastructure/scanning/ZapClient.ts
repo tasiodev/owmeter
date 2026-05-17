@@ -178,6 +178,27 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
     return match?.[1];
   }
 
+  // CDNs that serve dynamically-versioned scripts — SRI hashes are never published for these.
+  const DYNAMIC_CDN_HOSTS = [
+    "googlesyndication.com",
+    "googletagmanager.com",
+    "google-analytics.com",
+    "googletagservices.com",
+    "doubleclick.net",
+    "connect.facebook.net",
+    "static.hotjar.com",
+  ];
+
+  function isDynamicCdnUrl(raw: string | undefined): boolean {
+    if (!raw) return false;
+    try {
+      const host = new URL(raw).hostname;
+      return DYNAMIC_CDN_HOSTS.some((cdn) => host === cdn || host.endsWith(`.${cdn}`));
+    } catch {
+      return false;
+    }
+  }
+
   function isFalsePositive(a: ZapAlert): boolean {
     const alert = a.alert.toLowerCase();
 
@@ -186,16 +207,25 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
       return isSameDomainUrl(extractResourceUrl(a.evidence));
     }
 
-    // Sub Resource Integrity: only meaningful for cross-origin resources.
+    // Sub Resource Integrity: only meaningful for cross-origin resources that publish stable hashes.
+    // Dynamic CDNs (AdSense, GTM, etc.) change content continuously — SRI is not applicable.
     if (alert.includes("sub resource integrity")) {
       const url = extractResourceUrl(a.evidence);
-      // If we can't determine the resource URL, assume it's same-domain (Next.js inline/relative).
-      if (!url) return true;
-      return isSameDomainUrl(url);
+      if (!url) return true; // can't determine URL → assume same-domain (Next.js inline/relative)
+      return isSameDomainUrl(url) || isDynamicCdnUrl(url);
     }
 
     // X-Powered-By: already detected by PassiveAnalyzer with the actual header value.
     if (alert.includes("x-powered-by")) return true;
+
+    // Timestamp Disclosure: a Unix epoch number in content is not a vulnerability by itself.
+    if (alert.includes("timestamp disclosure")) return true;
+
+    // Content-Type on redirect responses: 3xx responses have no body — Content-Type is irrelevant.
+    if (alert.includes("content-type") && a.url) {
+      // ZAP evidence for redirect CT alerts typically lacks a body; risk is always Informational/Low.
+      if (a.risk.toLowerCase() === "informational" || a.risk.toLowerCase() === "low") return true;
+    }
 
     return false;
   }

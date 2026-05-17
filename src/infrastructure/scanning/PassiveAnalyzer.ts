@@ -6,7 +6,6 @@ const SENSITIVE_PATHS = [
   "/admin",
   "/wp-admin",
   "/phpMyAdmin",
-  "/.well-known/security.txt",
 ];
 
 const REQUIRED_SECURITY_HEADERS: Record<string, { description: string; missingFinding: Omit<RawFinding, "evidence"> }> = {
