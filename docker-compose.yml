@@ -29,8 +29,9 @@ services:
   db:
     image: postgres:17-alpine
     restart: unless-stopped
+    command: -p 5433
     ports:
-      - "5433:5432"
+      - "5433:5433"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-owmeter}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-owmeter}
@@ -38,7 +39,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-owmeter}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-owmeter} -p 5433"]
       interval: 5s
       timeout: 5s
       retries: 5
