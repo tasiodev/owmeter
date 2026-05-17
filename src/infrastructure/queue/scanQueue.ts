@@ -8,6 +8,8 @@ import { runSourceCodeAnalysis } from "@/infrastructure/scanning/SourceCodeAnaly
 import { fetchRepoAsZip } from "@/infrastructure/scanning/RepoFetcher";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
 import { createLogger } from "@/infrastructure/logger";
+import type { FullZipScanJobData } from "@/application/use-cases/CreateFullScanFromZip";
+import type { OWASPCategoryId } from "@/domain/value-objects/OWASPCategory";
 
 const logger = createLogger("ScanWorker");
 
@@ -44,13 +46,6 @@ export type CodeScanJobData = {
   scanId: string;
   type: "CODE";
   repoUrl: string;
-};
-
-export type FullZipScanJobData = {
-  scanId: string;
-  targetUrl: string;
-  type: "FULL_ZIP";
-  sastFindings: RawFinding[];
 };
 
 export type ScanJobData = PassiveScanJobData | FullScanJobData | CodeScanJobData | FullZipScanJobData;
@@ -108,15 +103,19 @@ export function createScanWorker(): Worker<ScanJobData> {
       try {
         let allRawFindings: RawFinding[];
         let scanMode: ScanMode;
+        let sastUnevaluated: ReadonlySet<OWASPCategoryId> = new Set();
 
         if (job.data.type === "CODE") {
           // Code-only scan for CODE_REPO projects
           const zipBuffer = await fetchRepoAsZip(job.data.repoUrl);
-          allRawFindings = deduplicateFindings(await runSourceCodeAnalysis(zipBuffer));
+          const { findings, unevaluated } = await runSourceCodeAnalysis(zipBuffer);
+          allRawFindings = deduplicateFindings(findings);
+          sastUnevaluated = unevaluated;
           scanMode = "CODE";
         } else if (job.data.type === "FULL_ZIP") {
           // Full scan with pre-analyzed SAST findings from user-uploaded ZIP
-          const { targetUrl, sastFindings } = job.data;
+          const { targetUrl, sastFindings, sastUnevaluated: serializedUnevaluated } = job.data;
+          sastUnevaluated = new Set(serializedUnevaluated);
 
           await assertReachable(targetUrl).catch((err: unknown) => {
             const reason = err instanceof Error ? err.message : "unreachable";
@@ -161,8 +160,9 @@ export function createScanWorker(): Worker<ScanJobData> {
           const combined: RawFinding[] = [...passiveFindings, ...zapFindings];
 
           if (job.data.type === "FULL" && repoZip) {
-            const sastFindings = await runSourceCodeAnalysis(repoZip);
+            const { findings: sastFindings, unevaluated } = await runSourceCodeAnalysis(repoZip);
             combined.push(...sastFindings);
+            sastUnevaluated = unevaluated;
             scanMode = "FULL";
           } else {
             scanMode = "PASSIVE";
@@ -171,7 +171,7 @@ export function createScanWorker(): Worker<ScanJobData> {
           allRawFindings = deduplicateFindings(combined);
         }
 
-        const { score, maxScore, findings: scoredFindings } = calculateScore(allRawFindings, scanMode);
+        const { score, maxScore, findings: scoredFindings } = calculateScore(allRawFindings, scanMode, sastUnevaluated);
         await repo.complete(scanId, score, maxScore, scoredFindings);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";

@@ -33,7 +33,11 @@ export interface ScoreResult {
   categoryBreakdown: Record<OWASPCategoryId, CategoryBreakdownEntry>;
 }
 
-export function calculateScore(rawFindings: RawFinding[], mode: ScanMode = "PASSIVE"): ScoreResult {
+export function calculateScore(
+  rawFindings: RawFinding[],
+  mode: ScanMode = "PASSIVE",
+  additionalUnevaluated: ReadonlySet<OWASPCategoryId> = new Set()
+): ScoreResult {
   const categoryLost: Partial<Record<OWASPCategoryId, number>> = {};
 
   const findings: ScoredFinding[] = rawFindings.map((f) => {
@@ -46,7 +50,7 @@ export function calculateScore(rawFindings: RawFinding[], mode: ScanMode = "PASS
   let totalScore = 0;
 
   for (const [id, cat] of Object.entries(OWASP_CATEGORIES) as [OWASPCategoryId, { maxPoints: number }][]) {
-    const evaluated = isEvaluated(id, mode);
+    const evaluated = isEvaluated(id, mode) && !additionalUnevaluated.has(id);
 
     if (!evaluated) {
       // Not evaluated: category contributes its full max (no deductions possible)

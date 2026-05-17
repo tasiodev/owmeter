@@ -149,6 +149,7 @@
     "zipRequired": "Selecciona un archivo ZIP antes de iniciar.",
     "zipTooLarge": "El archivo ZIP supera el límite de 50 MB.",
     "zipNotVerified": "El ZIP no pudo verificarse como perteneciente a este dominio. Sube el código fuente del sitio verificado.",
+    "zipNoValidCode": "El ZIP no contiene ningún archivo de código fuente reconocible. Por favor, sube un repositorio de código válido.",
     "privacyTitle": "Tu código nunca se almacena",
     "privacyDesc": "El código fuente se procesa completamente en memoria y se descarta inmediatamente tras el análisis. Nunca se escribe en disco, se registra ni se persiste de ninguna forma.",
     "categoryBreakdown": "Desglose por categorías",

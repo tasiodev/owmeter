@@ -3,12 +3,14 @@ import type { IProjectRepository } from "@/domain/repositories/IProjectRepositor
 import type { Scan } from "@/domain/entities/Scan";
 import { resolveBaseUrl } from "@/domain/entities/Project";
 import type { RawFinding } from "@/domain/services/ScoringService";
+import type { OWASPCategoryId } from "@/domain/value-objects/OWASPCategory";
 
 export type FullZipScanJobData = {
   scanId: string;
   targetUrl: string;
   type: "FULL_ZIP";
   sastFindings: RawFinding[];
+  sastUnevaluated: OWASPCategoryId[];
 };
 
 export class CreateFullScanFromZipError extends Error {}
@@ -19,7 +21,8 @@ export async function createFullScanFromZip(
   sastFindings: RawFinding[],
   projectRepo: IProjectRepository,
   scanRepo: IScanRepository,
-  enqueue: (jobData: FullZipScanJobData) => Promise<void>
+  enqueue: (jobData: FullZipScanJobData) => Promise<void>,
+  unevaluated: ReadonlySet<OWASPCategoryId> = new Set()
 ): Promise<Scan> {
   const project = await projectRepo.findById(projectId);
 
@@ -36,6 +39,7 @@ export async function createFullScanFromZip(
     targetUrl: resolveBaseUrl(project.domain),
     type: "FULL_ZIP",
     sastFindings,
+    sastUnevaluated: [...unevaluated],
   });
 
   return scan;

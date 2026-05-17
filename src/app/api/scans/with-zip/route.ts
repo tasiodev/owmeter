@@ -3,7 +3,7 @@ import { z } from "zod";
 import { auth } from "@/infrastructure/auth/auth";
 import { PrismaProjectRepository } from "@/infrastructure/database/repositories/PrismaProjectRepository";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
-import { runSourceCodeAnalysis } from "@/infrastructure/scanning/SourceCodeAnalyzer";
+import { runSourceCodeAnalysis, NoValidCodeError } from "@/infrastructure/scanning/SourceCodeAnalyzer";
 import { verifyCodeMatchesSite } from "@/infrastructure/scanning/CodeVerifier";
 import { deduplicateFindings, getScanQueue } from "@/infrastructure/queue/scanQueue";
 import { createCodeScanFromZip, CreateCodeScanFromZipError } from "@/application/use-cases/CreateCodeScanFromZip";
@@ -75,9 +75,18 @@ export async function POST(req: NextRequest) {
   }
 
   let rawFindings;
+  let sastUnevaluated;
   try {
-    rawFindings = deduplicateFindings(await runSourceCodeAnalysis(zipBuffer));
-  } catch {
+    const result = await runSourceCodeAnalysis(zipBuffer);
+    rawFindings = deduplicateFindings(result.findings);
+    sastUnevaluated = result.unevaluated;
+  } catch (err) {
+    if (err instanceof NoValidCodeError) {
+      return NextResponse.json(
+        { error: "ZIP_NO_VALID_CODE", message: "The ZIP does not contain any recognizable source code files." },
+        { status: 422 }
+      );
+    }
     return NextResponse.json({ error: "Failed to analyze ZIP file" }, { status: 422 });
   }
 
@@ -88,7 +97,8 @@ export async function POST(req: NextRequest) {
         session.user.id,
         rawFindings,
         projectRepo,
-        scanRepo
+        scanRepo,
+        sastUnevaluated
       );
       return NextResponse.json(scan, { status: 201 });
     }
@@ -103,7 +113,8 @@ export async function POST(req: NextRequest) {
       scanRepo,
       async (jobData) => {
         await queue.add("scan", jobData, { attempts: 1, removeOnComplete: { age: 300 } });
-      }
+      },
+      sastUnevaluated
     );
     return NextResponse.json(scan, { status: 201 });
   } catch (err) {

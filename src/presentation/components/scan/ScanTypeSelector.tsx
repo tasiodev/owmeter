@@ -60,6 +60,8 @@ export function ScanTypeSelector({
           const data = (await res.json()) as { error?: string; message?: string };
           if (data.error === "ZIP_NOT_VERIFIED") {
             setError(t("zipNotVerified"));
+          } else if (data.error === "ZIP_NO_VALID_CODE") {
+            setError(t("zipNoValidCode"));
           } else {
             setError(data.message ?? t("networkError"));
           }

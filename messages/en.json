@@ -149,6 +149,7 @@
     "zipRequired": "Please select a ZIP file before starting.",
     "zipTooLarge": "ZIP file exceeds the 50 MB limit.",
     "zipNotVerified": "The ZIP could not be verified as belonging to this domain. Upload the source code of the verified site.",
+    "zipNoValidCode": "The ZIP does not contain any recognizable source code files. Please upload a valid code repository.",
     "privacyTitle": "Your code is never stored",
     "privacyDesc": "Source code is processed entirely in memory and discarded immediately after analysis. It is never written to disk, logged, or persisted in any form.",
     "categoryBreakdown": "Category breakdown",

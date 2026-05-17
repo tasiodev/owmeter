@@ -8,6 +8,38 @@ const ALLOWED_EXTENSIONS = new Set([
   ".json", ".html", ".htm", ".env.example",
 ]);
 
+// Extensions to check for A04 (hardcoded secrets) in non-JS/TS projects.
+// These patterns are language-agnostic (`password = "..."` works everywhere).
+const FOREIGN_LANG_EXTENSIONS = new Set([
+  ".java", ".kt", ".scala",
+  ".cs",
+  ".py",
+  ".go",
+  ".rb",
+  ".php",
+  ".rs",
+]);
+
+// Categories that cannot be evaluated from foreign-language source code.
+// JS/TS-specific patterns (eval, CORS middleware, bcrypt, console.log, etc.) do not
+// apply to Java, Python, Go, etc. A04 is intentionally excluded — hardcoded-secrets
+// checks run cross-language. A05 is already in CODE_UNEVALUATED for all CODE scans.
+const FOREIGN_LANG_UNEVALUATED: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
+  "A01_BROKEN_ACCESS_CONTROL",
+  "A02_CRYPTOGRAPHIC_FAILURES",
+  "A03_INJECTION",
+  "A06_VULNERABLE_COMPONENTS",
+  "A07_AUTH_FAILURES",
+  "A08_DATA_INTEGRITY_FAILURES",
+  "A09_LOGGING_FAILURES",
+  "A10_SSRF",
+]);
+
+export interface SourceCodeAnalysisResult {
+  findings: RawFinding[];
+  unevaluated: ReadonlySet<OWASPCategoryId>;
+}
+
 // Manifest files that identify a non-JS/TS project
 const LANGUAGE_MANIFESTS: Array<{ files: string[]; extensions?: string[]; language: string }> = [
   { files: ["pom.xml", "build.gradle", "build.gradle.kts"], extensions: [".java"], language: "Java" },
@@ -334,12 +366,12 @@ function stripComments(code: string): string {
   );
 }
 
-function analyzeFile(filePath: string, content: string): RawFinding[] {
+function analyzeFile(filePath: string, content: string, patterns = PATTERNS): RawFinding[] {
   const findings: RawFinding[] = [];
   const seen = new Set<string>();
   const stripped = stripComments(content);
 
-  for (const pattern of PATTERNS) {
+  for (const pattern of patterns) {
     if (pattern.fileFilter && !pattern.fileFilter(filePath)) continue;
 
     const matches = [...stripped.matchAll(pattern.regex)];
@@ -412,9 +444,18 @@ function analyzeDependencies(pkgContent: string): RawFinding[] {
   return findings;
 }
 
+export class NoValidCodeError extends Error {
+  constructor() {
+    super("ZIP_NO_VALID_CODE");
+    this.name = "NoValidCodeError";
+  }
+}
+
+const A04_PATTERNS = PATTERNS.filter((p) => p.category === "A04_INSECURE_DESIGN");
+
 export async function runSourceCodeAnalysis(
   zipBuffer: Uint8Array
-): Promise<RawFinding[]> {
+): Promise<SourceCodeAnalysisResult> {
   const rawFiles = unzipSync(zipBuffer);
   const files = stripRootPrefix(rawFiles);
   const findings: RawFinding[] = [];
@@ -423,26 +464,46 @@ export async function runSourceCodeAnalysis(
   const foreignLanguage = detectForeignLanguage(paths);
   const jsTs = hasJsTsEcosystem(files);
 
-  // If the project has no JS/TS ecosystem files, skip SAST and dep analysis entirely.
-  // If it also uses a recognized foreign language, add an informational finding.
-  if (!jsTs) {
-    if (foreignLanguage) {
-      findings.push({
-        category: "A06_VULNERABLE_COMPONENTS",
-        severity: "INFO",
-        title: `Code analysis unavailable: ${foreignLanguage} project`,
-        description:
-          `The uploaded project appears to be written in ${foreignLanguage}. ` +
-          `Static analysis (SAST patterns and dependency vulnerability checks) currently only supports JavaScript/TypeScript projects. ` +
-          `The domain and network scans are not affected by this limitation.`,
-        evidence: undefined,
-      });
-    }
-    return findings;
+  // Reject ZIPs with no recognizable source code at all (e.g. plain TXT files)
+  if (!jsTs && !foreignLanguage) {
+    throw new NoValidCodeError();
   }
 
-  // If there are also non-JS/TS sources (e.g. a Java backend + React frontend),
-  // note that only the JS/TS part was analyzed.
+  // Foreign-language project (Python, Java, Go, etc.) with no JS/TS:
+  // run only A04 (hardcoded secrets) patterns on native source files — these regex
+  // patterns are language-agnostic. All other categories are marked not_evaluated
+  // because they rely on JS/TS-specific APIs and patterns.
+  if (!jsTs) {
+    findings.push({
+      category: "A04_INSECURE_DESIGN",
+      severity: "INFO",
+      title: `Limited code analysis: ${foreignLanguage} project`,
+      description:
+        `The uploaded project appears to be written in ${foreignLanguage}. ` +
+        `Only hardcoded-secrets checks (A04) are applied cross-language. ` +
+        `All other code analysis categories require JavaScript/TypeScript and are marked as not evaluated.`,
+      evidence: undefined,
+    });
+
+    for (const [filePath, data] of Object.entries(files)) {
+      if (shouldSkip(filePath)) continue;
+      const dot = filePath.lastIndexOf(".");
+      if (dot === -1 || !FOREIGN_LANG_EXTENSIONS.has(filePath.slice(dot))) continue;
+      if (data.length > MAX_FILE_BYTES) continue;
+
+      const content = new TextDecoder().decode(data);
+      const firstNewline = content.indexOf("\n");
+      const firstLineLength = firstNewline === -1 ? content.length : firstNewline;
+      if (firstLineLength > MAX_LINE_LENGTH) continue;
+
+      findings.push(...analyzeFile(filePath, content, A04_PATTERNS));
+    }
+
+    return { findings, unevaluated: FOREIGN_LANG_UNEVALUATED };
+  }
+
+  // JS/TS project with a foreign-language component (e.g. Java backend + React frontend):
+  // analyse the JS/TS side fully but note the foreign part was skipped.
   if (foreignLanguage) {
     findings.push({
       category: "A06_VULNERABLE_COMPONENTS",
@@ -455,7 +516,7 @@ export async function runSourceCodeAnalysis(
     });
   }
 
-  // Find and analyze package.json for dependency vulnerabilities
+  // Find package.json for dependency vulnerability analysis
   const pkgPath = paths.find(
     (p) => (p === "package.json" || p.endsWith("/package.json")) && !p.includes("node_modules")
   );
@@ -464,7 +525,10 @@ export async function runSourceCodeAnalysis(
     findings.push(...analyzeDependencies(content));
   }
 
-  // Analyze source files
+  // A06 is only evaluable when package.json is present (dep analysis is the sole A06 check)
+  const unevaluated: Set<OWASPCategoryId> = pkgPath ? new Set() : new Set<OWASPCategoryId>(["A06_VULNERABLE_COMPONENTS"]);
+
+  // Analyze JS/TS source files
   for (const [filePath, data] of Object.entries(files)) {
     if (shouldSkip(filePath)) continue;
     if (!hasAllowedExtension(filePath)) continue;
@@ -480,5 +544,5 @@ export async function runSourceCodeAnalysis(
     findings.push(...analyzeFile(filePath, content));
   }
 
-  return findings;
+  return { findings, unevaluated };
 }
