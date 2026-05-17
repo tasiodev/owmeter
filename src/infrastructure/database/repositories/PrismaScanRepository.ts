@@ -92,7 +92,7 @@ export class PrismaScanRepository implements IScanRepository {
     const records = await prisma.scan.findMany({
       where: {
         status: "COMPLETED",
-        score: { gte: 95 },
+        score: { gte: 90 },
         project: {
           isPublic: true,
           OR: [
