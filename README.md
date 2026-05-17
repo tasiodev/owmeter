@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/logo.svg" alt="OWMeter" width="220" />
+  <img src="public/logo.svg" alt="OWMeter" width="220" style="background:#ffffff;border-radius:16px;padding:16px" />
 </p>
 
 <p align="center">
