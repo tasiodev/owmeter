@@ -175,6 +175,8 @@
     "validatedLabel": "Validated",
     "partialEvaluatedLabel": "Partial",
     "partialEvaluatedDesc": "Partially evaluated — server aspects (TLS, cookie flags) require a live domain",
+    "falsePositiveHint": "Think one of these findings might be a false positive? Help us improve the scanner — open an issue with the finding title and the scanned URL.",
+    "falsePositiveLink": "Open an issue",
     "failedTitle": "Scan failed",
     "failedDesc": "The scan could not be completed. Check the reason below and try again once the issue is resolved.",
     "failedErrorLabel": "Reason:",

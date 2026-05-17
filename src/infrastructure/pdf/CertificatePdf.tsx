@@ -1,4 +1,4 @@
-import { Document, Page, View, Text, Svg, Circle, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Svg, Circle, Path, G, StyleSheet } from "@react-pdf/renderer";
 import { OWASP_CATEGORIES, isEvaluated } from "@/domain/value-objects/OWASPCategory";
 import type { OWASPCategoryId } from "@/domain/value-objects/OWASPCategory";
 import type { Finding, ScanType } from "@/domain/entities/Scan";
@@ -72,7 +72,9 @@ const styles = StyleSheet.create({
     color: "#6b7280",
   },
   projectSection: {
-    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 20,
     paddingBottom: 20,
     borderBottom: "1pt solid #e5e7eb",
@@ -81,11 +83,30 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Helvetica-Bold",
     color: "#111827",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   projectDomain: {
-    fontSize: 10,
+    fontSize: 9,
+    color: "#9ca3af",
+  },
+  metaBadge: {
+    borderRadius: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginBottom: 5,
+  },
+  metaBadgeText: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+  },
+  metaSub: {
+    fontSize: 8,
     color: "#6b7280",
+    marginBottom: 3,
+  },
+  metaDate: {
+    fontSize: 8,
+    color: "#9ca3af",
   },
   scoreSection: {
     alignItems: "center",
@@ -139,31 +160,15 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
   },
   footer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     marginTop: 20,
-    paddingTop: 16,
+    paddingTop: 12,
     borderTop: "1pt solid #e5e7eb",
+    alignItems: "center",
   },
-  footerColumn: {
-    flexDirection: "column",
-    gap: 3,
-  },
-  footerLabel: {
+  footerAttribution: {
     fontSize: 7,
-    color: "#9ca3af",
+    color: "#d1d5db",
     letterSpacing: 1,
-    marginBottom: 3,
-  },
-  footerValue: {
-    fontSize: 9,
-    fontFamily: "Helvetica-Bold",
-    color: "#374151",
-  },
-  footerSub: {
-    fontSize: 8,
-    color: "#6b7280",
-    marginTop: 1,
   },
   // Findings page
   findingItem: {
@@ -222,6 +227,58 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica",
   },
 });
+
+// Gauge SVG: same geometry as public/logo.svg, dark colours for white background.
+function LogoPdf({ variant = "hero" }: { variant?: "hero" | "topbar" }) {
+  const gaugeW = variant === "hero" ? 82 : 46;
+  const gaugeH = Math.round(gaugeW * (240 / 350)); // preserve aspect ratio of viewBox
+
+  const wordmarkSize = variant === "hero" ? 22 : 13;
+
+  const gauge = (
+    <Svg width={gaugeW} height={gaugeH} viewBox="-175 -175 350 240">
+      <Path d="M -150,0 A 150,150 0 0,1 150,0" fill="none" stroke="#d1d5db" strokeWidth={24} strokeLinecap="round" />
+      <Path d="M 50,-141.4 A 150,150 0 0,1 150,0" fill="none" stroke="#10B981" strokeWidth={24} strokeLinecap="round" />
+      <Circle cx={-150}    cy={0}       r={6} fill="#EF4444" />
+      <Circle cx={-140.95} cy={-51.3}   r={6} fill="#EF4444" />
+      <Circle cx={-114.9}  cy={-96.42}  r={6} fill="#F59E0B" />
+      <Circle cx={-75}     cy={-129.9}  r={6} fill="#F59E0B" />
+      <Circle cx={-26.05}  cy={-147.72} r={6} fill="#3B82F6" />
+      <Circle cx={26.05}   cy={-147.72} r={6} fill="#3B82F6" />
+      <Circle cx={75}      cy={-129.9}  r={6} fill="#10B981" />
+      <Circle cx={114.9}   cy={-96.42}  r={6} fill="#10B981" />
+      <Circle cx={140.95}  cy={-51.3}   r={6} fill="#10B981" />
+      <Circle cx={150}     cy={0}       r={6} fill="#10B981" />
+      <G transform="rotate(55)">
+        <Path d="M -8,0 L 0,-150 L 8,0 Z" fill="#111827" />
+        <Circle cx={0} cy={0} r={16} fill="#111827" />
+        <Circle cx={0} cy={0} r={6}  fill="#374151" />
+      </G>
+    </Svg>
+  );
+
+  const wordmark = (
+    <Text style={{ fontSize: wordmarkSize, fontFamily: "Helvetica-Bold", color: "#111827" }}>
+      {"OW"}<Text style={{ color: "#10B981" }}>{"Meter"}</Text>
+    </Text>
+  );
+
+  if (variant === "hero") {
+    return (
+      <View style={{ alignItems: "center" }}>
+        {gauge}
+        <View style={{ marginTop: 6 }}>{wordmark}</View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
+      {gauge}
+      <View style={{ marginLeft: 7 }}>{wordmark}</View>
+    </View>
+  );
+}
 
 function scoreColor(score: number) {
   if (score >= 80) return "#059669";
@@ -363,16 +420,39 @@ export function CertificatePdf({ project, scan, locale }: CertificatePdfProps) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.brand}>OWMETER</Text>
-          <Text style={styles.title}>{s.title}</Text>
+          <LogoPdf variant="hero" />
+          <Text style={[styles.title, { marginTop: 12 }]}>{s.title}</Text>
           <Text style={styles.subtitle}>{s.subtitle}</Text>
         </View>
 
         <View style={styles.projectSection}>
-          <Text style={styles.projectName}>{project.name}</Text>
-          {project.domain && (
-            <Text style={styles.projectDomain}>{project.domain}</Text>
-          )}
+          {/* Left: name + domain */}
+          <View style={{ flex: 1, marginRight: 16 }}>
+            <Text style={styles.projectName}>{project.name}</Text>
+            {project.domain && (
+              <Text style={styles.projectDomain}>{project.domain}</Text>
+            )}
+          </View>
+
+          {/* Right: type badge + date */}
+          <View style={{ alignItems: "flex-end" }}>
+            <View style={[
+              styles.metaBadge,
+              { backgroundColor: project.type === "WEBSITE" ? "#dbeafe" : "#ede9fe" },
+            ]}>
+              <Text style={[
+                styles.metaBadgeText,
+                { color: project.type === "WEBSITE" ? "#1e40af" : "#6d28d9" },
+              ]}>
+                {typeMain}
+              </Text>
+            </View>
+            {typeSub && <Text style={styles.metaSub}>{typeSub}</Text>}
+            {isUnverifiedSource && (
+              <Text style={[styles.metaSub, { color: "#d97706" }]}>{s.unverifiedSource}</Text>
+            )}
+            <Text style={styles.metaDate}>{completedAt}</Text>
+          </View>
         </View>
 
         <View style={styles.scoreSection}>
@@ -411,27 +491,14 @@ export function CertificatePdf({ project, scan, locale }: CertificatePdfProps) {
         </View>
 
         <View style={styles.footer}>
-          <View style={styles.footerColumn}>
-            <Text style={styles.footerLabel}>{s.projectTypeLabel}</Text>
-            <Text style={styles.footerValue}>{typeMain}</Text>
-            {typeSub && <Text style={styles.footerSub}>{typeSub}</Text>}
-            {isUnverifiedSource && (
-              <Text style={[styles.footerSub, { color: "#d97706" }]}>
-                {s.unverifiedSource}
-              </Text>
-            )}
-          </View>
-          <View style={[styles.footerColumn, { alignItems: "flex-end" }]}>
-            <Text style={styles.footerLabel}>{s.dateLabel}</Text>
-            <Text style={styles.footerValue}>{completedAt}</Text>
-          </View>
+          <Text style={styles.footerAttribution}>OWMETER.DEV</Text>
         </View>
       </Page>
 
       <Page size="A4" style={styles.page}>
-        <View style={{ marginBottom: 16, paddingBottom: 16, borderBottom: "1pt solid #e5e7eb" }}>
-          <Text style={styles.brand}>OWMETER</Text>
-          <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: "#111827", marginTop: 4 }}>
+        <View fixed style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16, paddingBottom: 16, borderBottom: "1pt solid #e5e7eb" }}>
+          <LogoPdf variant="topbar" />
+          <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: "#111827" }}>
             {project.name}
           </Text>
         </View>

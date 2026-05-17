@@ -216,6 +216,31 @@ function ScanTypeBadge({
   );
 }
 
+const GITHUB_ISSUES_URL = `${process.env.NEXT_PUBLIC_GITHUB_URL ?? ""}/issues`;
+
+function FalsePositiveHint({ t }: { t: ReturnType<typeof useTranslations<"scan">> }) {
+  return (
+    <div className="flex gap-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3">
+      <svg className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      <p className="text-xs text-gray-500 leading-relaxed">
+        {t("falsePositiveHint")}{" "}
+        <a
+          href={GITHUB_ISSUES_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-400 underline underline-offset-2 hover:text-gray-200 transition-colors"
+        >
+          {t("falsePositiveLink")} →
+        </a>
+      </p>
+    </div>
+  );
+}
+
 const EVIDENCE_TRUNCATE_LIMIT = 300;
 
 function EvidenceBlock({ evidence }: { evidence: string }) {
@@ -636,6 +661,8 @@ export function ScanResult({ scan, domain, projectId, repoVerified }: { scan: Sc
               <FindingCard key={f.id} finding={f} t={t} />
             ))}
           </ul>
+
+          <FalsePositiveHint t={t} />
         </div>
       )}
     </div>

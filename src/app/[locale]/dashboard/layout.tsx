@@ -6,6 +6,7 @@ import { auth, signOut } from "@/infrastructure/auth/auth";
 import { LanguageSwitcher } from "@/presentation/components/ui/LanguageSwitcher";
 import { Logo } from "@/presentation/components/ui/Logo";
 import { BetaBadge } from "@/presentation/components/ui/BetaBadge";
+import { Footer } from "@/presentation/components/ui/Footer";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -54,6 +55,7 @@ export default async function DashboardLayout({
         </div>
       </header>
       <main className="flex-1">{children}</main>
+      <Footer />
     </div>
   );
 }

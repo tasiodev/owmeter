@@ -175,6 +175,8 @@
     "validatedLabel": "Validada",
     "partialEvaluatedLabel": "Parcial",
     "partialEvaluatedDesc": "Evaluación parcial — aspectos de servidor (TLS, flags de cookies) requieren dominio publicado",
+    "falsePositiveHint": "¿Crees que alguno de estos hallazgos podría ser un falso positivo? Ayúdanos a mejorar el scanner abriendo un issue con el título del hallazgo y la URL analizada.",
+    "falsePositiveLink": "Abrir un issue",
     "failedTitle": "Análisis fallido",
     "failedDesc": "El análisis no pudo completarse. Comprueba el motivo a continuación e inténtalo de nuevo una vez resuelto el problema.",
     "failedErrorLabel": "Motivo:",

@@ -5,6 +5,7 @@ import { signIn, auth } from "@/infrastructure/auth/auth";
 import { LanguageSwitcher } from "@/presentation/components/ui/LanguageSwitcher";
 import { Logo } from "@/presentation/components/ui/Logo";
 import { Link } from "@/i18n/navigation";
+import { Footer } from "@/presentation/components/ui/Footer";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -82,6 +83,7 @@ export default async function LoginPage({
         <p className="text-center text-xs text-gray-500">{t("terms")}</p>
       </div>
       </main>
+      <Footer />
     </div>
   );
 }

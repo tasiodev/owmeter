@@ -5,7 +5,6 @@ import { auth } from "@/infrastructure/auth/auth";
 import { PrismaProjectRepository } from "@/infrastructure/database/repositories/PrismaProjectRepository";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
 import { ScanResult } from "@/presentation/components/scan/ScanResult";
-import { ScanHistoryList } from "@/presentation/components/scan/ScanHistoryList";
 
 export default async function ScanDetailPage({
   params,
@@ -24,10 +23,7 @@ export default async function ScanDetailPage({
   const project = await projectRepo.findById(id);
   if (!project || project.userId !== session.user.id) notFound();
 
-  const [scan, allScans] = await Promise.all([
-    scanRepo.findById(scanId),
-    scanRepo.findByProjectId(id),
-  ]);
+  const scan = await scanRepo.findById(scanId);
 
   if (!scan || scan.projectId !== id) notFound();
 
@@ -47,8 +43,6 @@ export default async function ScanDetailPage({
       </div>
 
       <ScanResult scan={scan} projectId={id} repoVerified={project.repoVerified} />
-
-      <ScanHistoryList scans={allScans} projectId={id} activeScanId={scanId} />
     </div>
   );
 }
