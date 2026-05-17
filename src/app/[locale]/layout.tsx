@@ -43,7 +43,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-gray-950 text-gray-100">
+      <body className="min-h-full flex flex-col bg-gray-950 text-gray-100" suppressHydrationWarning>
         <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
       </body>
     </html>

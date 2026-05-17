@@ -146,6 +146,7 @@
     "zipUploadHint": "Upload a ZIP archive of your source code (max 50 MB)",
     "zipRequired": "Please select a ZIP file before starting.",
     "zipTooLarge": "ZIP file exceeds the 50 MB limit.",
+    "zipNotVerified": "The ZIP could not be verified as belonging to this domain. Upload the source code of the verified site.",
     "privacyTitle": "Your code is never stored",
     "privacyDesc": "Source code is processed entirely in memory and discarded immediately after analysis. It is never written to disk, logged, or persisted in any form.",
     "categoryBreakdown": "Category breakdown",

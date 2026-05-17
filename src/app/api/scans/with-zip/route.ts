@@ -4,9 +4,11 @@ import { auth } from "@/infrastructure/auth/auth";
 import { PrismaProjectRepository } from "@/infrastructure/database/repositories/PrismaProjectRepository";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
 import { runSourceCodeAnalysis } from "@/infrastructure/scanning/SourceCodeAnalyzer";
+import { verifyCodeMatchesSite } from "@/infrastructure/scanning/CodeVerifier";
 import { deduplicateFindings, getScanQueue } from "@/infrastructure/queue/scanQueue";
 import { createCodeScanFromZip, CreateCodeScanFromZipError } from "@/application/use-cases/CreateCodeScanFromZip";
 import { createFullScanFromZip, CreateFullScanFromZipError } from "@/application/use-cases/CreateFullScanFromZip";
+import { resolveBaseUrl } from "@/domain/entities/Project";
 
 export const dynamic = "force-dynamic";
 
@@ -51,16 +53,33 @@ export async function POST(req: NextRequest) {
 
   const zipBuffer = Buffer.from(await zipEntry.arrayBuffer());
 
+  const projectRepo = new PrismaProjectRepository();
+  const scanRepo = new PrismaScanRepository();
+  const { scanType, projectId } = parsed.data;
+
+  if (scanType === "FULL") {
+    const project = await projectRepo.findById(projectId);
+    if (project?.verified && project.domain) {
+      const verification = await verifyCodeMatchesSite(zipBuffer, resolveBaseUrl(project.domain));
+      if (!verification.verified) {
+        return NextResponse.json(
+          {
+            error: "ZIP_NOT_VERIFIED",
+            message: `The ZIP could not be verified as belonging to ${project.domain}. Upload the source code of the verified site.`,
+            reasons: verification.reasons,
+          },
+          { status: 422 }
+        );
+      }
+    }
+  }
+
   let rawFindings;
   try {
     rawFindings = deduplicateFindings(await runSourceCodeAnalysis(zipBuffer));
   } catch {
     return NextResponse.json({ error: "Failed to analyze ZIP file" }, { status: 422 });
   }
-
-  const projectRepo = new PrismaProjectRepository();
-  const scanRepo = new PrismaScanRepository();
-  const { scanType, projectId } = parsed.data;
 
   try {
     if (scanType === "CODE") {
