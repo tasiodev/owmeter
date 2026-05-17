@@ -1,6 +1,5 @@
 import { Queue, Worker, type Job } from "bullmq";
 import IORedis from "ioredis";
-import pino from "pino";
 import { runPassiveAnalysis } from "@/infrastructure/scanning/PassiveAnalyzer";
 import { runZapActiveScan } from "@/infrastructure/scanning/ZapClient";
 import { calculateScore } from "@/domain/services/ScoringService";
@@ -8,8 +7,9 @@ import type { RawFinding, ScanMode } from "@/domain/services/ScoringService";
 import { runSourceCodeAnalysis } from "@/infrastructure/scanning/SourceCodeAnalyzer";
 import { fetchRepoAsZip } from "@/infrastructure/scanning/RepoFetcher";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
+import { createLogger } from "@/infrastructure/logger";
 
-const logger = pino({ name: "ScanWorker" });
+const logger = createLogger("ScanWorker");
 
 async function assertReachable(targetUrl: string): Promise<void> {
   try {

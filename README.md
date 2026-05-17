@@ -171,6 +171,11 @@ The app is a standard Next.js application. It requires:
 
 Set `NEXT_PUBLIC_APP_URL` and the OAuth callback URLs to your production domain before deploying.
 
+## Roadmap
+
+- **Private GitHub repository support** — integrate as a GitHub App to allow scanning private repos without requiring a manual ZIP upload
+- **Multi-language source code analysis** — extend SAST and dependency vulnerability checks to .NET (`.csproj`, NuGet), Java (`pom.xml`, Gradle), Python (`requirements.txt`, `pyproject.toml`), and Go (`go.mod`)
+
 ## Contributing
 
 Contributions are welcome. Please open an issue first to discuss significant changes.

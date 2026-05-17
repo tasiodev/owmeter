@@ -1,9 +1,9 @@
 import { Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
-import pino from "pino";
 import { updateZapAddons } from "@/infrastructure/scanning/ZapClient";
+import { createLogger } from "@/infrastructure/logger";
 
-const logger = pino({ name: "ZapMaintenanceWorker" });
+const logger = createLogger("ZapMaintenanceWorker");
 const QUEUE_NAME = "zap-maintenance";
 const EVERY_24H_MS = 24 * 60 * 60 * 1000;
 

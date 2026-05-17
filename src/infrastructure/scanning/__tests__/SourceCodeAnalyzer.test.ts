@@ -259,4 +259,62 @@ describe("runSourceCodeAnalysis", () => {
     expect(f).toBeDefined();
     expect(f?.severity).toBe("CRITICAL");
   });
+
+  describe("foreign language detection", () => {
+    it("returns INFO finding and skips SAST for a pure Java project (pom.xml)", async () => {
+      const zip = makeZip({
+        "pom.xml": "<project><groupId>com.example</groupId></project>",
+        "src/main/java/App.java": "public class App {}",
+      });
+      const findings = await runSourceCodeAnalysis(zip);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].title).toContain("Java");
+      expect(findings[0].severity).toBe("INFO");
+      expect(findings[0].category).toBe("A06_VULNERABLE_COMPONENTS");
+    });
+
+    it("returns INFO finding for a .NET project (.csproj)", async () => {
+      const zip = makeZip({
+        "MyApp.csproj": "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>",
+        "Program.cs": "Console.WriteLine(\"Hello\");",
+      });
+      const findings = await runSourceCodeAnalysis(zip);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].title).toContain(".NET");
+      expect(findings[0].severity).toBe("INFO");
+    });
+
+    it("returns INFO finding for a Python project (requirements.txt)", async () => {
+      const zip = makeZip({
+        "requirements.txt": "flask==2.3.0\nrequests==2.28.0",
+        "app.py": "from flask import Flask",
+      });
+      const findings = await runSourceCodeAnalysis(zip);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].title).toContain("Python");
+      expect(findings[0].severity).toBe("INFO");
+    });
+
+    it("returns partial analysis finding for mixed Java + React project", async () => {
+      const zip = makeZip({
+        "pom.xml": "<project/>",
+        "frontend/src/App.tsx": "export default function App() { return <div/>; }",
+      });
+      const findings = await runSourceCodeAnalysis(zip);
+      const warning = findings.find((f) => f.title.includes("Partial code analysis"));
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe("INFO");
+    });
+
+    it("runs full JS/TS analysis on pure JS project without any language warning", async () => {
+      const zip = makeZip({
+        "index.ts": "eval('bad');",
+        "package.json": JSON.stringify({ dependencies: {} }),
+      });
+      const findings = await runSourceCodeAnalysis(zip);
+      const warning = findings.find((f) => f.severity === "INFO");
+      expect(warning).toBeUndefined();
+      expect(findings.some((f) => f.title.includes("eval"))).toBe(true);
+    });
+  });
 });

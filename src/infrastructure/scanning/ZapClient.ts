@@ -1,12 +1,88 @@
-import pino from "pino";
 import type { RawFinding } from "@/domain/services/ScoringService";
 import type { OWASPCategoryId } from "@/domain/value-objects/OWASPCategory";
 import type { Severity } from "@/domain/value-objects/Severity";
+import { createLogger } from "@/infrastructure/logger";
 
-const logger = pino({ name: "ZapClient" });
+const logger = createLogger("ZapClient");
 
 const ZAP_URL = process.env.ZAP_URL ?? "http://localhost:8050";
 const ZAP_API_KEY = process.env.ZAP_API_KEY ?? "changeme";
+
+// ─── Retire.js CVE enrichment ─────────────────────────────────────────────────
+// ZAP's retire.js alerts don't include CVE IDs in any alert field — only a
+// generic OWASP reference URL. We fetch the retire.js database once per process
+// and look up CVEs by library name + version ourselves.
+
+interface RetireJsVuln {
+  atOrAbove?: string;
+  below?: string;
+  identifiers?: { CVE?: string[] };
+}
+
+let _retireJsDb: Record<string, { vulnerabilities: RetireJsVuln[] }> | null = null;
+
+async function getRetireJsDb(): Promise<Record<string, { vulnerabilities: RetireJsVuln[] }>> {
+  if (_retireJsDb) return _retireJsDb;
+  try {
+    const res = await fetch(
+      "https://raw.githubusercontent.com/RetireJS/retire.js/master/repository/jsrepository.json",
+      { signal: AbortSignal.timeout(10_000) }
+    );
+    _retireJsDb = await res.json() as Record<string, { vulnerabilities: RetireJsVuln[] }>;
+    logger.info("retire.js CVE database loaded");
+  } catch (err) {
+    logger.warn({ err }, "Failed to fetch retire.js CVE database — CVE enrichment skipped");
+    _retireJsDb = {};
+  }
+  return _retireJsDb;
+}
+
+// Maps our display names (from URL_LIBRARY_HINTS) to retire.js database keys.
+const RETIRE_KEY_MAP: Record<string, string> = {
+  "next.js": "nextjs",
+  "react-dom": "react-dom",
+  "react": "react",
+  "jquery": "jquery",
+  "bootstrap": "bootstrap",
+  "angular": "angularjs",
+  "vue": "vue",
+  "lodash": "lodash",
+  "moment.js": "moment",
+};
+
+function semverCompare(a: string, b: string): number {
+  const parse = (v: string) => {
+    const [main = "", pre = ""] = v.split("-");
+    const parts = main.split(".").map((n) => parseInt(n, 10) || 0);
+    return { parts, pre };
+  };
+  const va = parse(a);
+  const vb = parse(b);
+  for (let i = 0; i < Math.max(va.parts.length, vb.parts.length); i++) {
+    const diff = (va.parts[i] ?? 0) - (vb.parts[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  // Same numeric parts: pre-release < release
+  if (va.pre && !vb.pre) return -1;
+  if (!va.pre && vb.pre) return 1;
+  return 0;
+}
+
+function lookupCves(
+  db: Record<string, { vulnerabilities: RetireJsVuln[] }>,
+  library: string,
+  version: string
+): string[] {
+  const key = RETIRE_KEY_MAP[library.toLowerCase()] ?? library.toLowerCase().replace(/\./g, "");
+  const vulns = db[key]?.vulnerabilities ?? [];
+  const cves: string[] = [];
+  for (const v of vulns) {
+    const aboveOk = !v.atOrAbove || semverCompare(version, v.atOrAbove) >= 0;
+    const belowOk = !v.below || semverCompare(version, v.below) < 0;
+    if (aboveOk && belowOk && v.identifiers?.CVE) cves.push(...v.identifiers.CVE);
+  }
+  return [...new Set(cves)];
+}
 
 interface ZapAlert {
   alert: string;
@@ -14,6 +90,7 @@ interface ZapAlert {
   risk: string; // Informational | Low | Medium | High
   solution: string;
   reference: string;
+  otherinfo: string;
   cweid: string;
   wascid: string;
   url: string;
@@ -42,6 +119,7 @@ function mapToOWASPCategory(cweid: string, wascid: string, alertName: string): O
   if ([200, 497, 538].includes(cwe) || alert.includes("information disclosure") || alert.includes("server leaks")) return "A05_SECURITY_MISCONFIGURATION";
   if ([16, 614].includes(cwe) || alert.includes("cookie") || alert.includes("cors") || alert.includes("csp") || alert.includes("header")) return "A05_SECURITY_MISCONFIGURATION";
   if ([284, 285, 639].includes(cwe) || alert.includes("access control") || alert.includes("path traversal")) return "A01_BROKEN_ACCESS_CONTROL";
+  if ([1104].includes(cwe) || alert.includes("vulnerable js library") || alert.includes("vulnerable component")) return "A06_VULNERABLE_COMPONENTS";
 
   return "A05_SECURITY_MISCONFIGURATION";
 }
@@ -151,9 +229,26 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
   });
   logger.info({ scanId }, "Active scan complete");
 
-  // 4. Get alerts
+  // 4. Wait for passive scan queue to drain before collecting alerts.
+  // Passive rules (e.g. retire.js) run asynchronously on a separate queue and may still be
+  // processing responses when the active scan reports 100% — collecting alerts too early
+  // causes non-deterministic misses.
+  await pollUntilComplete(
+    async () => {
+      const pscan = await zapGet<{ recordsToScan: string }>("pscan/view/recordsToScan");
+      const remaining = parseInt(pscan.recordsToScan, 10);
+      logger.info({ remaining }, "Passive scan queue");
+      return remaining === 0 ? 100 : 0;
+    },
+    120_000,
+    2000
+  );
+  logger.info("Passive scan queue drained");
+
+  // 5. Get alerts
   const alertsRes = await zapGet<{ alerts: ZapAlert[] }>("core/view/alerts", { baseurl: zapTargetUrl });
   const alerts = alertsRes.alerts ?? [];
+
   logger.info(
     {
       rawAlertCount: alerts.length,
@@ -300,20 +395,25 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
 
   // Retire.js description is often just "The identified library appears to be vulnerable." — no name.
   // Extract version from evidence snippet and infer library from the JS file URL.
-  function resolveTitle(alert: string, description: string, evidence: string, url: string): string {
-    if (!alert.toLowerCase().includes("vulnerable js library")) return alert;
-
+  function parseLibraryInfo(
+    description: string,
+    evidence: string,
+    url: string
+  ): { library: string; version: string } | null {
     // Some ZAP versions do include the name: "...library <name> - <version> appears..."
     const descMatch = description.match(/identified library\s+(.+?)\s+-\s+([\d.]+)\s+appears/i);
-    if (descMatch) return `Vulnerable JS Library: ${descMatch[1].trim()} ${descMatch[2]}`;
+    if (descMatch) return { library: descMatch[1].trim(), version: descMatch[2] };
 
-    // Fall back: extract version from evidence (e.g. ="14.2.35") and library name from JS file URL.
     const version = evidence?.match(/[=\s"'](\d+\.\d+\.\d+(?:\.\d+)?)[;,"'\s]/)?.[1];
     const library = inferLibraryFromUrl(url);
+    if (library && version) return { library, version };
+    if (version) return { library: "Unknown library", version };
+    return null;
+  }
 
-    if (library && version) return `Vulnerable JS Library: ${library} ${version}`;
-    if (version) return `Vulnerable JS Library (v${version})`;
-    return alert;
+  function resolveTitle(alert: string): string {
+    if (!alert.toLowerCase().includes("vulnerable js library")) return alert;
+    return "Vulnerable JS Library";
   }
 
   // ZAP emits the same generic CSP paragraph for every CSP sub-alert.
@@ -339,17 +439,34 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
       "Fix: enumerate the specific domains you load images from (CDN, user avatars, analytics pixel hosts) and replace 'https:' with those explicit origins.",
   };
 
-  function resolveDescription(alert: string, fallback: string): string {
-    return CSP_DESCRIPTIONS[alert.toLowerCase()] ?? fallback;
+  function resolveDescription(alert: string, fallback: string, cves: string[]): string {
+    const base = CSP_DESCRIPTIONS[alert.toLowerCase()] ?? fallback;
+    if (cves.length === 0) return base;
+    return `${base}\n\nCVE: ${cves.join(", ")}`;
   }
 
-  const findings = Array.from(byAlert.values()).map(({ alert: a, urls }): RawFinding => ({
-    category: mapToOWASPCategory(a.cweid, a.wascid, a.alert),
-    severity: zapRiskToSeverity(a.risk),
-    title: resolveTitle(a.alert, a.description, a.evidence ?? "", a.url ?? ""),
-    description: resolveDescription(a.alert, a.description),
-    evidence: buildEvidence(a.evidence, urls),
-  }));
+  const retireDb = await getRetireJsDb();
+
+  const findings = Array.from(byAlert.values()).map(({ alert: a, urls }): RawFinding => {
+    const isVulnerableLib = a.alert.toLowerCase().includes("vulnerable js library");
+    const libInfo = isVulnerableLib
+      ? parseLibraryInfo(a.description, a.evidence ?? "", a.url ?? "")
+      : null;
+
+    const cves = libInfo ? lookupCves(retireDb, libInfo.library, libInfo.version) : [];
+
+    const evidence = libInfo
+      ? `Library: ${libInfo.library}\nVersion: ${libInfo.version}`
+      : buildEvidence(a.evidence, urls);
+
+    return {
+      category: mapToOWASPCategory(a.cweid, a.wascid, a.alert),
+      severity: zapRiskToSeverity(a.risk),
+      title: resolveTitle(a.alert),
+      description: resolveDescription(a.alert, a.description, cves),
+      evidence,
+    };
+  });
 
   logger.info(
     {

@@ -188,6 +188,7 @@
       "PASSIVE_A02_CRYPTOGRAPHIC_FAILURES": "Checks HTTPS, HSTS, TLS config and cookie Secure flag. Verifying crypto algorithm choices (MD5, SHA-1, JWT) requires source code.",
       "PASSIVE_A03_INJECTION": "ZAP fires SQL/XSS payloads on public endpoints. Full injection coverage (parameterized queries on all code paths) requires source code.",
       "PASSIVE_A07_AUTH_FAILURES": "Checks cookie flags and ZAP tests brute-force/session. Verifying JWT secret strength and password hashing requires source code.",
+      "PASSIVE_A06_VULNERABLE_COMPONENTS": "ZAP retire.js detects vulnerable client-side JS libraries. Verifying server-side dependencies (package.json, lock files) requires source code.",
       "PASSIVE_A10_SSRF": "ZAP sends SSRF probes to discovered inputs. Verifying every internal URL fetch validates its input requires source code.",
       "CODE_A01_BROKEN_ACCESS_CONTROL": "Code checks CORS wildcard patterns. Verifying path traversal, IDOR and missing auth on routes requires a live domain.",
       "CODE_A02_CRYPTOGRAPHIC_FAILURES": "Code checks weak algorithms (MD5, SHA-1) and JWT config. Verifying TLS and HTTPS enforcement requires a live domain.",

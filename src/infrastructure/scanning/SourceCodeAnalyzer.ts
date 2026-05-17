@@ -8,6 +8,37 @@ const ALLOWED_EXTENSIONS = new Set([
   ".json", ".html", ".htm", ".env.example",
 ]);
 
+// Manifest files that identify a non-JS/TS project
+const LANGUAGE_MANIFESTS: Array<{ files: string[]; extensions?: string[]; language: string }> = [
+  { files: ["pom.xml", "build.gradle", "build.gradle.kts"], extensions: [".java"], language: "Java" },
+  { files: [], extensions: [".cs", ".csproj", ".sln"], language: ".NET (C#)" },
+  { files: ["requirements.txt", "setup.py", "pyproject.toml", "Pipfile"], extensions: [".py"], language: "Python" },
+  { files: ["go.mod", "go.sum"], extensions: [".go"], language: "Go" },
+  { files: ["Gemfile", "Gemfile.lock"], extensions: [".rb"], language: "Ruby" },
+  { files: ["composer.json"], extensions: [".php"], language: "PHP" },
+  { files: ["Cargo.toml", "Cargo.lock"], extensions: [".rs"], language: "Rust" },
+];
+
+function detectForeignLanguage(paths: string[]): string | null {
+  for (const { files, extensions, language } of LANGUAGE_MANIFESTS) {
+    const byManifest = files.some((f) => paths.some((p) => p === f || p.endsWith(`/${f}`)));
+    const byExt = extensions?.some((ext) => paths.some((p) => p.endsWith(ext))) ?? false;
+    if (byManifest || byExt) return language;
+  }
+  return null;
+}
+
+function hasJsTsEcosystem(files: Record<string, Uint8Array>): boolean {
+  const JS_TS_EXT = new Set([".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs", ".html", ".htm"]);
+  const paths = Object.keys(files);
+  if (paths.some((p) => {
+    const dot = p.lastIndexOf(".");
+    return dot !== -1 && JS_TS_EXT.has(p.slice(dot)) && !shouldSkip(p);
+  })) return true;
+  // package.json alone is enough to identify a Node.js project
+  return paths.some((p) => (p === "package.json" || p.endsWith("/package.json")) && !p.includes("node_modules"));
+}
+
 const SKIP_DIRS = [
   "node_modules/", ".git/", "build/", "dist/",
   ".next/", ".nuxt/", ".output/", "coverage/",
@@ -387,9 +418,45 @@ export async function runSourceCodeAnalysis(
   const rawFiles = unzipSync(zipBuffer);
   const files = stripRootPrefix(rawFiles);
   const findings: RawFinding[] = [];
+  const paths = Object.keys(files);
+
+  const foreignLanguage = detectForeignLanguage(paths);
+  const jsTs = hasJsTsEcosystem(files);
+
+  // If the project has no JS/TS ecosystem files, skip SAST and dep analysis entirely.
+  // If it also uses a recognized foreign language, add an informational finding.
+  if (!jsTs) {
+    if (foreignLanguage) {
+      findings.push({
+        category: "A06_VULNERABLE_COMPONENTS",
+        severity: "INFO",
+        title: `Code analysis unavailable: ${foreignLanguage} project`,
+        description:
+          `The uploaded project appears to be written in ${foreignLanguage}. ` +
+          `Static analysis (SAST patterns and dependency vulnerability checks) currently only supports JavaScript/TypeScript projects. ` +
+          `The domain and network scans are not affected by this limitation.`,
+        evidence: undefined,
+      });
+    }
+    return findings;
+  }
+
+  // If there are also non-JS/TS sources (e.g. a Java backend + React frontend),
+  // note that only the JS/TS part was analyzed.
+  if (foreignLanguage) {
+    findings.push({
+      category: "A06_VULNERABLE_COMPONENTS",
+      severity: "INFO",
+      title: `Partial code analysis: ${foreignLanguage} components not scanned`,
+      description:
+        `The project contains ${foreignLanguage} source files in addition to JavaScript/TypeScript. ` +
+        `Only the JS/TS portion was analyzed. ${foreignLanguage} dependencies and code patterns were not checked.`,
+      evidence: undefined,
+    });
+  }
 
   // Find and analyze package.json for dependency vulnerabilities
-  const pkgPath = Object.keys(files).find(
+  const pkgPath = paths.find(
     (p) => (p === "package.json" || p.endsWith("/package.json")) && !p.includes("node_modules")
   );
   if (pkgPath) {

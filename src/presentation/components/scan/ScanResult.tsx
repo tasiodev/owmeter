@@ -241,6 +241,39 @@ function FalsePositiveHint({ t }: { t: ReturnType<typeof useTranslations<"scan">
   );
 }
 
+const CVE_RE = /CVE-\d{4}-\d+/g;
+
+function DescriptionWithCveLinks({ text }: { text: string }) {
+  const parts: Array<{ content: string; isCve: boolean }> = [];
+  let last = 0;
+  for (const match of text.matchAll(CVE_RE)) {
+    if (match.index > last) parts.push({ content: text.slice(last, match.index), isCve: false });
+    parts.push({ content: match[0], isCve: true });
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) parts.push({ content: text.slice(last), isCve: false });
+
+  return (
+    <p className="text-sm text-gray-400 whitespace-pre-line">
+      {parts.map((p, i) =>
+        p.isCve ? (
+          <a
+            key={i}
+            href={`https://nvd.nist.gov/vuln/detail/${p.content}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+          >
+            {p.content}
+          </a>
+        ) : (
+          p.content
+        )
+      )}
+    </p>
+  );
+}
+
 const EVIDENCE_TRUNCATE_LIMIT = 300;
 
 function EvidenceBlock({ evidence }: { evidence: string }) {
@@ -298,7 +331,7 @@ function FindingCard({ finding, t }: { finding: Finding; t: ReturnType<typeof us
           <PromptIAButton getText={() => generateFindingPrompt(finding)} t={t} />
         </div>
       </div>
-      <p className="text-sm text-gray-400">{finding.description}</p>
+      {finding.description && <DescriptionWithCveLinks text={finding.description} />}
       {finding.evidence && <EvidenceBlock evidence={finding.evidence} />}
     </li>
   );

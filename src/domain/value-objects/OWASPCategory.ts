@@ -71,7 +71,6 @@ export type ScanMode = "PASSIVE" | "FULL" | "CODE";
 // Categories not evaluated in PASSIVE mode (domain + ZAP only, no source code).
 export const PASSIVE_UNEVALUATED: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
   "A04_INSECURE_DESIGN",         // requires architecture/code review
-  "A06_VULNERABLE_COMPONENTS",   // requires dependency manifests (package.json, etc.)
   "A08_DATA_INTEGRITY_FAILURES", // requires code/CI analysis
   "A09_LOGGING_FAILURES",        // requires code/system access
 ]);
@@ -82,6 +81,7 @@ export const PASSIVE_PARTIAL: ReadonlySet<OWASPCategoryId> = new Set<OWASPCatego
   "A01_BROKEN_ACCESS_CONTROL",  // ZAP: path traversal + 6 sensitive paths; code: RBAC, auth middleware, IDOR
   "A02_CRYPTOGRAPHIC_FAILURES", // ZAP+passive: HTTPS/HSTS/TLS/Secure-cookie; code: MD5/SHA-1/JWT algo choice
   "A03_INJECTION",              // ZAP: SQL/XSS payloads on public endpoints; code: parameterized queries everywhere
+  "A06_VULNERABLE_COMPONENTS",  // ZAP retire.js: client-side JS libraries; code: server-side deps (package.json)
   "A07_AUTH_FAILURES",          // passive: cookie flags; ZAP: brute-force/session; code: JWT secret, bcrypt
   "A10_SSRF",                   // ZAP: probes on discovered inputs; code: all internal URL fetches
 ]);
