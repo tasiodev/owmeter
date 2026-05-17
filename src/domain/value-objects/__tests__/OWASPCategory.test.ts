@@ -58,9 +58,13 @@ describe("evaluationLevel — PASSIVE mode", () => {
 
   it("source-code-only categories are not evaluated", () => {
     expect(isEvaluated("A04_INSECURE_DESIGN", "PASSIVE")).toBe(false);
-    expect(isEvaluated("A06_VULNERABLE_COMPONENTS", "PASSIVE")).toBe(false);
     expect(isEvaluated("A08_DATA_INTEGRITY_FAILURES", "PASSIVE")).toBe(false);
     expect(isEvaluated("A09_LOGGING_FAILURES", "PASSIVE")).toBe(false);
+  });
+
+  it("A06 is partially evaluated in PASSIVE mode — ZAP retire.js detects client-side vulnerable libraries", () => {
+    expect(isEvaluated("A06_VULNERABLE_COMPONENTS", "PASSIVE")).toBe(true);
+    expect(evaluationLevel("A06_VULNERABLE_COMPONENTS", "PASSIVE")).toBe("partial");
   });
 });
 

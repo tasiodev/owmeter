@@ -54,6 +54,8 @@
     "typeWebsiteDesc": "Para webs publicadas. Requiere verificar la propiedad del dominio.",
     "typeCodeRepo": "Repositorio de Código",
     "typeCodeRepoDesc": "Para librerías y proyectos no publicados en un dominio. Requiere verificar la propiedad del repositorio (GitHub, GitLab o Bitbucket).",
+    "codeRepoJsTsOnly": "Solo JavaScript / TypeScript",
+    "codeRepoJsTsOnlyDesc": "El análisis de código fuente soporta actualmente proyectos JavaScript y TypeScript (package.json). Java, .NET, Python y otros lenguajes serán detectados pero sus dependencias y patrones de código no serán analizados.",
     "changeType": "Cambiar tipo",
     "addProject": "Añadir Proyecto",
     "adding": "Añadiendo…",

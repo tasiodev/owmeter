@@ -93,9 +93,8 @@ export default async function DashboardPage() {
         <p className="text-gray-400 text-sm">{t("subtitle")}</p>
       </div>
 
-      <AddProjectForm />
-
-      {projects.length === 0 ? (
+      <AddProjectForm>
+        {projects.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-700 p-10 text-center text-gray-500">
           {t("noProjects")}
         </div>
@@ -140,7 +139,8 @@ export default async function DashboardPage() {
             </li>
           ))}
         </ul>
-      )}
+        )}
+      </AddProjectForm>
     </div>
   );
 }

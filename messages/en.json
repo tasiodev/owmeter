@@ -54,6 +54,8 @@
     "typeWebsiteDesc": "For published websites. Requires domain ownership verification.",
     "typeCodeRepo": "Code Repository",
     "typeCodeRepoDesc": "For libraries and projects not published on a domain. Requires repository ownership verification (GitHub, GitLab, or Bitbucket).",
+    "codeRepoJsTsOnly": "JavaScript / TypeScript only",
+    "codeRepoJsTsOnlyDesc": "Source code analysis currently supports JavaScript and TypeScript projects (package.json). Java, .NET, Python and other languages will be detected but their dependencies and code patterns will not be analyzed.",
     "changeType": "Change type",
     "addProject": "Add Project",
     "adding": "Adding…",
