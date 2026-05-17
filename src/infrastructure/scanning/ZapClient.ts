@@ -92,8 +92,8 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
   // 1. Spider the target
   const spiderRes = await zapGet<{ scan: string }>("spider/action/scan", {
     url: zapTargetUrl,
-    maxChildren: "10",
-    maxDuration: "2", // minutes; prevents runaway crawls
+    maxChildren: "50",
+    maxDuration: "4", // minutes; prevents runaway crawls
   });
   const spiderId = spiderRes.scan;
   logger.info({ spiderId }, "Spider started");
