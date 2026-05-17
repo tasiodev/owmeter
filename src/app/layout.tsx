@@ -34,6 +34,9 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true },
   },
+  other: {
+    "owmeter-verify": "cmpa3jtit000101o6uh1dr99h",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
