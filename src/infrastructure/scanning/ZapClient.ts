@@ -202,9 +202,14 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
   function isFalsePositive(a: ZapAlert): boolean {
     const alert = a.alert.toLowerCase();
 
-    // Cross-Domain JavaScript: only a problem when the script host differs from the target.
+    // Spider/crawler metadata — not a security finding.
+    if (alert.includes("modern web application")) return true;
+
+    // Cross-Domain JavaScript: only a problem when the script host is unknown/untrusted.
+    // Same-domain scripts and known ad/analytics CDNs are intentional inclusions.
     if (alert.includes("cross-domain javascript")) {
-      return isSameDomainUrl(extractResourceUrl(a.evidence));
+      const url = extractResourceUrl(a.evidence);
+      return isSameDomainUrl(url) || isDynamicCdnUrl(url);
     }
 
     // Sub Resource Integrity: only meaningful for cross-origin resources that publish stable hashes.
@@ -223,9 +228,12 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
 
     // Content-Type on redirect responses: 3xx responses have no body — Content-Type is irrelevant.
     if (alert.includes("content-type") && a.url) {
-      // ZAP evidence for redirect CT alerts typically lacks a body; risk is always Informational/Low.
       if (a.risk.toLowerCase() === "informational" || a.risk.toLowerCase() === "low") return true;
     }
+
+    // Cache-Control: public, max-age=0 is correct for dynamic HTML (forces revalidation, allows CDN).
+    // ZAP's "Re-examine Cache-control Directives" fires on this but it is not a misconfiguration.
+    if (alert.includes("cache-control") || alert.includes("re-examine cache")) return true;
 
     return false;
   }
@@ -234,7 +242,9 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
   // Keep the worst severity and collect up to 3 example URLs as evidence.
   const byAlert = new Map<string, { alert: ZapAlert; urls: string[] }>();
   for (const a of alerts) {
-    if (a.risk.toLowerCase() === "informational" && !a.cweid) continue;
+    // ZAP uses cweid "0" (not empty string) when no real CWE applies — treat it as absent.
+    const hasCwe = a.cweid && a.cweid !== "0";
+    if (a.risk.toLowerCase() === "informational" && !hasCwe) continue;
     const fp = isFalsePositive(a);
     if (fp) {
       logger.debug({ alert: a.alert, url: a.url }, "Filtered as false positive");
