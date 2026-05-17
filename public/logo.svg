@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-175 -175 350 240" width="280" height="192">
+  <!-- gauge track -->
+  <path d="M -150,0 A 150,150 0 0,1 150,0" fill="none" stroke="#d1d5db" stroke-width="24" stroke-linecap="round"/>
+  <!-- green arc (high-score zone) -->
+  <path d="M 50,-141.4 A 150,150 0 0,1 150,0" fill="none" stroke="#10B981" stroke-width="24" stroke-linecap="round"/>
+  <!-- severity dots -->
+  <circle cx="-150"    cy="0"       r="6" fill="#EF4444"/>
+  <circle cx="-140.95" cy="-51.3"   r="6" fill="#EF4444"/>
+  <circle cx="-114.9"  cy="-96.42"  r="6" fill="#F59E0B"/>
+  <circle cx="-75"     cy="-129.9"  r="6" fill="#F59E0B"/>
+  <circle cx="-26.05"  cy="-147.72" r="6" fill="#3B82F6"/>
+  <circle cx="26.05"   cy="-147.72" r="6" fill="#3B82F6"/>
+  <circle cx="75"      cy="-129.9"  r="6" fill="#10B981"/>
+  <circle cx="114.9"   cy="-96.42"  r="6" fill="#10B981"/>
+  <circle cx="140.95"  cy="-51.3"   r="6" fill="#10B981"/>
+  <circle cx="150"     cy="0"       r="6" fill="#10B981"/>
+  <!-- needle pointing to green zone -->
+  <g transform="rotate(55)">
+    <path d="M -8,0 L 0,-150 L 8,0 Z" fill="#111827"/>
+    <circle cx="0" cy="0" r="16" fill="#111827"/>
+    <circle cx="0" cy="0" r="6"  fill="#374151"/>
+  </g>
+  <!-- wordmark -->
+  <text x="0" y="52" text-anchor="middle" font-family="Arial Black, Arial, Helvetica, sans-serif" font-weight="900" font-size="52" letter-spacing="-1">
+    <tspan fill="#111827">OW</tspan><tspan fill="#10B981">Meter</tspan>
+  </text>
+</svg>

@@ -177,7 +177,7 @@ async function SecureShowcase() {
     const categoriesLabel =
       ts("categoriesEvaluated", { evaluated, total: TOTAL_CATEGORIES }) +
       (partial > 0 ? ts("categoriesPartial", { partial }) : "");
-    return { url: site.url, href, isWebsite, categoriesLabel };
+    return { url: site.url, href, isWebsite, categoriesLabel, score: site.score };
   });
 
   const groups: CardData[][] = [];

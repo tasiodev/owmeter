@@ -19,6 +19,9 @@ const STRINGS = {
     withCode: "with code access",
     withoutCode: "without code access",
     unverifiedSource: "Unverified source (ZIP upload)",
+    findingsDetail: "FINDINGS DETAIL",
+    noFindings: "No issues detected.",
+    evidence: "Evidence",
   },
   es: {
     title: "Informe de Seguridad",
@@ -34,6 +37,9 @@ const STRINGS = {
     withCode: "con acceso al código",
     withoutCode: "sin acceso al código",
     unverifiedSource: "Fuente no verificada (ZIP)",
+    findingsDetail: "DETALLE DE PROBLEMAS",
+    noFindings: "No se detectaron problemas.",
+    evidence: "Evidencia",
   },
 } as const;
 
@@ -159,6 +165,62 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     marginTop: 1,
   },
+  // Findings page
+  findingItem: {
+    marginBottom: 14,
+    paddingBottom: 14,
+    borderBottom: "0.5pt solid #f3f4f6",
+  },
+  findingHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  severityBadge: {
+    borderRadius: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    marginRight: 7,
+  },
+  severityText: {
+    fontSize: 7,
+    fontFamily: "Helvetica-Bold",
+    color: "#ffffff",
+  },
+  findingTitle: {
+    flex: 1,
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    color: "#111827",
+  },
+  findingCategory: {
+    fontSize: 8,
+    color: "#6b7280",
+    marginBottom: 4,
+    marginLeft: 0,
+  },
+  findingDescription: {
+    fontSize: 8,
+    color: "#374151",
+    lineHeight: 1.5,
+  },
+  evidenceBox: {
+    marginTop: 5,
+    backgroundColor: "#f9fafb",
+    padding: 6,
+    borderRadius: 3,
+  },
+  evidenceLabel: {
+    fontSize: 7,
+    color: "#9ca3af",
+    letterSpacing: 1,
+    marginBottom: 3,
+  },
+  evidenceText: {
+    fontSize: 7,
+    color: "#6b7280",
+    fontFamily: "Helvetica",
+  },
 });
 
 function scoreColor(score: number) {
@@ -207,6 +269,53 @@ function ScoreArc({ score, maxScore }: { score: number; maxScore: number }) {
   );
 }
 
+const SEVERITY_COLORS_PDF: Record<string, string> = {
+  CRITICAL: "#dc2626",
+  HIGH: "#ea580c",
+  MEDIUM: "#d97706",
+  LOW: "#2563eb",
+  INFO: "#6b7280",
+};
+
+const SEVERITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"];
+
+const EVIDENCE_MAX = 300;
+
+function FindingItem({
+  finding,
+  evidenceLabel,
+}: {
+  finding: Finding;
+  evidenceLabel: string;
+}) {
+  const color = SEVERITY_COLORS_PDF[finding.severity] ?? "#6b7280";
+  const catName = OWASP_CATEGORIES[finding.category as OWASPCategoryId]?.name ?? finding.category;
+  const evidence = finding.evidence
+    ? finding.evidence.length > EVIDENCE_MAX
+      ? finding.evidence.slice(0, EVIDENCE_MAX) + "…"
+      : finding.evidence
+    : null;
+
+  return (
+    <View style={styles.findingItem} wrap={false}>
+      <View style={styles.findingHeader}>
+        <View style={[styles.severityBadge, { backgroundColor: color }]}>
+          <Text style={styles.severityText}>{finding.severity}</Text>
+        </View>
+        <Text style={styles.findingTitle}>{finding.title}</Text>
+      </View>
+      <Text style={styles.findingCategory}>{catName}</Text>
+      <Text style={styles.findingDescription}>{finding.description}</Text>
+      {evidence && (
+        <View style={styles.evidenceBox}>
+          <Text style={styles.evidenceLabel}>{evidenceLabel.toUpperCase()}</Text>
+          <Text style={styles.evidenceText}>{evidence}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 function projectTypeValue(
   projectType: Project["type"],
   scanType: ScanType,
@@ -245,6 +354,10 @@ export function CertificatePdf({ project, scan, locale }: CertificatePdfProps) {
     : "-";
 
   const { main: typeMain, sub: typeSub } = projectTypeValue(project.type, scan.type, s);
+
+  const sortedFindings = [...scan.findings].sort(
+    (a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity)
+  );
 
   return (
     <Document>
@@ -313,6 +426,23 @@ export function CertificatePdf({ project, scan, locale }: CertificatePdfProps) {
             <Text style={styles.footerValue}>{completedAt}</Text>
           </View>
         </View>
+      </Page>
+
+      <Page size="A4" style={styles.page}>
+        <View style={{ marginBottom: 16, paddingBottom: 16, borderBottom: "1pt solid #e5e7eb" }}>
+          <Text style={styles.brand}>OWMETER</Text>
+          <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: "#111827", marginTop: 4 }}>
+            {project.name}
+          </Text>
+        </View>
+        <Text style={[styles.sectionLabel, { marginBottom: 16 }]}>{s.findingsDetail}</Text>
+        {sortedFindings.length === 0 ? (
+          <Text style={{ fontSize: 9, color: "#6b7280" }}>{s.noFindings}</Text>
+        ) : (
+          sortedFindings.map((f) => (
+            <FindingItem key={f.id} finding={f} evidenceLabel={s.evidence} />
+          ))
+        )}
       </Page>
     </Document>
   );

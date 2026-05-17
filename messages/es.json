@@ -35,8 +35,8 @@
     "openSourceDesc": "Sin planes de pago, sin vendor lock-in. OWMeter es open source — inspecciona el código, contribuye o alójalo tú mismo.",
     "viewSource": "Ver en GitHub",
     "showcaseTitle": "Últimos sitios seguros analizados",
-    "showcaseSubtitle": "Sitios que han alcanzado una puntuación perfecta en OWMeter",
-    "showcaseEmpty": "Sé el primero en alcanzar la puntuación perfecta y aparecer aquí."
+    "showcaseSubtitle": "Sitios con puntuación 95 o más en OWMeter",
+    "showcaseEmpty": "Sé el primero en alcanzar 95 puntos o más y aparecer aquí."
   },
   "login": {
     "title": "Accede a OWMeter",
@@ -264,8 +264,8 @@
   },
   "privacy": {
     "sectionTitle": "Privacidad",
-    "isPublicLabel": "Permitir que este proyecto aparezca públicamente cuando tenga puntuación 100",
-    "isPublicHint": "Los sitios con puntuación perfecta pueden aparecer en el showcase de la página principal. Puedes cambiarlo en cualquier momento.",
+    "isPublicLabel": "Permitir que este proyecto aparezca públicamente cuando tenga puntuación 95 o más",
+    "isPublicHint": "Los sitios con puntuación 95 o más pueden aparecer en el showcase de la página principal. Puedes cambiarlo en cualquier momento.",
     "saving": "Guardando…",
     "saveError": "No se pudo guardar. Inténtalo de nuevo."
   }

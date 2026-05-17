@@ -88,11 +88,11 @@ export class PrismaScanRepository implements IScanRepository {
 
   async findPublicPerfectScoreScans(
     limit = 20
-  ): Promise<Array<{ url: string; completedAt: Date; scanType: string; projectType: string }>> {
+  ): Promise<Array<{ url: string; completedAt: Date; scanType: string; projectType: string; score: number }>> {
     const records = await prisma.scan.findMany({
       where: {
         status: "COMPLETED",
-        score: 100,
+        score: { gte: 95 },
         project: {
           isPublic: true,
           OR: [
@@ -103,6 +103,7 @@ export class PrismaScanRepository implements IScanRepository {
       },
       select: {
         completedAt: true,
+        score: true,
         type: true,
         project: { select: { type: true, domain: true, repoUrl: true } },
       },
@@ -111,10 +112,10 @@ export class PrismaScanRepository implements IScanRepository {
       take: limit,
     });
     return records
-      .filter((r): r is typeof r & { completedAt: Date } => r.completedAt !== null)
+      .filter((r): r is typeof r & { completedAt: Date; score: number } => r.completedAt !== null && r.score !== null)
       .flatMap((r) => {
         const url = r.project.type === "WEBSITE" ? r.project.domain : r.project.repoUrl;
-        return url ? [{ url, completedAt: r.completedAt, scanType: r.type, projectType: r.project.type }] : [];
+        return url ? [{ url, completedAt: r.completedAt, scanType: r.type, projectType: r.project.type, score: r.score }] : [];
       });
   }
 

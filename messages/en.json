@@ -35,8 +35,8 @@
     "openSourceDesc": "No paid plans, no vendor lock-in. OWMeter is open source — inspect the code, contribute, or self-host.",
     "viewSource": "View on GitHub",
     "showcaseTitle": "Latest secure sites analysed",
-    "showcaseSubtitle": "Sites that reached a perfect score on OWMeter",
-    "showcaseEmpty": "Be the first to reach a perfect score and appear here."
+    "showcaseSubtitle": "Sites scoring 95 or above on OWMeter",
+    "showcaseEmpty": "Be the first to score 95 or above and appear here."
   },
   "login": {
     "title": "Sign in to OWMeter",
@@ -264,8 +264,8 @@
   },
   "privacy": {
     "sectionTitle": "Privacy",
-    "isPublicLabel": "Allow this project to appear publicly when it achieves a score of 100",
-    "isPublicHint": "Sites with a perfect score may appear in the home page showcase. You can change this at any time.",
+    "isPublicLabel": "Allow this project to appear publicly when it achieves a score of 95 or above",
+    "isPublicHint": "Sites scoring 95 or above may appear in the home page showcase. You can change this at any time.",
     "saving": "Saving…",
     "saveError": "Could not save. Please try again."
   }

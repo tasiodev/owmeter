@@ -1,4 +1,10 @@
-# Owmeter
+<p align="center">
+  <img src="public/logo.svg" alt="OWMeter" width="220" />
+</p>
+
+<p align="center">
+  <a href="https://owmeter.dev"><strong>owmeter.dev</strong></a>
+</p>
 
 Owmeter is an open-source web application that lets site owners scan their websites against the [OWASP Top 10](https://owasp.org/www-project-top-ten/) and receive a security score. Before any scan runs, the user must prove they own the domain — so results can never be abused to probe third-party sites.
 

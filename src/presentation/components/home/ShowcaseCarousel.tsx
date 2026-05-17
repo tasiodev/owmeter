@@ -7,6 +7,7 @@ export type CardData = {
   href: string;
   isWebsite: boolean;
   categoriesLabel: string;
+  score: number;
 };
 
 type Phase = "entering" | "visible" | "leaving";
@@ -15,11 +16,12 @@ const ENTER_MS = 500;
 const VISIBLE_MS = 5000;
 const LEAVE_MS = 500;
 
-function ShowcaseCard({ url, href, isWebsite, categoriesLabel }: CardData) {
+function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score }: CardData) {
   const size = 80;
   const sw = 7;
   const r = (size - sw) / 2;
   const circ = 2 * Math.PI * r;
+  const dash = circ * (score / 100);
 
   return (
     <div className="shrink-0 rounded-xl border border-gray-800 bg-gray-900/60 flex items-center gap-4 px-4 py-3 w-72">
@@ -34,11 +36,11 @@ function ShowcaseCard({ url, href, isWebsite, categoriesLabel }: CardData) {
             stroke="#34d399"
             strokeWidth={sw}
             strokeLinecap="round"
-            strokeDasharray={`${circ} ${circ}`}
+            strokeDasharray={`${dash} ${circ}`}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold text-emerald-400">100</span>
+          <span className="text-xl font-bold text-emerald-400">{score}</span>
           <span className="text-xs text-gray-500">/100</span>
         </div>
       </div>
