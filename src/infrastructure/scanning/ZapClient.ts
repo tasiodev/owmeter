@@ -282,7 +282,8 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
     return match?.[1];
   }
 
-  // CDNs that serve dynamically-versioned scripts — SRI hashes are never published for these.
+  // CDNs that serve dynamically-versioned or browser-negotiated content —
+  // SRI hashes can't be pre-computed for these and are not published by the vendor.
   const DYNAMIC_CDN_HOSTS = [
     "googlesyndication.com",
     "googletagmanager.com",
@@ -291,6 +292,10 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
     "doubleclick.net",
     "connect.facebook.net",
     "static.hotjar.com",
+    // Google Fonts serves browser-negotiated CSS (woff2 vs woff varies per UA) —
+    // SRI is technically impossible without self-hosting the fonts.
+    "fonts.googleapis.com",
+    "fonts.gstatic.com",
   ];
 
   function isDynamicCdnUrl(raw: string | undefined): boolean {
