@@ -269,11 +269,41 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
     }
   }
 
-  // Retire.js description: "The identified library <name> - <version> appears to be vulnerable to: ..."
-  function resolveTitle(alert: string, description: string): string {
+  // URL path fragments → library name (Retire.js bundles Next.js, React, etc. into generic chunks).
+  const URL_LIBRARY_HINTS: Array<[RegExp, string]> = [
+    [/\/_next\//, "next.js"],
+    [/jquery[.\-_]/i, "jQuery"],
+    [/bootstrap[.\-_]/i, "Bootstrap"],
+    [/react-dom[.\-_]/i, "react-dom"],
+    [/react[.\-_]/i, "React"],
+    [/angular[.\-_]/i, "Angular"],
+    [/vue[.\-_]/i, "Vue"],
+    [/lodash[.\-_]/i, "lodash"],
+    [/moment[.\-_]/i, "moment.js"],
+  ];
+
+  function inferLibraryFromUrl(url: string): string | undefined {
+    for (const [pattern, name] of URL_LIBRARY_HINTS) {
+      if (pattern.test(url)) return name;
+    }
+    return undefined;
+  }
+
+  // Retire.js description is often just "The identified library appears to be vulnerable." — no name.
+  // Extract version from evidence snippet and infer library from the JS file URL.
+  function resolveTitle(alert: string, description: string, evidence: string, url: string): string {
     if (!alert.toLowerCase().includes("vulnerable js library")) return alert;
-    const match = description.match(/identified library\s+(.+?)\s+-\s+([\d.]+)\s+appears/i);
-    if (match) return `Vulnerable JS Library: ${match[1].trim()} ${match[2]}`;
+
+    // Some ZAP versions do include the name: "...library <name> - <version> appears..."
+    const descMatch = description.match(/identified library\s+(.+?)\s+-\s+([\d.]+)\s+appears/i);
+    if (descMatch) return `Vulnerable JS Library: ${descMatch[1].trim()} ${descMatch[2]}`;
+
+    // Fall back: extract version from evidence (e.g. ="14.2.35") and library name from JS file URL.
+    const version = evidence?.match(/[=\s"'](\d+\.\d+\.\d+(?:\.\d+)?)[;,"'\s]/)?.[1];
+    const library = inferLibraryFromUrl(url);
+
+    if (library && version) return `Vulnerable JS Library: ${library} ${version}`;
+    if (version) return `Vulnerable JS Library (v${version})`;
     return alert;
   }
 
@@ -307,7 +337,7 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
   const findings = Array.from(byAlert.values()).map(({ alert: a, urls }): RawFinding => ({
     category: mapToOWASPCategory(a.cweid, a.wascid, a.alert),
     severity: zapRiskToSeverity(a.risk),
-    title: resolveTitle(a.alert, a.description),
+    title: resolveTitle(a.alert, a.description, a.evidence ?? "", a.url ?? ""),
     description: resolveDescription(a.alert, a.description),
     evidence: buildEvidence(a.evidence, urls),
   }));
