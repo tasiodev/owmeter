@@ -45,7 +45,8 @@ export default async function ProjectDetailPage({
     FILE: tv("file"),
   };
 
-  const canScan = project.type === "WEBSITE" ? project.verified : project.repoVerified;
+  // WEBSITE requires domain verification; CODE_REPO can always scan (ZIP upload if repo not verified)
+  const canScan = project.type === "WEBSITE" ? project.verified : true;
 
   const featuredScan =
     scans.find((s) => s.status === "RUNNING") ??
@@ -219,6 +220,8 @@ export default async function ProjectDetailPage({
                 <p className="text-sm text-gray-400">
                   {project.type === "CODE_REPO" ? tvr("subtitleRequired") : tvr("subtitleOptional")}
                 </p>
+                <p className="text-xs text-gray-500">{tvr("publicOnly")}</p>
+                <p className="text-xs text-gray-500">{tvr("zipAlternative")}</p>
                 <VerifyRepoForm
                   projectId={id}
                   token={project.repoVerificationToken ?? project.verificationToken}

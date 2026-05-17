@@ -46,7 +46,14 @@ export type CodeScanJobData = {
   repoUrl: string;
 };
 
-export type ScanJobData = PassiveScanJobData | FullScanJobData | CodeScanJobData;
+export type FullZipScanJobData = {
+  scanId: string;
+  targetUrl: string;
+  type: "FULL_ZIP";
+  sastFindings: RawFinding[];
+};
+
+export type ScanJobData = PassiveScanJobData | FullScanJobData | CodeScanJobData | FullZipScanJobData;
 
 // ─── Deduplication ───────────────────────────────────────────────────────────
 
@@ -107,6 +114,23 @@ export function createScanWorker(): Worker<ScanJobData> {
           const zipBuffer = await fetchRepoAsZip(job.data.repoUrl);
           allRawFindings = deduplicateFindings(await runSourceCodeAnalysis(zipBuffer));
           scanMode = "CODE";
+        } else if (job.data.type === "FULL_ZIP") {
+          // Full scan with pre-analyzed SAST findings from user-uploaded ZIP
+          const { targetUrl, sastFindings } = job.data;
+
+          await assertReachable(targetUrl).catch((err: unknown) => {
+            const reason = err instanceof Error ? err.message : "unreachable";
+            logger.error({ scanId, targetUrl, reason }, "Target not reachable — aborting scan");
+            throw err;
+          });
+
+          const [passiveFindings, zapFindings] = await Promise.all([
+            runPassiveAnalysis(targetUrl),
+            runZapActiveScan(targetUrl),
+          ]);
+
+          allRawFindings = deduplicateFindings([...passiveFindings, ...zapFindings, ...sastFindings]);
+          scanMode = "FULL";
         } else {
           // Passive or Full scan for WEBSITE projects
           const { targetUrl } = job.data;

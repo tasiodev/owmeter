@@ -1,0 +1,96 @@
+import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { auth } from "@/infrastructure/auth/auth";
+import { PrismaProjectRepository } from "@/infrastructure/database/repositories/PrismaProjectRepository";
+import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
+import { runSourceCodeAnalysis } from "@/infrastructure/scanning/SourceCodeAnalyzer";
+import { deduplicateFindings, getScanQueue } from "@/infrastructure/queue/scanQueue";
+import { createCodeScanFromZip, CreateCodeScanFromZipError } from "@/application/use-cases/CreateCodeScanFromZip";
+import { createFullScanFromZip, CreateFullScanFromZipError } from "@/application/use-cases/CreateFullScanFromZip";
+
+export const dynamic = "force-dynamic";
+
+const MAX_ZIP_BYTES = 50 * 1024 * 1024;
+
+const fieldSchema = z.object({
+  scanType: z.enum(["CODE", "FULL"]),
+  projectId: z.string().cuid(),
+});
+
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let formData: FormData;
+  try {
+    formData = await req.formData();
+  } catch {
+    return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
+  }
+
+  const parsed = fieldSchema.safeParse({
+    scanType: formData.get("scanType"),
+    projectId: formData.get("projectId"),
+  });
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
+  }
+
+  const zipEntry = formData.get("zipFile");
+  if (!(zipEntry instanceof File)) {
+    return NextResponse.json({ error: "ZIP file is required" }, { status: 400 });
+  }
+  if (zipEntry.size > MAX_ZIP_BYTES) {
+    return NextResponse.json(
+      { error: "ZIP_TOO_LARGE", message: "ZIP file exceeds 50 MB" },
+      { status: 413 }
+    );
+  }
+
+  const zipBuffer = Buffer.from(await zipEntry.arrayBuffer());
+
+  let rawFindings;
+  try {
+    rawFindings = deduplicateFindings(await runSourceCodeAnalysis(zipBuffer));
+  } catch {
+    return NextResponse.json({ error: "Failed to analyze ZIP file" }, { status: 422 });
+  }
+
+  const projectRepo = new PrismaProjectRepository();
+  const scanRepo = new PrismaScanRepository();
+  const { scanType, projectId } = parsed.data;
+
+  try {
+    if (scanType === "CODE") {
+      const scan = await createCodeScanFromZip(
+        projectId,
+        session.user.id,
+        rawFindings,
+        projectRepo,
+        scanRepo
+      );
+      return NextResponse.json(scan, { status: 201 });
+    }
+
+    // FULL scan: SAST already done, enqueue website analysis
+    const queue = getScanQueue();
+    const scan = await createFullScanFromZip(
+      projectId,
+      session.user.id,
+      rawFindings,
+      projectRepo,
+      scanRepo,
+      async (jobData) => {
+        await queue.add("scan", jobData, { attempts: 1, removeOnComplete: { age: 300 } });
+      }
+    );
+    return NextResponse.json(scan, { status: 201 });
+  } catch (err) {
+    if (err instanceof CreateCodeScanFromZipError || err instanceof CreateFullScanFromZipError) {
+      return NextResponse.json({ error: "SCAN_ERROR", message: err.message }, { status: 400 });
+    }
+    throw err;
+  }
+}

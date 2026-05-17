@@ -93,7 +93,7 @@ Open `.env` and fill in the values:
 ### 3. Start services
 
 ```bash
-docker compose up -d
+docker compose up zap redis db -d
 ```
 
 This starts PostgreSQL (port 5432), Redis (port 6380), and OWASP ZAP (port 8050). ZAP takes ~30 seconds to initialize — wait until `docker compose ps` shows all containers as healthy before continuing.

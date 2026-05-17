@@ -305,7 +305,7 @@ function CategoryBreakdownSection({
     findingsByCategory[f.category]!.push(f);
   }
 
-  const STATE_ORDER = { ok: 0, warn: 1, partial: 2, na: 3 };
+  const STATE_ORDER = { warn: 0, ok: 1, partial: 2, na: 3 };
 
   const entries = (
     Object.entries(OWASP_CATEGORIES) as [OWASPCategoryId, (typeof OWASP_CATEGORIES)[OWASPCategoryId]][]
@@ -423,7 +423,7 @@ function CategoryBreakdownSection({
   );
 }
 
-export function ScanResult({ scan, domain, projectId }: { scan: Scan; domain?: string; projectId?: string }) {
+export function ScanResult({ scan, domain, projectId, repoVerified }: { scan: Scan; domain?: string; projectId?: string; repoVerified?: boolean }) {
   const t = useTranslations("scan");
   const locale = useLocale();
   const router = useRouter();
@@ -520,6 +520,11 @@ export function ScanResult({ scan, domain, projectId }: { scan: Scan; domain?: s
                 </span>
               )}
               <ScanTypeBadge type={scan.type} t={t} />
+              {(scan.type === "FULL" || scan.type === "CODE") && repoVerified === false && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-900/40 text-amber-400" title={t("unverifiedSourceDesc")}>
+                  {t("unverifiedSourceBadge")}
+                </span>
+              )}
             </div>
             <p className="text-sm text-gray-400">
               {t("started", { date: new Date(scan.startedAt).toLocaleString() })}

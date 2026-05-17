@@ -20,9 +20,10 @@ export default async function ScanPage({
   const project = await projectRepo.findById(id);
   if (!project || project.userId !== session.user.id) notFound();
 
-  const canScan =
-    project.type === "WEBSITE" ? project.verified : project.repoVerified;
-  if (!canScan) redirect(`/${locale}/dashboard/projects/${id}`);
+  // WEBSITE requires domain verification; CODE_REPO always allows (ZIP upload available)
+  if (project.type === "WEBSITE" && !project.verified) {
+    redirect(`/${locale}/dashboard/projects/${id}`);
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 space-y-8">

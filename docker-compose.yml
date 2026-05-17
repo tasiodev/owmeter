@@ -29,6 +29,8 @@ services:
   db:
     image: postgres:17-alpine
     restart: unless-stopped
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-owmeter}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-owmeter}
@@ -44,6 +46,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    ports:
+      - "6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -55,6 +59,8 @@ services:
   zap:
     image: ghcr.io/zaproxy/zaproxy:stable
     restart: unless-stopped
+    ports:
+      - "8050:8050"
     command: zap.sh -daemon -host 0.0.0.0 -port 8050 -config api.key=${ZAP_API_KEY:-changeme} -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8050/JSON/core/view/version/?apikey=${ZAP_API_KEY:-changeme} || exit 1"]

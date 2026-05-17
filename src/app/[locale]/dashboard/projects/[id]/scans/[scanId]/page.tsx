@@ -46,7 +46,7 @@ export default async function ScanDetailPage({
         </p>
       </div>
 
-      <ScanResult scan={scan} projectId={id} />
+      <ScanResult scan={scan} projectId={id} repoVerified={project.repoVerified} />
 
       <ScanHistoryList scans={allScans} projectId={id} activeScanId={scanId} />
     </div>

@@ -30,7 +30,7 @@ export function BadgeCard({ projectId }: { projectId: string }) {
 
   const origin = typeof window !== "undefined" ? window.location.origin : "https://owmeter.app";
   const badgeUrl = `${origin}/api/badge/${projectId}?lang=${lang}`;
-  const badgeMarkdown = `![OWASP Score](${badgeUrl})`;
+  const badgeMarkdown = `[![OWASP Score](${badgeUrl})](https://owmeter.dev)`;
 
   return (
     <div className="rounded-xl border border-gray-800 p-6 space-y-4">

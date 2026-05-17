@@ -18,6 +18,7 @@ const STRINGS = {
     typeRepo: "Repository",
     withCode: "with code access",
     withoutCode: "without code access",
+    unverifiedSource: "Unverified source (ZIP upload)",
   },
   es: {
     title: "Informe de Seguridad",
@@ -32,6 +33,7 @@ const STRINGS = {
     typeRepo: "Repositorio",
     withCode: "con acceso al código",
     withoutCode: "sin acceso al código",
+    unverifiedSource: "Fuente no verificada (ZIP)",
   },
 } as const;
 
@@ -216,7 +218,7 @@ function projectTypeValue(
 }
 
 interface CertificatePdfProps {
-  project: Pick<Project, "name" | "domain" | "type">;
+  project: Pick<Project, "name" | "domain" | "type" | "repoVerified">;
   scan: {
     score: number | null;
     maxScore: number | null;
@@ -228,6 +230,8 @@ interface CertificatePdfProps {
 }
 
 export function CertificatePdf({ project, scan, locale }: CertificatePdfProps) {
+  const isUnverifiedSource =
+    (scan.type === "FULL" || scan.type === "CODE") && !project.repoVerified;
   const s = STRINGS[locale];
   const score = scan.score ?? 0;
   const maxScore = scan.maxScore ?? 100;
@@ -298,6 +302,11 @@ export function CertificatePdf({ project, scan, locale }: CertificatePdfProps) {
             <Text style={styles.footerLabel}>{s.projectTypeLabel}</Text>
             <Text style={styles.footerValue}>{typeMain}</Text>
             {typeSub && <Text style={styles.footerSub}>{typeSub}</Text>}
+            {isUnverifiedSource && (
+              <Text style={[styles.footerSub, { color: "#d97706" }]}>
+                {s.unverifiedSource}
+              </Text>
+            )}
           </View>
           <View style={[styles.footerColumn, { alignItems: "flex-end" }]}>
             <Text style={styles.footerLabel}>{s.dateLabel}</Text>
