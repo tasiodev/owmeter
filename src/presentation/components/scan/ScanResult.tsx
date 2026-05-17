@@ -216,6 +216,30 @@ function ScanTypeBadge({
   );
 }
 
+const EVIDENCE_TRUNCATE_LIMIT = 300;
+
+function EvidenceBlock({ evidence }: { evidence: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = evidence.length > EVIDENCE_TRUNCATE_LIMIT;
+  const displayed = long && !expanded ? evidence.slice(0, EVIDENCE_TRUNCATE_LIMIT) + "…" : evidence;
+
+  return (
+    <div className="space-y-1">
+      <pre className="text-xs text-gray-500 bg-gray-900 rounded p-2 overflow-x-auto whitespace-pre-wrap break-all">
+        {displayed}
+      </pre>
+      {long && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+        >
+          {expanded ? "Show less" : `Show ${evidence.length - EVIDENCE_TRUNCATE_LIMIT} more chars`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function FindingCard({ finding, t }: { finding: Finding; t: ReturnType<typeof useTranslations<"scan">> }) {
   return (
     <li id={`finding-${finding.id}`} className="rounded-xl border border-gray-800 p-4 space-y-2">
@@ -250,11 +274,7 @@ function FindingCard({ finding, t }: { finding: Finding; t: ReturnType<typeof us
         </div>
       </div>
       <p className="text-sm text-gray-400">{finding.description}</p>
-      {finding.evidence && (
-        <pre className="text-xs text-gray-500 bg-gray-900 rounded p-2 overflow-x-auto whitespace-pre-wrap break-all">
-          {finding.evidence}
-        </pre>
-      )}
+      {finding.evidence && <EvidenceBlock evidence={finding.evidence} />}
     </li>
   );
 }

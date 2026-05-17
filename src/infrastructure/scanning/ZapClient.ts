@@ -230,7 +230,7 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
     return false;
   }
 
-  // Deduplicate by alert name: ZAP fires one alert per URL for the same issue type.
+  // Deduplicate by resolved title (not raw alert name) so each distinct vulnerable library gets its own entry.
   // Keep the worst severity and collect up to 3 example URLs as evidence.
   const byAlert = new Map<string, { alert: ZapAlert; urls: string[] }>();
   for (const a of alerts) {
@@ -240,9 +240,13 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
       logger.debug({ alert: a.alert, url: a.url }, "Filtered as false positive");
       continue;
     }
-    const existing = byAlert.get(a.alert);
+    // For vulnerable library alerts, key by resolved title so jquery@1.x and lodash@4.x are separate entries.
+    const dedupeKey = a.alert.toLowerCase().includes("vulnerable js library")
+      ? (a.description.match(/identified library\s+(.+?)\s+-\s+([\d.]+)\s+appears/i)?.[0] ?? a.alert)
+      : a.alert;
+    const existing = byAlert.get(dedupeKey);
     if (!existing) {
-      byAlert.set(a.alert, { alert: a, urls: [a.url].filter(Boolean) });
+      byAlert.set(dedupeKey, { alert: a, urls: [a.url].filter(Boolean) });
     } else {
       if (a.url && !existing.urls.includes(a.url) && existing.urls.length < 3) {
         existing.urls.push(a.url);
@@ -255,11 +259,46 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
     }
   }
 
+  // Retire.js description: "The identified library <name> - <version> appears to be vulnerable to: ..."
+  function resolveTitle(alert: string, description: string): string {
+    if (!alert.toLowerCase().includes("vulnerable js library")) return alert;
+    const match = description.match(/identified library\s+(.+?)\s+-\s+([\d.]+)\s+appears/i);
+    if (match) return `Vulnerable JS Library: ${match[1].trim()} ${match[2]}`;
+    return alert;
+  }
+
+  // ZAP emits the same generic CSP paragraph for every CSP sub-alert.
+  // Replace with specific, actionable descriptions per alert type.
+  const CSP_DESCRIPTIONS: Record<string, string> = {
+    "csp: script-src unsafe-inline":
+      "'unsafe-inline' in script-src allows any inline <script> tag to execute, effectively disabling XSS protection. " +
+      "Fix: add 'strict-dynamic' alongside a per-request nonce ('nonce-{random}') — CSP3-capable browsers then ignore 'unsafe-inline' automatically, " +
+      "while older browsers fall back to it. This approach is compatible with Google AdSense and GTM. " +
+      "Next.js supports nonce injection via middleware.",
+    "csp: script-src unsafe-eval":
+      "'unsafe-eval' permits eval(), new Function(), and setTimeout(string), which can be exploited to run injected code. " +
+      "It is often required by Google Tag Manager's preview mode or legacy AdSense snippets. " +
+      "Fix: migrate GTM tags to Custom Templates (which avoid eval) and test whether AdSense still works without it. " +
+      "Combined with 'strict-dynamic' + nonces, many sites can drop 'unsafe-eval' entirely.",
+    "csp: style-src unsafe-inline":
+      "'unsafe-inline' in style-src allows arbitrary inline styles, which can be abused for CSS injection attacks (data exfiltration via attribute selectors). " +
+      "Fix: add a nonce to inline <style> tags, or hash individual inline style blocks with 'sha256-<hash>'. " +
+      "CSS-in-JS libraries (e.g. styled-components) support nonce injection via their server-side rendering APIs.",
+    "csp: wildcard directive":
+      "A wildcard or overly broad source (e.g. 'https:' in img-src) allows resources from any HTTPS origin. " +
+      "For images the practical risk is low, but it weakens defence-in-depth. " +
+      "Fix: enumerate the specific domains you load images from (CDN, user avatars, analytics pixel hosts) and replace 'https:' with those explicit origins.",
+  };
+
+  function resolveDescription(alert: string, fallback: string): string {
+    return CSP_DESCRIPTIONS[alert.toLowerCase()] ?? fallback;
+  }
+
   const findings = Array.from(byAlert.values()).map(({ alert: a, urls }): RawFinding => ({
     category: mapToOWASPCategory(a.cweid, a.wascid, a.alert),
     severity: zapRiskToSeverity(a.risk),
-    title: a.alert,
-    description: a.description,
+    title: resolveTitle(a.alert, a.description),
+    description: resolveDescription(a.alert, a.description),
     evidence: buildEvidence(a.evidence, urls),
   }));
 
