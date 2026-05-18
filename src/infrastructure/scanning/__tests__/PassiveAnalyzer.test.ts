@@ -112,7 +112,7 @@ describe("runPassiveAnalysis", () => {
     expect(serverFinding?.category).toBe("A05_SECURITY_MISCONFIGURATION");
   });
 
-  it("reports cookie missing HttpOnly as MEDIUM severity", async () => {
+  it("reports cookie missing HttpOnly as MEDIUM severity for session cookies", async () => {
     vi.stubGlobal(
       "fetch",
       mockFetch([
@@ -126,6 +126,75 @@ describe("runPassiveAnalysis", () => {
     expect(cookieFinding).toBeDefined();
     expect(cookieFinding?.severity).toBe("MEDIUM");
     expect(cookieFinding?.category).toBe("A07_AUTH_FAILURES");
+  });
+
+  // HttpOnly allowlist — non-sensitive preference cookies must NOT be flagged
+  it("does not flag NEXT_LOCALE cookie for missing HttpOnly", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch([
+        { headers: { ...FULL_HEADERS, "set-cookie": "NEXT_LOCALE=en; Path=/; Secure; SameSite=Strict" } },
+      ])
+    );
+    const findings = await runPassiveAnalysis("https://example.com");
+    expect(findings.find((f) => f.title.includes("HttpOnly") && f.title.includes("NEXT_LOCALE"))).toBeUndefined();
+  });
+
+  it("does not flag locale cookie for missing HttpOnly", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch([{ headers: { ...FULL_HEADERS, "set-cookie": "locale=es; Path=/; Secure; SameSite=Lax" } }])
+    );
+    const findings = await runPassiveAnalysis("https://example.com");
+    expect(findings.find((f) => f.title.includes("HttpOnly") && f.title.includes("locale"))).toBeUndefined();
+  });
+
+  it("does not flag theme cookie for missing HttpOnly", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch([{ headers: { ...FULL_HEADERS, "set-cookie": "theme=dark; Path=/; Secure; SameSite=Lax" } }])
+    );
+    const findings = await runPassiveAnalysis("https://example.com");
+    expect(findings.find((f) => f.title.includes("HttpOnly") && f.title.includes("theme"))).toBeUndefined();
+  });
+
+  it("does not flag Google Analytics _ga cookie for missing HttpOnly", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch([{ headers: { ...FULL_HEADERS, "set-cookie": "_ga=GA1.1.123456.789; Path=/; Secure; SameSite=Lax" } }])
+    );
+    const findings = await runPassiveAnalysis("https://example.com");
+    expect(findings.find((f) => f.title.includes("HttpOnly") && f.title.includes("_ga"))).toBeUndefined();
+  });
+
+  it("flags auth_token cookie for missing HttpOnly", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch([{ headers: { ...FULL_HEADERS, "set-cookie": "auth_token=xyz; Path=/; Secure; SameSite=Strict" } }])
+    );
+    const findings = await runPassiveAnalysis("https://example.com");
+    expect(findings.find((f) => f.title.includes("HttpOnly") && f.title.includes("auth_token"))).toBeDefined();
+  });
+
+  it("does not flag unknown preference cookies (filterSettings) for missing HttpOnly", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch([{ headers: { ...FULL_HEADERS, "set-cookie": "filterSettings=compact; Path=/; Secure; SameSite=Strict" } }])
+    );
+    const findings = await runPassiveAnalysis("https://example.com");
+    expect(findings.find((f) => f.title.includes("HttpOnly") && f.title.includes("filterSettings"))).toBeUndefined();
+  });
+
+  it("still checks Secure flag for non-sensitive cookies (NEXT_LOCALE)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch([{ headers: { ...FULL_HEADERS, "set-cookie": "NEXT_LOCALE=en; Path=/" } }])
+    );
+    const findings = await runPassiveAnalysis("https://example.com");
+    // HttpOnly: should NOT be flagged (non-sensitive)
+    expect(findings.find((f) => f.title.includes("HttpOnly") && f.title.includes("NEXT_LOCALE"))).toBeUndefined();
+    // Secure: SHOULD still be flagged
+    expect(findings.find((f) => f.title.includes("Secure flag") && f.title.includes("NEXT_LOCALE"))).toBeDefined();
   });
 
   it("throws when target URL is unreachable", async () => {

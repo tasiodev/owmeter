@@ -23,8 +23,11 @@ export default async function LoginPage({
   if (session) redirect(`/${locale}/dashboard`);
 
   const t = await getTranslations("login");
-  const { callbackUrl } = await searchParams;
+  const { callbackUrl: rawCallbackUrl } = await searchParams;
   const defaultCallback = `/${locale}/dashboard`;
+  // Only allow relative paths (starting with /) to prevent open redirect.
+  // Auth.js also validates this, but explicit sanitization makes intent clear.
+  const callbackUrl = rawCallbackUrl?.startsWith("/") ? rawCallbackUrl : defaultCallback;
 
   return (
     <div className="flex flex-col min-h-screen">
