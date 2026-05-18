@@ -1,4 +1,5 @@
 import type { RawFinding } from "@/domain/services/ScoringService";
+import { cookieNeedsHttpOnly } from "./cookieSecurity";
 
 const SENSITIVE_PATHS = [
   "/.env",
@@ -156,30 +157,6 @@ function checkServerInfoLeak(headers: Record<string, string>): RawFinding[] {
   return findings;
 }
 
-// HttpOnly only protects cookies that carry session or auth data — stealing a
-// locale or theme cookie via XSS is harmless. Rather than maintaining an ever-
-// growing allowlist of "safe" names, we flag only cookies whose names suggest
-// they hold sensitive data. Unknown preference/analytics cookies are left alone.
-const SENSITIVE_COOKIE_PATTERNS: RegExp[] = [
-  /session/i,       // session, user_session, sessionId
-  /\bsess\b/i,      // sess (standalone abbreviation)
-  /\bsid\b/i,       // sid (session id)
-  /token/i,         // access_token, refresh_token, auth_token, id_token
-  /\bjwt\b/i,       // jwt
-  /auth/i,          // auth, authToken, auth_cookie
-  /credential/i,    // credential, credentials
-  /\blogin\b/i,     // login
-  /bearer/i,        // bearer
-];
-
-function cookieNeedsHttpOnly(name: string): boolean {
-  const lower = name.toLowerCase();
-  // __Secure- and __Host- prefixed cookies are always security-sensitive by spec
-  if (lower.startsWith("__secure-") || lower.startsWith("__host-")) return true;
-  // Auth.js / next-auth session cookies
-  if (lower.startsWith("next-auth") || lower.startsWith("next_auth")) return true;
-  return SENSITIVE_COOKIE_PATTERNS.some((p) => p.test(lower));
-}
 
 function checkCookieSecurity(headers: Record<string, string>): RawFinding[] {
   const findings: RawFinding[] = [];

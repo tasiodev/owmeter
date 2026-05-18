@@ -2,6 +2,7 @@ import type { RawFinding } from "@/domain/services/ScoringService";
 import type { OWASPCategoryId } from "@/domain/value-objects/OWASPCategory";
 import type { Severity } from "@/domain/value-objects/Severity";
 import { createLogger } from "@/infrastructure/logger";
+import { cookieNeedsHttpOnly } from "./cookieSecurity";
 
 const logger = createLogger("ZapClient");
 
@@ -386,6 +387,22 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
     // Cache-Control: public, max-age=0 is correct for dynamic HTML (forces revalidation, allows CDN).
     // ZAP's "Re-examine Cache-control Directives" fires on this but it is not a misconfiguration.
     if (alert.includes("cache-control") || alert.includes("re-examine cache")) return true;
+
+    // "User Controllable HTML Element Attribute": fires on any page where a query param
+    // could theoretically appear in an HTML attribute. Modern frameworks like Next.js
+    // Server Actions do not reflect query params into raw HTML — the alert requires a
+    // human analyst to confirm exploitability and produces near-universal false positives
+    // on React/Next.js apps. Not actionable without manual code review.
+    if (alert.includes("user controllable html element attribute")) return true;
+
+    // "Cookie No HttpOnly Flag": ZAP's passive rule fires on every cookie missing
+    // HttpOnly regardless of sensitivity. Apply the same name-based filter used in
+    // PassiveAnalyzer — suppress only for non-sensitive cookies (locale, theme,
+    // analytics…). Session/auth cookies still surface as findings.
+    if (alert.includes("cookie no httponly flag") || alert.includes("cookie without httponly flag")) {
+      const cookieName = a.evidence?.match(/^Set-Cookie:\s*([^=;\s]+)/i)?.[1] ?? "";
+      return !cookieNeedsHttpOnly(cookieName);
+    }
 
     // ZAP's retire.js addon ships its own bundled database that can lag behind the canonical
     // GitHub repository. If ZAP flags a "Vulnerable JS Library" but the current retire.js DB
