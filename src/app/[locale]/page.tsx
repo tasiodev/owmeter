@@ -226,7 +226,7 @@ export default async function HomePage({
     <div className="flex flex-col min-h-screen">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
 
       <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">

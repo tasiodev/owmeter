@@ -19,20 +19,23 @@ interface RetireJsVuln {
   identifiers?: { CVE?: string[] };
 }
 
+const RETIRE_DB_TTL_MS = 24 * 60 * 60 * 1000;
 let _retireJsDb: Record<string, { vulnerabilities: RetireJsVuln[] }> | null = null;
+let _retireJsDbFetchedAt = 0;
 
 async function getRetireJsDb(): Promise<Record<string, { vulnerabilities: RetireJsVuln[] }>> {
-  if (_retireJsDb) return _retireJsDb;
+  if (_retireJsDb && Date.now() - _retireJsDbFetchedAt < RETIRE_DB_TTL_MS) return _retireJsDb;
   try {
     const res = await fetch(
       "https://raw.githubusercontent.com/RetireJS/retire.js/master/repository/jsrepository.json",
       { signal: AbortSignal.timeout(10_000) }
     );
     _retireJsDb = await res.json() as Record<string, { vulnerabilities: RetireJsVuln[] }>;
+    _retireJsDbFetchedAt = Date.now();
     logger.info("retire.js CVE database loaded");
   } catch (err) {
     logger.warn({ err }, "Failed to fetch retire.js CVE database — CVE enrichment skipped");
-    _retireJsDb = {};
+    if (!_retireJsDb) _retireJsDb = {};
   }
   return _retireJsDb;
 }
@@ -308,76 +311,6 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
     }
   }
 
-  function isFalsePositive(a: ZapAlert): boolean {
-    const alert = a.alert.toLowerCase();
-
-    // Spider/crawler metadata — not a security finding.
-    if (alert.includes("modern web application")) return true;
-
-    // Cross-Domain JavaScript: only a problem when the script host is unknown/untrusted.
-    // Same-domain scripts and known ad/analytics CDNs are intentional inclusions.
-    if (alert.includes("cross-domain javascript")) {
-      const url = extractResourceUrl(a.evidence);
-      return isSameDomainUrl(url) || isDynamicCdnUrl(url);
-    }
-
-    // Sub Resource Integrity: only meaningful for cross-origin resources that publish stable hashes.
-    // Dynamic CDNs (AdSense, GTM, etc.) change content continuously — SRI is not applicable.
-    if (alert.includes("sub resource integrity")) {
-      const url = extractResourceUrl(a.evidence);
-      if (!url) return true; // can't determine URL → assume same-domain (Next.js inline/relative)
-      return isSameDomainUrl(url) || isDynamicCdnUrl(url);
-    }
-
-    // X-Powered-By: already detected by PassiveAnalyzer with the actual header value.
-    if (alert.includes("x-powered-by")) return true;
-
-    // Timestamp Disclosure: a Unix epoch number in content is not a vulnerability by itself.
-    if (alert.includes("timestamp disclosure")) return true;
-
-    // Content-Type on redirect responses: 3xx responses have no body — Content-Type is irrelevant.
-    if (alert.includes("content-type") && a.url) {
-      if (a.risk.toLowerCase() === "informational" || a.risk.toLowerCase() === "low") return true;
-    }
-
-    // Cache-Control: public, max-age=0 is correct for dynamic HTML (forces revalidation, allows CDN).
-    // ZAP's "Re-examine Cache-control Directives" fires on this but it is not a misconfiguration.
-    if (alert.includes("cache-control") || alert.includes("re-examine cache")) return true;
-
-    return false;
-  }
-
-  // Deduplicate by resolved title (not raw alert name) so each distinct vulnerable library gets its own entry.
-  // Keep the worst severity and collect up to 3 example URLs as evidence.
-  const byAlert = new Map<string, { alert: ZapAlert; urls: string[] }>();
-  for (const a of alerts) {
-    // ZAP uses cweid "0" (not empty string) when no real CWE applies — treat it as absent.
-    const hasCwe = a.cweid && a.cweid !== "0";
-    if (a.risk.toLowerCase() === "informational" && !hasCwe) continue;
-    const fp = isFalsePositive(a);
-    if (fp) {
-      logger.debug({ alert: a.alert, url: a.url }, "Filtered as false positive");
-      continue;
-    }
-    // For vulnerable library alerts, key by resolved title so jquery@1.x and lodash@4.x are separate entries.
-    const dedupeKey = a.alert.toLowerCase().includes("vulnerable js library")
-      ? (a.description.match(/identified library\s+(.+?)\s+-\s+([\d.]+)\s+appears/i)?.[0] ?? a.alert)
-      : a.alert;
-    const existing = byAlert.get(dedupeKey);
-    if (!existing) {
-      byAlert.set(dedupeKey, { alert: a, urls: [a.url].filter(Boolean) });
-    } else {
-      if (a.url && !existing.urls.includes(a.url) && existing.urls.length < 3) {
-        existing.urls.push(a.url);
-      }
-      // Keep highest severity
-      const ranks: Record<string, number> = { high: 3, medium: 2, low: 1, informational: 0 };
-      if ((ranks[a.risk.toLowerCase()] ?? 0) > (ranks[existing.alert.risk.toLowerCase()] ?? 0)) {
-        existing.alert = a;
-      }
-    }
-  }
-
   // URL path fragments → library name (Retire.js bundles Next.js, React, etc. into generic chunks).
   const URL_LIBRARY_HINTS: Array<[RegExp, string]> = [
     [/\/_next\//, "next.js"],
@@ -416,6 +349,86 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
     return null;
   }
 
+  const retireDb = await getRetireJsDb();
+
+  function isFalsePositive(a: ZapAlert): boolean {
+    const alert = a.alert.toLowerCase();
+
+    // Spider/crawler metadata — not a security finding.
+    if (alert.includes("modern web application")) return true;
+
+    // Cross-Domain JavaScript: only a problem when the script host is unknown/untrusted.
+    // Same-domain scripts and known ad/analytics CDNs are intentional inclusions.
+    if (alert.includes("cross-domain javascript")) {
+      const url = extractResourceUrl(a.evidence);
+      return isSameDomainUrl(url) || isDynamicCdnUrl(url);
+    }
+
+    // Sub Resource Integrity: only meaningful for cross-origin resources that publish stable hashes.
+    // Dynamic CDNs (AdSense, GTM, etc.) change content continuously — SRI is not applicable.
+    if (alert.includes("sub resource integrity")) {
+      const url = extractResourceUrl(a.evidence);
+      if (!url) return true; // can't determine URL → assume same-domain (Next.js inline/relative)
+      return isSameDomainUrl(url) || isDynamicCdnUrl(url);
+    }
+
+    // X-Powered-By: already detected by PassiveAnalyzer with the actual header value.
+    if (alert.includes("x-powered-by")) return true;
+
+    // Timestamp Disclosure: a Unix epoch number in content is not a vulnerability by itself.
+    if (alert.includes("timestamp disclosure")) return true;
+
+    // Content-Type on redirect responses: 3xx responses have no body — Content-Type is irrelevant.
+    if (alert.includes("content-type") && a.url) {
+      if (a.risk.toLowerCase() === "informational" || a.risk.toLowerCase() === "low") return true;
+    }
+
+    // Cache-Control: public, max-age=0 is correct for dynamic HTML (forces revalidation, allows CDN).
+    // ZAP's "Re-examine Cache-control Directives" fires on this but it is not a misconfiguration.
+    if (alert.includes("cache-control") || alert.includes("re-examine cache")) return true;
+
+    // ZAP's retire.js addon ships its own bundled database that can lag behind the canonical
+    // GitHub repository. If ZAP flags a "Vulnerable JS Library" but the current retire.js DB
+    // reports no CVEs for that library+version, the addon is using stale data — treat as false positive.
+    if (alert.includes("vulnerable js library")) {
+      const libInfo = parseLibraryInfo(a.description, a.evidence ?? "", a.url ?? "");
+      if (libInfo && lookupCves(retireDb, libInfo.library, libInfo.version).length === 0) return true;
+    }
+
+    return false;
+  }
+
+  // Deduplicate by resolved title (not raw alert name) so each distinct vulnerable library gets its own entry.
+  // Keep the worst severity and collect up to 3 example URLs as evidence.
+  const byAlert = new Map<string, { alert: ZapAlert; urls: string[] }>();
+  for (const a of alerts) {
+    // ZAP uses cweid "0" (not empty string) when no real CWE applies — treat it as absent.
+    const hasCwe = a.cweid && a.cweid !== "0";
+    if (a.risk.toLowerCase() === "informational" && !hasCwe) continue;
+    const fp = isFalsePositive(a);
+    if (fp) {
+      logger.debug({ alert: a.alert, url: a.url }, "Filtered as false positive");
+      continue;
+    }
+    // For vulnerable library alerts, key by resolved title so jquery@1.x and lodash@4.x are separate entries.
+    const dedupeKey = a.alert.toLowerCase().includes("vulnerable js library")
+      ? (a.description.match(/identified library\s+(.+?)\s+-\s+([\d.]+)\s+appears/i)?.[0] ?? a.alert)
+      : a.alert;
+    const existing = byAlert.get(dedupeKey);
+    if (!existing) {
+      byAlert.set(dedupeKey, { alert: a, urls: [a.url].filter(Boolean) });
+    } else {
+      if (a.url && !existing.urls.includes(a.url) && existing.urls.length < 3) {
+        existing.urls.push(a.url);
+      }
+      // Keep highest severity
+      const ranks: Record<string, number> = { high: 3, medium: 2, low: 1, informational: 0 };
+      if ((ranks[a.risk.toLowerCase()] ?? 0) > (ranks[existing.alert.risk.toLowerCase()] ?? 0)) {
+        existing.alert = a;
+      }
+    }
+  }
+
   function resolveTitle(alert: string): string {
     if (!alert.toLowerCase().includes("vulnerable js library")) return alert;
     return "Vulnerable JS Library";
@@ -449,8 +462,6 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
     if (cves.length === 0) return base;
     return `${base}\n\nCVE: ${cves.join(", ")}`;
   }
-
-  const retireDb = await getRetireJsDb();
 
   const findings = Array.from(byAlert.values()).map(({ alert: a, urls }): RawFinding => {
     const isVulnerableLib = a.alert.toLowerCase().includes("vulnerable js library");

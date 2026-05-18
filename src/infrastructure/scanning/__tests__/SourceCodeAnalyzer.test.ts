@@ -1,6 +1,24 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { zipSync, strToU8 } from "fflate";
 import { runSourceCodeAnalysis, NoValidCodeError } from "../SourceCodeAnalyzer";
+
+const FAKE_RETIRE_NPM_DB = {
+  jsonwebtoken: { vulnerabilities: [{ below: "9.0.0", severity: "high", identifiers: { summary: "Algorithm confusion attacks (CVE-2022-23529)", CVE: ["CVE-2022-23529"] } }] },
+  lodash:       { vulnerabilities: [{ below: "4.17.21", severity: "medium", identifiers: { summary: "Prototype pollution (CVE-2021-23337)", CVE: ["CVE-2021-23337"] } }] },
+  axios:        { vulnerabilities: [{ below: "1.6.0", severity: "high", identifiers: { summary: "SSRF and CSRF vulnerabilities" } }] },
+  express:      { vulnerabilities: [{ below: "4.18.0", severity: "medium", identifiers: { summary: "ReDoS and open redirect" } }] },
+  "node-fetch": { vulnerabilities: [{ below: "2.6.7", severity: "high", identifiers: { summary: "SSRF (CVE-2022-0235)", CVE: ["CVE-2022-0235"] } }] },
+};
+
+beforeAll(() => {
+  vi.stubGlobal("fetch", vi.fn(() =>
+    Promise.resolve({ json: () => Promise.resolve(FAKE_RETIRE_NPM_DB) } as Response)
+  ));
+});
+
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 function makeZip(files: Record<string, string>): Uint8Array {
   const input: Record<string, Uint8Array> = {};

@@ -2,6 +2,9 @@ import { unzipSync } from "fflate";
 import type { RawFinding } from "@/domain/services/ScoringService";
 import type { OWASPCategoryId } from "@/domain/value-objects/OWASPCategory";
 import type { Severity } from "@/domain/value-objects/Severity";
+import { createLogger } from "@/infrastructure/logger";
+
+const logger = createLogger("SourceCodeAnalyzer");
 
 const ALLOWED_EXTENSIONS = new Set([
   ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs",
@@ -74,6 +77,7 @@ function hasJsTsEcosystem(files: Record<string, Uint8Array>): boolean {
 const SKIP_DIRS = [
   "node_modules/", ".git/", "build/", "dist/",
   ".next/", ".nuxt/", ".output/", "coverage/",
+  "__tests__/", "__mocks__/",
 ];
 
 // Max line length heuristic: files with very long single lines are minified bundles
@@ -96,18 +100,19 @@ const isNotExampleFile = (path: string) =>
 const PATTERNS: SASTPattern[] = [
   // A03 Injection
   {
-    regex: /eval\s*\(/g,
+    // Negative lookbehind (?<![\w.]) excludes method calls like redis.eval() or obj.eval()
+    regex: /(?<![\w.])eval\s*\(/g,
     category: "A03_INJECTION",
     severity: "CRITICAL",
     title: "Dangerous eval() usage",
-    description: "eval() executes arbitrary code and is a major injection risk if user-controlled data reaches it.",
+    description: "The eval function executes arbitrary code and is a major injection risk if user-controlled data reaches it.",
   },
   {
     regex: /new\s+Function\s*\(/g,
     category: "A03_INJECTION",
     severity: "HIGH",
     title: "Dynamic Function constructor",
-    description: "new Function() is equivalent to eval() and can execute arbitrary code.",
+    description: "The Function constructor behaves like eval and can execute arbitrary code.",
   },
   {
     regex: /`[^`]*SELECT[^`]*\$\{/gi,
@@ -138,7 +143,7 @@ const PATTERNS: SASTPattern[] = [
     description: "dangerouslySetInnerHTML bypasses React's XSS protection. Ensure the value is sanitized.",
   },
   {
-    // Matches execSync( and spawnSync( as standalone calls (not regex .exec())
+    // Matches standalone child-process sync functions, not regex .exec() calls
     regex: /\bexecSync\s*\(|\bspawnSync\s*\(/g,
     category: "A03_INJECTION",
     severity: "HIGH",
@@ -148,18 +153,19 @@ const PATTERNS: SASTPattern[] = [
 
   // A01 Broken Access Control
   {
-    regex: /origin\s*:\s*['"\*]/g,
+    // Negative lookbehind (?<![\w-]) prevents matching HTTP header names like access-control-allow-origin
+    regex: /(?<![\w-])origin\s*:\s*['"\*]/g,
     category: "A01_BROKEN_ACCESS_CONTROL",
     severity: "HIGH",
     title: "CORS wildcard origin",
-    description: "Allowing all origins (origin: '*') disables the same-origin protection and exposes APIs to any website.",
+    description: "Allowing all origins disables the same-origin protection and exposes APIs to any website.",
   },
   {
     regex: /cors\s*\(\s*\)/g,
     category: "A01_BROKEN_ACCESS_CONTROL",
     severity: "HIGH",
     title: "CORS enabled with default (permissive) settings",
-    description: "Calling cors() without options allows all origins. Pass an explicit allowlist of trusted origins.",
+    description: "Using the cors middleware without options allows all origins. Pass an explicit allowlist of trusted origins.",
   },
 
   // A02 Cryptographic Failures
@@ -302,16 +308,49 @@ const PATTERNS: SASTPattern[] = [
   },
 ];
 
-const KNOWN_VULNERABLE_DEPS: Record<string, { below: string; severity: Severity; description: string }> = {
-  "lodash": { below: "4.17.21", severity: "MEDIUM", description: "Versions below 4.17.21 have prototype pollution vulnerabilities (CVE-2021-23337)." },
-  "axios": { below: "1.6.0", severity: "HIGH", description: "Versions below 1.6.0 have SSRF and CSRF vulnerabilities." },
-  "express": { below: "4.18.0", severity: "MEDIUM", description: "Versions below 4.18.0 have known ReDoS and open redirect issues." },
-  "jsonwebtoken": { below: "9.0.0", severity: "HIGH", description: "Versions below 9.0.0 are vulnerable to algorithm confusion attacks (CVE-2022-23529)." },
-  "node-fetch": { below: "2.6.7", severity: "HIGH", description: "Versions below 2.6.7 have SSRF vulnerabilities (CVE-2022-0235)." },
-};
+// ─── Retire.js npm vulnerability database ────────────────────────────────────
+
+interface RetireNpmVuln {
+  atOrAbove?: string;
+  below?: string;
+  severity?: string;
+  identifiers?: { CVE?: string[]; summary?: string };
+}
+
+const RETIRE_NPM_DB_TTL_MS = 24 * 60 * 60 * 1000;
+let _retireNpmDb: Record<string, { vulnerabilities: RetireNpmVuln[] }> | null = null;
+let _retireNpmDbFetchedAt = 0;
+
+async function getRetireNpmDb(): Promise<Record<string, { vulnerabilities: RetireNpmVuln[] }>> {
+  if (_retireNpmDb && Date.now() - _retireNpmDbFetchedAt < RETIRE_NPM_DB_TTL_MS) return _retireNpmDb;
+  try {
+    const res = await fetch(
+      "https://raw.githubusercontent.com/RetireJS/retire.js/master/repository/npmrepository.json",
+      { signal: AbortSignal.timeout(10_000) }
+    );
+    _retireNpmDb = await res.json() as Record<string, { vulnerabilities: RetireNpmVuln[] }>;
+    _retireNpmDbFetchedAt = Date.now();
+    logger.info("retire.js npm database loaded");
+  } catch (err) {
+    logger.warn({ err }, "Failed to fetch retire.js npm database — dependency checks skipped");
+    if (!_retireNpmDb) _retireNpmDb = {};
+  }
+  return _retireNpmDb;
+}
+
+function retireSeverityToOurs(s: string | undefined): Severity {
+  switch (s?.toLowerCase()) {
+    case "critical":
+    case "high": return "HIGH";
+    case "low": return "LOW";
+    default: return "MEDIUM";
+  }
+}
 
 function shouldSkip(path: string): boolean {
-  return SKIP_DIRS.some((d) => path.includes(d));
+  if (SKIP_DIRS.some((d) => path.includes(d))) return true;
+  const filename = path.split("/").pop() ?? "";
+  return /\.(test|spec)\.[cm]?[jt]sx?$/.test(filename);
 }
 
 function hasAllowedExtension(path: string): boolean {
@@ -411,7 +450,7 @@ function isBelow(version: string, threshold: string): boolean {
   return pa < tp;
 }
 
-function analyzeDependencies(pkgContent: string): RawFinding[] {
+async function analyzeDependencies(pkgContent: string): Promise<RawFinding[]> {
   const findings: RawFinding[] = [];
   let pkg: Record<string, unknown>;
   try {
@@ -425,20 +464,37 @@ function analyzeDependencies(pkgContent: string): RawFinding[] {
     ...((pkg.devDependencies as Record<string, string>) ?? {}),
   };
 
-  for (const [name, info] of Object.entries(KNOWN_VULNERABLE_DEPS)) {
-    const raw = allDeps[name];
-    if (!raw) continue;
-    // Strip semver range specifiers for comparison
-    const version = raw.replace(/^[\^~>=<\s]+/, "");
-    if (isBelow(version, info.below)) {
-      findings.push({
-        category: "A06_VULNERABLE_COMPONENTS",
-        severity: info.severity,
-        title: `Outdated dependency: ${name}@${raw}`,
-        description: info.description,
-        evidence: `package.json — "${name}": "${raw}"`,
-      });
-    }
+  const db = await getRetireNpmDb();
+
+  for (const [name, rawVersion] of Object.entries(allDeps)) {
+    const entry = db[name];
+    if (!entry) continue;
+    const version = rawVersion.replace(/^[\^~>=<\s]+/, "");
+
+    const matchingVulns = entry.vulnerabilities.filter((v) => {
+      const aboveOk = !v.atOrAbove || !isBelow(version, v.atOrAbove);
+      const belowOk = !v.below || isBelow(version, v.below);
+      return aboveOk && belowOk;
+    });
+    if (matchingVulns.length === 0) continue;
+
+    const cves = [...new Set(matchingVulns.flatMap((v) => v.identifiers?.CVE ?? []))];
+    const summaries = [...new Set(
+      matchingVulns.map((v) => v.identifiers?.summary).filter((s): s is string => !!s)
+    )];
+    const severityRank = (s: string | undefined) => {
+      switch (s?.toLowerCase()) { case "critical": return 4; case "high": return 3; case "medium": return 2; default: return 1; }
+    };
+    const worst = matchingVulns.reduce((a, b) => severityRank(a.severity) >= severityRank(b.severity) ? a : b);
+
+    const descParts = [...summaries, cves.length > 0 ? `CVE: ${cves.join(", ")}` : ""].filter(Boolean);
+    findings.push({
+      category: "A06_VULNERABLE_COMPONENTS",
+      severity: retireSeverityToOurs(worst.severity),
+      title: `Vulnerable dependency: ${name}@${rawVersion}`,
+      description: descParts.join(" — ") || "Known vulnerability in this version range.",
+      evidence: `package.json — "${name}": "${rawVersion}"`,
+    });
   }
 
   return findings;
@@ -522,7 +578,7 @@ export async function runSourceCodeAnalysis(
   );
   if (pkgPath) {
     const content = new TextDecoder().decode(files[pkgPath]);
-    findings.push(...analyzeDependencies(content));
+    findings.push(...await analyzeDependencies(content));
   }
 
   // A06 is only evaluable when package.json is present (dep analysis is the sole A06 check)
