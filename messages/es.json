@@ -36,7 +36,8 @@
     "viewSource": "Ver en GitHub",
     "showcaseTitle": "Últimos sitios seguros analizados",
     "showcaseSubtitle": "Sitios con puntuación 90 o más en OWMeter",
-    "showcaseEmpty": "Sé el primero en alcanzar 90 puntos o más y aparecer aquí."
+    "showcaseEmpty": "Sé el primero en alcanzar 90 puntos o más y aparecer aquí.",
+    "showcaseZipSource": "Código fuente · ZIP"
   },
   "login": {
     "title": "Accede a OWMeter",

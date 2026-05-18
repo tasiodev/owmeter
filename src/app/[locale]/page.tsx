@@ -178,7 +178,7 @@ async function SecureShowcase() {
     const categoriesLabel =
       ts("categoriesEvaluated", { evaluated, total: TOTAL_CATEGORIES }) +
       (partial > 0 ? ts("categoriesPartial", { partial }) : "");
-    return { url: site.url, href, isWebsite, categoriesLabel, score: site.score, repoUrl: site.repoUrl };
+    return { url: site.url, href, isWebsite, categoriesLabel, score: site.score, repoUrl: site.repoUrl, zipSourceLabel: site.zipSource ? t("showcaseZipSource") : undefined };
   });
 
   const groups: CardData[][] = [];
@@ -229,6 +229,7 @@ export default async function HomePage({
       <script
         type="application/ld+json"
         nonce={nonce}
+        suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
 

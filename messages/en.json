@@ -36,7 +36,8 @@
     "viewSource": "View on GitHub",
     "showcaseTitle": "Latest secure sites analysed",
     "showcaseSubtitle": "Sites scoring 90 or above on OWMeter",
-    "showcaseEmpty": "Be the first to score 90 or above and appear here."
+    "showcaseEmpty": "Be the first to score 90 or above and appear here.",
+    "showcaseZipSource": "Source Code · ZIP"
   },
   "login": {
     "title": "Sign in to OWMeter",
