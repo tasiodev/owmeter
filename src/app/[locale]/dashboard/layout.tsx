@@ -28,11 +28,13 @@ export default async function DashboardLayout({
   return (
     <div className="flex flex-col flex-1 min-h-screen">
       <header className="border-b border-gray-800 px-4 sm:px-6 py-4 flex items-center justify-between gap-2 overflow-hidden">
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Link href="/">
             <Logo variant="topbar" />
           </Link>
-          <BetaBadge />
+          <span className="hidden sm:block">
+            <BetaBadge />
+          </span>
         </div>
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <LanguageSwitcher />

@@ -233,18 +233,20 @@ export default async function HomePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
 
-      <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="border-b border-gray-800 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Link href="/">
             <Logo variant="topbar" />
           </Link>
-          <BetaBadge />
+          <span className="hidden sm:block">
+            <BetaBadge />
+          </span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <LanguageSwitcher />
           {session ? (
             <>
-              <span className="text-sm text-gray-400">{session.user?.email}</span>
+              <span className="hidden sm:block text-sm text-gray-400 truncate max-w-[180px]">{session.user?.email}</span>
               <form
                 action={async () => {
                   "use server";
@@ -262,7 +264,7 @@ export default async function HomePage({
           ) : (
             <Link
               href="/login"
-              className="text-sm px-4 py-1.5 rounded-lg border border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-gray-950 font-medium transition-colors"
+              className="text-sm px-3 sm:px-4 py-1.5 rounded-lg border border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-gray-950 font-medium transition-colors"
             >
               {tc("signIn")}
             </Link>

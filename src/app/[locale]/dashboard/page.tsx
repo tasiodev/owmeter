@@ -65,7 +65,7 @@ function GlobeIcon() {
 
 function ProjectTypeBadge({ label }: { label: string }) {
   return (
-    <span className="text-xs border border-gray-600 text-gray-400 px-2 py-0.5 rounded-full">
+    <span className="text-xs border border-gray-600 text-gray-400 px-2 py-0.5 rounded-full whitespace-nowrap">
       {label}
     </span>
   );
@@ -104,15 +104,15 @@ export default async function DashboardPage() {
             <li key={project.id}>
               <Link
                 href={`/dashboard/projects/${project.id}`}
-                className="rounded-xl border border-gray-800 p-5 flex items-center justify-between gap-4 hover:border-gray-600 hover:bg-gray-900/40 transition-colors block"
+                className="rounded-xl border border-gray-800 p-4 sm:p-5 flex items-center justify-between gap-3 hover:border-gray-600 hover:bg-gray-900/40 transition-colors block"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{project.name}</span>
+                <div className="space-y-1 min-w-0 flex-1">
+                  <span className="font-medium">{project.name}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
                     <ProjectTypeBadge label={t(project.type === "CODE_REPO" ? "typeBadgeCodeRepo" : "typeBadgeWebsite")} />
                     <span
                       title={project.repoVerified ? t("repoVerifiedTitle") : t("repoUnverifiedTitle")}
-                      className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${project.repoVerified ? "bg-emerald-900/40 text-emerald-400" : "bg-orange-900/40 text-orange-400"}`}
+                      className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${project.repoVerified ? "bg-emerald-900/40 text-emerald-400" : "bg-orange-900/40 text-orange-400"}`}
                     >
                       <RepoIcon />
                       {project.repoVerified ? t("verifiedBadge") : t("unverifiedBadge")}
@@ -120,7 +120,7 @@ export default async function DashboardPage() {
                     {project.type === "WEBSITE" && (
                       <span
                         title={project.verified ? t("domainVerifiedTitle") : t("domainUnverifiedTitle")}
-                        className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${project.verified ? "bg-emerald-900/40 text-emerald-400" : "bg-orange-900/40 text-orange-400"}`}
+                        className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${project.verified ? "bg-emerald-900/40 text-emerald-400" : "bg-orange-900/40 text-orange-400"}`}
                       >
                         <GlobeIcon />
                         {project.verified ? t("verifiedBadge") : t("unverifiedBadge")}
@@ -128,7 +128,7 @@ export default async function DashboardPage() {
                     )}
                   </div>
                   {project.domain && (
-                    <p className="text-xs text-gray-500">{project.domain}</p>
+                    <p className="text-xs text-gray-500 truncate">{project.domain}</p>
                   )}
                   <p className="text-xs text-gray-600">
                     {t("addedOn", { date: new Date(project.createdAt).toLocaleDateString() })}

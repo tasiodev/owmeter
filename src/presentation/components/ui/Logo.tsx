@@ -83,14 +83,14 @@ export function Logo({ variant = "topbar", className }: LogoProps) {
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="220 88 360 196"
-        className="h-9 w-auto"
+        className="h-8 w-auto"
         aria-hidden="true"
       >
         <g transform="translate(400, 260)">
           <GaugeSVG />
         </g>
       </svg>
-      <span className="text-xl font-extrabold tracking-wide text-white">
+      <span className="hidden sm:inline text-xl font-extrabold tracking-wide text-white">
         OW<span className="text-emerald-400">Meter</span>
       </span>
     </div>

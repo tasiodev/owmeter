@@ -56,7 +56,7 @@ function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, repoUrl, z
   const dash = circ * (score / 100);
 
   return (
-    <div className="shrink-0 rounded-xl border border-gray-800 bg-gray-900/60 flex items-center gap-4 px-4 py-3 w-80">
+    <div className="rounded-xl border border-gray-800 bg-gray-900/60 flex items-center gap-4 px-4 py-3 w-full sm:w-80 sm:shrink-0">
       <div className="relative shrink-0" style={{ width: size, height: size }}>
         <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1f2937" strokeWidth={sw} />
@@ -176,8 +176,8 @@ export function ShowcaseCarousel({ groups }: { groups: CardData[][] }) {
       : {};
 
   return (
-    <div className="overflow-hidden min-h-32">
-      <div className="flex gap-4 justify-center" style={animStyle}>
+    <div className="overflow-hidden">
+      <div className="flex flex-col sm:flex-row gap-4 justify-center px-4 sm:px-6" style={animStyle}>
         {group.map((card, i) => (
           <ShowcaseCard key={`${card.url}-${i}`} {...card} />
         ))}
