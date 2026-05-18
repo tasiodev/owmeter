@@ -90,6 +90,7 @@ Open `.env` and fill in the values:
 | `ZAP_API_KEY` | API key for the ZAP container — set a strong value in production |
 | `ZAP_URL` | ZAP daemon URL — `http://localhost:8050` by default |
 | `NEXT_PUBLIC_APP_URL` | Public base URL of the app (used in verification tokens and OAuth callbacks) |
+| `GITHUB_TOKEN` | *(Optional)* GitHub Personal Access Token for the Advisory API. Without it the API still works but is rate-limited to 60 requests/hour — enough for occasional use but easily exhausted during development. With a token the limit rises to 5 000 req/hour. No scopes are needed; create one at [github.com/settings/tokens](https://github.com/settings/tokens). |
 
 **Creating OAuth apps**
 

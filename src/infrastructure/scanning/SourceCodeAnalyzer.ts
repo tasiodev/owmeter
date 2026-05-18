@@ -344,23 +344,67 @@ interface GhsaAdvisory {
 const GHSA_TTL_MS = 24 * 60 * 60 * 1000;
 const _ghsaCache = new Map<string, { data: GhsaAdvisory[]; fetchedAt: number }>();
 
-async function fetchGhsaAdvisories(packageName: string): Promise<GhsaAdvisory[]> {
-  const cached = _ghsaCache.get(packageName);
-  if (cached && Date.now() - cached.fetchedAt < GHSA_TTL_MS) return cached.data;
-  try {
-    const url = `https://api.github.com/advisories?ecosystem=npm&affects=${encodeURIComponent(packageName)}&per_page=100`;
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(10_000),
-      headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json() as GhsaAdvisory[];
-    _ghsaCache.set(packageName, { data, fetchedAt: Date.now() });
-    return data;
-  } catch (err) {
-    logger.warn({ err, packageName }, "Failed to fetch GHSA advisories — dependency checks may be incomplete");
-    return _ghsaCache.get(packageName)?.data ?? [];
+// Fetches advisories for multiple packages in a single API request.
+// Returns a map of packageName → advisories affecting that package.
+async function fetchGhsaAdvisoriesBatch(packageNames: string[]): Promise<Map<string, GhsaAdvisory[]>> {
+  const result = new Map<string, GhsaAdvisory[]>();
+  const toFetch: string[] = [];
+
+  for (const name of packageNames) {
+    const cached = _ghsaCache.get(name);
+    if (cached && Date.now() - cached.fetchedAt < GHSA_TTL_MS) {
+      result.set(name, cached.data);
+    } else {
+      toFetch.push(name);
+    }
   }
+
+  if (toFetch.length === 0) return result;
+
+  try {
+    const affects = toFetch.map(encodeURIComponent).join(",");
+    const url = `https://api.github.com/advisories?ecosystem=npm&affects=${affects}&per_page=100`;
+    const headers: Record<string, string> = {
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    };
+    const token = process.env.GITHUB_TOKEN;
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000), headers });
+    if (!res.ok) {
+      if (res.status === 403 || res.status === 429) {
+        logger.warn({ status: res.status, packages: toFetch.length }, "GitHub Advisory API rate limit hit — add GITHUB_TOKEN to increase quota");
+      }
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const data = await res.json() as GhsaAdvisory[];
+
+    // Group advisories by the npm package name they affect
+    const byPackage = new Map<string, GhsaAdvisory[]>();
+    for (const advisory of data) {
+      for (const vuln of advisory.vulnerabilities) {
+        if (vuln.package.ecosystem !== "npm") continue;
+        const pkgAdvisories = byPackage.get(vuln.package.name) ?? [];
+        pkgAdvisories.push(advisory);
+        byPackage.set(vuln.package.name, pkgAdvisories);
+      }
+    }
+
+    // Cache and populate result per package
+    for (const name of toFetch) {
+      const advisories = byPackage.get(name) ?? [];
+      _ghsaCache.set(name, { data: advisories, fetchedAt: Date.now() });
+      result.set(name, advisories);
+    }
+  } catch (err) {
+    logger.warn({ err, packages: toFetch.length }, "Failed to fetch GHSA advisories — dependency checks may be incomplete");
+    for (const name of toFetch) {
+      result.set(name, _ghsaCache.get(name)?.data ?? []);
+    }
+  }
+
+  return result;
 }
 
 function ghsaSeverityToOurs(s: string | null | undefined): Severity {
@@ -554,14 +598,18 @@ async function analyzeDependencies(pkgContent: string, lockContent?: string): Pr
 
   const lockedVersions = lockContent ? parseLockfileVersions(lockContent) : null;
 
-  const results = await Promise.all(
-    Object.entries(declaredDeps).map(async ([name]) => {
-      const version = lockedVersions?.[name];
-      if (!version) return null;
-      const advisories = await fetchGhsaAdvisories(name);
+  // Collect packages that have a resolved version in the lock file
+  const packagesToCheck = Object.keys(declaredDeps).filter(name => !!lockedVersions?.[name]);
 
-      const matching = advisories.filter(advisory =>
-        advisory.vulnerabilities.some(v =>
+  // Single API request for all packages
+  const advisoriesByPackage = await fetchGhsaAdvisoriesBatch(packagesToCheck);
+
+  const results = packagesToCheck.map((name) => {
+      const version = lockedVersions![name];
+      const advisories = advisoriesByPackage.get(name) ?? [];
+
+      const matching = advisories.filter((advisory: GhsaAdvisory) =>
+        advisory.vulnerabilities.some((v: GhsaVulnerability) =>
           v.package.ecosystem === "npm" &&
           v.package.name === name &&
           matchesVersionRange(version, v.vulnerable_version_range)
@@ -569,11 +617,11 @@ async function analyzeDependencies(pkgContent: string, lockContent?: string): Pr
       );
       if (matching.length === 0) return null;
 
-      const cves = [...new Set(matching.map(a => a.cve_id).filter((c): c is string => !!c))];
+      const cves = [...new Set(matching.map((a: GhsaAdvisory) => a.cve_id).filter((c: string | null): c is string => !!c))];
       const severityRank = (s: string | null) => {
         switch (s?.toLowerCase()) { case "critical": return 4; case "high": return 3; case "medium": return 2; default: return 1; }
       };
-      const worst = matching.reduce((a, b) => severityRank(a.severity) >= severityRank(b.severity) ? a : b);
+      const worst = matching.reduce((a: GhsaAdvisory, b: GhsaAdvisory) => severityRank(a.severity) >= severityRank(b.severity) ? a : b);
 
       const descParts = [worst.summary, cves.length > 0 ? `CVE: ${cves.join(", ")}` : ""].filter(Boolean);
       return {
@@ -583,8 +631,7 @@ async function analyzeDependencies(pkgContent: string, lockContent?: string): Pr
         description: descParts.join(" — ") || "Known vulnerability in this version range.",
         evidence: `package-lock.json — "${name}": "${version}"`,
       };
-    })
-  );
+    });
 
   return results.filter((r) => r !== null) as RawFinding[];
 }
