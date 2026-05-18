@@ -10,6 +10,7 @@ export type CardData = {
   score: number;
   repoUrl?: string;
   zipSourceLabel?: string;
+  zipSourceTitle?: string;
 };
 
 type Phase = "entering" | "visible" | "leaving";
@@ -48,7 +49,7 @@ function repoDisplayUrl(repoUrl: string): string {
   }
 }
 
-function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, repoUrl, zipSourceLabel }: CardData) {
+function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, repoUrl, zipSourceLabel, zipSourceTitle }: CardData) {
   const size = 80;
   const sw = 7;
   const r = (size - sw) / 2;
@@ -116,7 +117,7 @@ function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, repoUrl, z
           </a>
         )}
         {!repoUrl && zipSourceLabel && (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" title={zipSourceTitle}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="12"
@@ -130,9 +131,8 @@ function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, repoUrl, z
               className="shrink-0 text-gray-600"
               aria-hidden="true"
             >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
+              <polyline points="16 18 22 12 16 6" />
+              <polyline points="8 6 2 12 8 18" />
             </svg>
             <span className="text-xs text-gray-600">{zipSourceLabel}</span>
           </div>

@@ -178,7 +178,7 @@ async function SecureShowcase() {
     const categoriesLabel =
       ts("categoriesEvaluated", { evaluated, total: TOTAL_CATEGORIES }) +
       (partial > 0 ? ts("categoriesPartial", { partial }) : "");
-    return { url: site.url, href, isWebsite, categoriesLabel, score: site.score, repoUrl: site.repoUrl, zipSourceLabel: site.zipSource ? t("showcaseZipSource") : undefined };
+    return { url: site.url, href, isWebsite, categoriesLabel, score: site.score, repoUrl: site.repoUrl, zipSourceLabel: site.zipSource ? t("showcaseZipSource") : undefined, zipSourceTitle: site.zipSource ? t("showcaseZipSourceTitle") : undefined };
   });
 
   const groups: CardData[][] = [];

@@ -93,11 +93,13 @@ export class PrismaScanRepository implements IScanRepository {
       where: {
         status: "COMPLETED",
         score: { gte: 90 },
-        OR: [
-          { project: { isPublic: true, type: "WEBSITE", verified: true } },
-          { project: { isPublic: true, type: "CODE_REPO", repoVerified: true } },
-          { type: "CODE", project: { isPublic: true, type: "WEBSITE" } },
-        ],
+        project: {
+          isPublic: true,
+          OR: [
+            { type: "WEBSITE", verified: true },
+            { type: "CODE_REPO", repoVerified: true },
+          ],
+        },
       },
       select: {
         completedAt: true,
@@ -118,7 +120,7 @@ export class PrismaScanRepository implements IScanRepository {
           r.project.type === "WEBSITE" && r.project.repoVerified && r.project.repoUrl
             ? r.project.repoUrl
             : undefined;
-        const zipSource = r.project.type === "WEBSITE" && r.type === "CODE" && !repoUrl;
+        const zipSource = r.project.type === "WEBSITE" && r.type === "FULL" && !repoUrl;
         return [{ url, completedAt: r.completedAt, scanType: r.type, projectType: r.project.type, score: r.score, repoUrl, zipSource: zipSource || undefined }];
       });
   }

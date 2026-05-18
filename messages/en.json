@@ -37,7 +37,8 @@
     "showcaseTitle": "Latest secure sites analysed",
     "showcaseSubtitle": "Sites scoring 90 or above on OWMeter",
     "showcaseEmpty": "Be the first to score 90 or above and appear here.",
-    "showcaseZipSource": "Source Code · ZIP"
+    "showcaseZipSource": "Source Code · ZIP",
+    "showcaseZipSourceTitle": "Analysis performed by providing the source code as a ZIP file"
   },
   "login": {
     "title": "Sign in to OWMeter",
