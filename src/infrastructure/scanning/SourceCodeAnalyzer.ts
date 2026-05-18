@@ -92,6 +92,11 @@ interface SASTPattern {
   title: string;
   description: string;
   fileFilter?: (path: string) => boolean;
+  // When true, the pattern is matched against a version of the code where string
+  // literal contents are blanked out. Use for patterns that should not fire when
+  // the dangerous keyword appears only in a documentation/description string (e.g.
+  // eval() mentioned in a comment-like string or a SAST pattern definition).
+  skipStrings?: boolean;
 }
 
 const isNotExampleFile = (path: string) =>
@@ -100,19 +105,25 @@ const isNotExampleFile = (path: string) =>
 const PATTERNS: SASTPattern[] = [
   // A03 Injection
   {
-    // Negative lookbehind (?<![\w.]) excludes method calls like redis.eval() or obj.eval()
+    // Negative lookbehind (?<![\w.]) excludes method calls like redis.eval() or obj.eval().
+    // skipStrings: true prevents false positives when eval() appears only inside a string
+    // literal (e.g. a title, description, or SAST pattern definition like /eval\s*\(/).
     regex: /(?<![\w.])eval\s*\(/g,
     category: "A03_INJECTION",
     severity: "CRITICAL",
     title: "Dangerous eval() usage",
     description: "The eval function executes arbitrary code and is a major injection risk if user-controlled data reaches it.",
+    skipStrings: true,
   },
   {
+    // skipStrings: true prevents false positives when new Function() appears only in a
+    // documentation string (e.g. "eval(), new Function(), and setTimeout(string)...").
     regex: /new\s+Function\s*\(/g,
     category: "A03_INJECTION",
     severity: "HIGH",
     title: "Dynamic Function constructor",
     description: "The Function constructor behaves like eval and can execute arbitrary code.",
+    skipStrings: true,
   },
   {
     regex: /`[^`]*SELECT[^`]*\$\{/gi,
@@ -136,7 +147,11 @@ const PATTERNS: SASTPattern[] = [
     description: "Setting innerHTML with untrusted data leads to XSS. Use textContent or a sanitization library instead.",
   },
   {
-    regex: /dangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html\s*:/g,
+    // Negative lookahead excludes JSON.stringify(), which is a safe pattern used for
+    // injecting JSON-LD structured data (the value is serialized data, not HTML).
+    // \s* is inside the lookahead to avoid backtracking (the engine would otherwise
+    // retry with \s* matching 0 chars and the lookahead would pass on whitespace).
+    regex: /dangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html\s*:(?!\s*JSON\.stringify\()/g,
     category: "A03_INJECTION",
     severity: "MEDIUM",
     title: "dangerouslySetInnerHTML usage",
@@ -153,8 +168,10 @@ const PATTERNS: SASTPattern[] = [
 
   // A01 Broken Access Control
   {
-    // Negative lookbehind (?<![\w-]) prevents matching HTTP header names like access-control-allow-origin
-    regex: /(?<![\w-])origin\s*:\s*['"\*]/g,
+    // Negative lookbehind (?<![\w.-]) prevents matching:
+    //   - HTTP header names like Access-Control-Allow-Origin (hyphen before "origin")
+    //   - Property accesses like window.location.origin (dot before "origin")
+    regex: /(?<![\w.-])origin\s*:\s*['"\*]/g,
     category: "A01_BROKEN_ACCESS_CONTROL",
     severity: "HIGH",
     title: "CORS wildcard origin",
@@ -432,15 +449,38 @@ function stripComments(code: string): string {
   );
 }
 
+/**
+ * Blanks out the contents of string literals (preserving the quote characters)
+ * so that patterns do not fire when the dangerous keyword appears only inside a
+ * descriptive string such as a title, log message, or SAST pattern definition.
+ * Newlines inside template literals are kept so line numbers remain accurate.
+ */
+function blankStringContents(code: string): string {
+  return code.replace(
+    /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g,
+    (match) => {
+      const q = match[0];
+      return q + match.slice(1, -1).replace(/[^\n]/g, " ") + q;
+    }
+  );
+}
+
 function analyzeFile(filePath: string, content: string, patterns = PATTERNS): RawFinding[] {
   const findings: RawFinding[] = [];
   const seen = new Set<string>();
   const stripped = stripComments(content);
+  // Computed lazily — only when at least one pattern has skipStrings: true.
+  // blankStringContents preserves newlines so match.index-based line numbers stay correct.
+  let strippedNoStrings: string | null = null;
 
   for (const pattern of patterns) {
     if (pattern.fileFilter && !pattern.fileFilter(filePath)) continue;
 
-    const matches = [...stripped.matchAll(pattern.regex)];
+    const target = pattern.skipStrings
+      ? (strippedNoStrings ??= blankStringContents(stripped))
+      : stripped;
+
+    const matches = [...target.matchAll(pattern.regex)];
     if (matches.length === 0) continue;
 
     const key = `${pattern.category}:${pattern.title}:${filePath}`;

@@ -246,7 +246,89 @@ describe("runSourceCodeAnalysis", () => {
     expect(f).toBeUndefined();
   });
 
-  // False-positive regression tests — eval() in comments/strings must NOT be flagged
+  // ─── False-positive regression tests ────────────────────────────────────────
+  // eval() / new Function() inside string literals (e.g. SAST titles, descriptions)
+  it("does not flag eval() inside a string literal", async () => {
+    const zip = makeZip({
+      "analyzer.ts": 'const title = "Dangerous eval() usage"; export default title;',
+    });
+    const { findings } = await runSourceCodeAnalysis(zip);
+    expect(findings.find((f) => f.title.includes("eval"))).toBeUndefined();
+  });
+
+  it("does not flag new Function() inside a string literal", async () => {
+    const zip = makeZip({
+      "docs.ts":
+        'const desc = "eval(), new Function(), and setTimeout(string) are dangerous.";',
+    });
+    const { findings } = await runSourceCodeAnalysis(zip);
+    expect(findings.find((f) => f.title.includes("Function constructor"))).toBeUndefined();
+  });
+
+  it("still flags real eval() calls when a descriptive string is also present", async () => {
+    const zip = makeZip({
+      "run.ts":
+        'const info = "This calls eval() below";\nfunction execute(code: string) { eval(code); }',
+    });
+    const { findings } = await runSourceCodeAnalysis(zip);
+    expect(findings.find((f) => f.title.includes("eval"))).toBeDefined();
+  });
+
+  it("still flags real new Function() calls when a descriptive string is also present", async () => {
+    const zip = makeZip({
+      "dsl.ts":
+        'const note = "new Function() is like eval";\nconst fn = new Function("x", "return x");',
+    });
+    const { findings } = await runSourceCodeAnalysis(zip);
+    expect(findings.find((f) => f.title.includes("Function constructor"))).toBeDefined();
+  });
+
+  // CORS: window.location.origin in a ternary must NOT be flagged
+  it("does not flag window.location.origin used as a URL base (ternary)", async () => {
+    const zip = makeZip({
+      "badge.ts":
+        'const origin = typeof window !== "undefined" ? window.location.origin : "https://example.com";\n' +
+        "const url = `${origin}/api/badge/123`;",
+    });
+    const { findings } = await runSourceCodeAnalysis(zip);
+    expect(findings.find((f) => f.title.includes("CORS"))).toBeUndefined();
+  });
+
+  it("still flags cors({ origin: '*' }) after the lookbehind fix", async () => {
+    const zip = makeZip({
+      "server.ts": "app.use(cors({ origin: '*' }));",
+    });
+    const { findings } = await runSourceCodeAnalysis(zip);
+    expect(findings.find((f) => f.title.includes("CORS wildcard"))).toBeDefined();
+  });
+
+  // dangerouslySetInnerHTML with JSON.stringify (JSON-LD) must NOT be flagged
+  it("does not flag dangerouslySetInnerHTML when value is JSON.stringify (JSON-LD pattern)", async () => {
+    const zip = makeZip({
+      "page.tsx":
+        'const jsonLd = { "@type": "WebSite" };\n' +
+        'export default function Page() {\n' +
+        '  return <script type="application/ld+json"\n' +
+        '    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\\\u003c") }}\n' +
+        "  />;\n" +
+        "}",
+    });
+    const { findings } = await runSourceCodeAnalysis(zip);
+    expect(findings.find((f) => f.title.includes("dangerouslySetInnerHTML"))).toBeUndefined();
+  });
+
+  it("still flags dangerouslySetInnerHTML with user-controlled input", async () => {
+    const zip = makeZip({
+      "post.tsx":
+        "export default function Post({ html }: { html: string }) {\n" +
+        "  return <div dangerouslySetInnerHTML={{ __html: html }} />;\n" +
+        "}",
+    });
+    const { findings } = await runSourceCodeAnalysis(zip);
+    expect(findings.find((f) => f.title.includes("dangerouslySetInnerHTML"))).toBeDefined();
+  });
+
+  // Legacy comment-based tests (kept for coverage)
   it("does not flag eval() in a single-line comment", async () => {
     const zip = makeZip({
       "next.config.js":
