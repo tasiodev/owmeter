@@ -13,7 +13,7 @@
     "metaDesc": "Free, open-source OWASP Top 10 scanner for websites and code repositories. Security score out of 100 with detailed per-category findings.",
     "headline": "Free OWASP Top 10 scanner for websites and code repositories",
     "description": "Verify ownership, run passive and active security checks, and get a detailed score mapped to all 10 OWASP categories. Free, open source, no tracking.",
-    "ctaStart": "Get Started — it's free",
+    "ctaStart": "Get Started",
     "ctaDashboard": "Go to Dashboard",
     "feature1Title": "Verified ownership only",
     "feature1Desc": "Before any scan, you must prove you own the domain or repository. No one can scan a project they don't control.",

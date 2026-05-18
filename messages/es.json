@@ -13,7 +13,7 @@
     "metaDesc": "Escáner OWASP Top 10 gratuito y open source para webs y repositorios de código. Puntuación de seguridad sobre 100 con resultados detallados por categoría.",
     "headline": "Escáner OWASP Top 10 gratuito para webs y repositorios de código",
     "description": "Verifica la propiedad, ejecuta análisis pasivos y activos, y obtén una puntuación detallada mapeada a las 10 categorías OWASP. Gratis, open source, sin rastreo.",
-    "ctaStart": "Empieza — es gratis",
+    "ctaStart": "Empezar",
     "ctaDashboard": "Ir al Panel",
     "feature1Title": "Solo propietarios verificados",
     "feature1Desc": "Antes de cualquier análisis debes demostrar que eres propietario del dominio o repositorio. Nadie puede analizar proyectos que no controla.",
