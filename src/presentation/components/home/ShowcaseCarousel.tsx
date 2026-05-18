@@ -8,6 +8,7 @@ export type CardData = {
   isWebsite: boolean;
   categoriesLabel: string;
   score: number;
+  repoUrl?: string;
 };
 
 type Phase = "entering" | "visible" | "leaving";
@@ -16,7 +17,37 @@ const ENTER_MS = 500;
 const VISIBLE_MS = 5000;
 const LEAVE_MS = 500;
 
-function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score }: CardData) {
+function ExternalLinkIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0 text-gray-500 group-hover:text-gray-300 transition-colors"
+      aria-hidden="true"
+    >
+      <path d="M7 17L17 7" />
+      <path d="M7 7h10v10" />
+    </svg>
+  );
+}
+
+function repoDisplayUrl(repoUrl: string): string {
+  try {
+    const { hostname, pathname } = new URL(repoUrl);
+    return `${hostname}${pathname}`.replace(/\/$/, "");
+  } catch {
+    return repoUrl;
+  }
+}
+
+function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, repoUrl }: CardData) {
   const size = 80;
   const sw = 7;
   const r = (size - sw) / 2;
@@ -24,7 +55,7 @@ function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score }: CardData
   const dash = circ * (score / 100);
 
   return (
-    <div className="shrink-0 rounded-xl border border-gray-800 bg-gray-900/60 flex items-center gap-4 px-4 py-3 w-72">
+    <div className="shrink-0 rounded-xl border border-gray-800 bg-gray-900/60 flex items-center gap-4 px-4 py-3 w-80">
       <div className="relative shrink-0" style={{ width: size, height: size }}>
         <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1f2937" strokeWidth={sw} />
@@ -57,23 +88,32 @@ function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score }: CardData
           <span className="text-sm font-medium text-gray-200 group-hover:text-white truncate transition-colors">
             {url}
           </span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="shrink-0 text-gray-500 group-hover:text-gray-300 transition-colors"
-            aria-hidden="true"
-          >
-            <path d="M7 17L17 7" />
-            <path d="M7 7h10v10" />
-          </svg>
+          <ExternalLinkIcon />
         </a>
+        {repoUrl && (
+          <a
+            href={repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 group"
+            title={repoUrl}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="shrink-0 text-gray-500 group-hover:text-gray-300 transition-colors"
+              aria-hidden="true"
+            >
+              <path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.167 6.839 9.49.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.604-3.369-1.34-3.369-1.34-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.607.069-.607 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.087.636-1.337-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+            </svg>
+            <span className="text-xs text-gray-500 group-hover:text-gray-300 truncate transition-colors">
+              {repoDisplayUrl(repoUrl)}
+            </span>
+          </a>
+        )}
         <p className="text-xs text-gray-500">{categoriesLabel}</p>
       </div>
     </div>
@@ -113,7 +153,7 @@ export function ShowcaseCarousel({ groups }: { groups: CardData[][] }) {
       : {};
 
   return (
-    <div className="overflow-hidden min-h-28">
+    <div className="overflow-hidden min-h-32">
       <div className="flex gap-4 justify-center" style={animStyle}>
         {group.map((card, i) => (
           <ShowcaseCard key={`${card.url}-${i}`} {...card} />

@@ -88,7 +88,7 @@ export class PrismaScanRepository implements IScanRepository {
 
   async findPublicPerfectScoreScans(
     limit = 20
-  ): Promise<Array<{ url: string; completedAt: Date; scanType: string; projectType: string; score: number }>> {
+  ): Promise<Array<{ url: string; completedAt: Date; scanType: string; projectType: string; score: number; repoUrl?: string }>> {
     const records = await prisma.scan.findMany({
       where: {
         status: "COMPLETED",
@@ -105,7 +105,7 @@ export class PrismaScanRepository implements IScanRepository {
         completedAt: true,
         score: true,
         type: true,
-        project: { select: { type: true, domain: true, repoUrl: true } },
+        project: { select: { type: true, domain: true, repoUrl: true, repoVerified: true } },
       },
       orderBy: { completedAt: "desc" },
       distinct: ["projectId"],
@@ -115,7 +115,12 @@ export class PrismaScanRepository implements IScanRepository {
       .filter((r): r is typeof r & { completedAt: Date; score: number } => r.completedAt !== null && r.score !== null)
       .flatMap((r) => {
         const url = r.project.type === "WEBSITE" ? r.project.domain : r.project.repoUrl;
-        return url ? [{ url, completedAt: r.completedAt, scanType: r.type, projectType: r.project.type, score: r.score }] : [];
+        if (!url) return [];
+        const repoUrl =
+          r.project.type === "WEBSITE" && r.project.repoVerified && r.project.repoUrl
+            ? r.project.repoUrl
+            : undefined;
+        return [{ url, completedAt: r.completedAt, scanType: r.type, projectType: r.project.type, score: r.score, repoUrl }];
       });
   }
 

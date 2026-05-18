@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { auth, signOut } from "@/infrastructure/auth/auth";
@@ -177,7 +178,7 @@ async function SecureShowcase() {
     const categoriesLabel =
       ts("categoriesEvaluated", { evaluated, total: TOTAL_CATEGORIES }) +
       (partial > 0 ? ts("categoriesPartial", { partial }) : "");
-    return { url: site.url, href, isWebsite, categoriesLabel, score: site.score };
+    return { url: site.url, href, isWebsite, categoriesLabel, score: site.score, repoUrl: site.repoUrl };
   });
 
   const groups: CardData[][] = [];
@@ -209,6 +210,7 @@ export default async function HomePage({
   const t = await getTranslations("home");
   const tc = await getTranslations("common");
   const session = await auth();
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -226,6 +228,7 @@ export default async function HomePage({
     <div className="flex flex-col min-h-screen">
       <script
         type="application/ld+json"
+        nonce={nonce}
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
 

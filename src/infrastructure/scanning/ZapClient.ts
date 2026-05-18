@@ -111,7 +111,7 @@ function zapRiskToSeverity(risk: string): Severity {
 }
 
 // Maps ZAP CWE IDs and WASC IDs to OWASP Top 10 categories
-function mapToOWASPCategory(cweid: string, wascid: string, alertName: string): OWASPCategoryId {
+function mapToOWASPCategory(cweid: string, _wascid: string, alertName: string): OWASPCategoryId {
   const cwe = parseInt(cweid, 10);
   const alert = alertName.toLowerCase();
 
@@ -403,6 +403,11 @@ export async function runZapActiveScan(targetUrl: string): Promise<RawFinding[]>
       const cookieName = a.evidence?.match(/^Set-Cookie:\s*([^=;\s]+)/i)?.[1] ?? "";
       return !cookieNeedsHttpOnly(cookieName);
     }
+
+    // CSRF: Auth.js v5 Server Actions use Next.js built-in CSRF protection (origin check +
+    // SameSite=Strict cookies). ZAP fires "Absence of Anti-CSRF Tokens" on any form that
+    // lacks a visible token field — Server Actions don't use one by design.
+    if (alert.includes("absence of anti-csrf") || alert.includes("anti-csrf tokens")) return true;
 
     // ZAP's retire.js addon ships its own bundled database that can lag behind the canonical
     // GitHub repository. If ZAP flags a "Vulnerable JS Library" but the current retire.js DB
