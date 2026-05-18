@@ -224,10 +224,10 @@ describe("runSourceCodeAnalysis", () => {
   });
 
   it("detects vulnerable dependency → A06_VULNERABLE_COMPONENTS", async () => {
+    const lockfile = { lockfileVersion: 2, packages: { "": {}, "node_modules/jsonwebtoken": { version: "8.5.0" } } };
     const zip = makeZip({
-      "package.json": JSON.stringify({
-        dependencies: { jsonwebtoken: "^8.5.0" },
-      }),
+      "package.json": JSON.stringify({ dependencies: { jsonwebtoken: "^8.5.0" } }),
+      "package-lock.json": JSON.stringify(lockfile),
     });
     const { findings } = await runSourceCodeAnalysis(zip);
     const f = findings.find((f) => f.title.includes("jsonwebtoken"));
@@ -236,10 +236,10 @@ describe("runSourceCodeAnalysis", () => {
   });
 
   it("does not flag up-to-date dependencies", async () => {
+    const lockfile = { lockfileVersion: 2, packages: { "": {}, "node_modules/jsonwebtoken": { version: "9.0.2" } } };
     const zip = makeZip({
-      "package.json": JSON.stringify({
-        dependencies: { jsonwebtoken: "^9.0.2" },
-      }),
+      "package.json": JSON.stringify({ dependencies: { jsonwebtoken: "^9.0.2" } }),
+      "package-lock.json": JSON.stringify(lockfile),
     });
     const { findings } = await runSourceCodeAnalysis(zip);
     const f = findings.find((f) => f.title.includes("jsonwebtoken"));
@@ -290,19 +290,32 @@ describe("runSourceCodeAnalysis", () => {
       expect(unevaluated.has("A06_VULNERABLE_COMPONENTS")).toBe(true);
     });
 
-    it("does not mark A06 as not_evaluated when package.json is present", async () => {
+    it("does not mark A06 as not_evaluated when package.json and package-lock.json are present", async () => {
+      const lockfile = { lockfileVersion: 2, packages: { "": {} } };
       const zip = makeZip({
         "index.ts": "export const x = 1;",
         "package.json": JSON.stringify({ dependencies: {} }),
+        "package-lock.json": JSON.stringify(lockfile),
       });
       const { unevaluated } = await runSourceCodeAnalysis(zip);
       expect(unevaluated.has("A06_VULNERABLE_COMPONENTS")).toBe(false);
     });
 
-    it("returns empty unevaluated set for a full JS/TS project with package.json", async () => {
+    it("marks A06 as not_evaluated when package.json is present but package-lock.json is missing", async () => {
       const zip = makeZip({
         "index.ts": "export const x = 1;",
         "package.json": JSON.stringify({ dependencies: {} }),
+      });
+      const { unevaluated } = await runSourceCodeAnalysis(zip);
+      expect(unevaluated.has("A06_VULNERABLE_COMPONENTS")).toBe(true);
+    });
+
+    it("returns empty unevaluated set for a full JS/TS project with package.json and lock file", async () => {
+      const lockfile = { lockfileVersion: 2, packages: { "": {} } };
+      const zip = makeZip({
+        "index.ts": "export const x = 1;",
+        "package.json": JSON.stringify({ dependencies: {} }),
+        "package-lock.json": JSON.stringify(lockfile),
       });
       const { unevaluated } = await runSourceCodeAnalysis(zip);
       expect(unevaluated.size).toBe(0);
@@ -406,14 +419,71 @@ describe("runSourceCodeAnalysis", () => {
     });
 
     it("runs full JS/TS analysis on pure JS project without any language warning", async () => {
+      const lockfile = { lockfileVersion: 2, packages: { "": {} } };
       const zip = makeZip({
         "index.ts": "eval('bad');",
         "package.json": JSON.stringify({ dependencies: {} }),
+        "package-lock.json": JSON.stringify(lockfile),
       });
       const { findings } = await runSourceCodeAnalysis(zip);
-      const warning = findings.find((f) => f.severity === "INFO");
-      expect(warning).toBeUndefined();
+      const langWarning = findings.find((f) => f.severity === "INFO" && f.title.includes("analysis"));
+      expect(langWarning).toBeUndefined();
       expect(findings.some((f) => f.title.includes("eval"))).toBe(true);
+    });
+  });
+
+  describe("package-lock.json version resolution", () => {
+    it("uses exact locked version and does not flag when locked version is patched (v2 lockfile)", async () => {
+      const lockfile = {
+        lockfileVersion: 2,
+        packages: { "": {}, "node_modules/express": { version: "4.19.0" } },
+      };
+      const zip = makeZip({
+        "package.json": JSON.stringify({ dependencies: { express: "^4.17.0" } }),
+        "package-lock.json": JSON.stringify(lockfile),
+      });
+      const { findings } = await runSourceCodeAnalysis(zip);
+      expect(findings.find((f) => f.title.includes("express"))).toBeUndefined();
+    });
+
+    it("flags vulnerable exact version from v2 lockfile", async () => {
+      const lockfile = {
+        lockfileVersion: 2,
+        packages: { "": {}, "node_modules/express": { version: "4.17.0" } },
+      };
+      const zip = makeZip({
+        "package.json": JSON.stringify({ dependencies: { express: "^4.17.0" } }),
+        "package-lock.json": JSON.stringify(lockfile),
+      });
+      const { findings } = await runSourceCodeAnalysis(zip);
+      const f = findings.find((f) => f.title.includes("express"));
+      expect(f).toBeDefined();
+      expect(f?.evidence).toContain("package-lock.json");
+    });
+
+    it("uses exact locked version from v1 lockfile", async () => {
+      const lockfile = {
+        lockfileVersion: 1,
+        dependencies: { express: { version: "4.19.0" } },
+      };
+      const zip = makeZip({
+        "package.json": JSON.stringify({ dependencies: { express: "^4.17.0" } }),
+        "package-lock.json": JSON.stringify(lockfile),
+      });
+      const { findings } = await runSourceCodeAnalysis(zip);
+      expect(findings.find((f) => f.title.includes("express"))).toBeUndefined();
+    });
+
+    it("marks A06 as not_evaluated and emits INFO finding when package-lock.json is absent", async () => {
+      const zip = makeZip({
+        "package.json": JSON.stringify({ dependencies: { express: "^4.17.0" } }),
+      });
+      const { findings, unevaluated } = await runSourceCodeAnalysis(zip);
+      expect(unevaluated.has("A06_VULNERABLE_COMPONENTS")).toBe(true);
+      const info = findings.find((f) => f.title.includes("no lock file"));
+      expect(info).toBeDefined();
+      expect(info?.severity).toBe("INFO");
+      expect(findings.find((f) => f.title.includes("express"))).toBeUndefined();
     });
   });
 });

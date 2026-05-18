@@ -115,7 +115,11 @@ export function createScanWorker(): Worker<ScanJobData> {
         } else if (job.data.type === "FULL_ZIP") {
           // Full scan with pre-analyzed SAST findings from user-uploaded ZIP
           const { targetUrl, sastFindings, sastUnevaluated: serializedUnevaluated } = job.data;
-          sastUnevaluated = new Set(serializedUnevaluated);
+          const rawUnevaluated = new Set(serializedUnevaluated);
+          // ZAP retire.js covers the client-side portion of A06 in every FULL scan,
+          // so don't let missing SAST data mark the whole category as not_evaluated.
+          rawUnevaluated.delete("A06_VULNERABLE_COMPONENTS");
+          sastUnevaluated = rawUnevaluated;
 
           await assertReachable(targetUrl).catch((err: unknown) => {
             const reason = err instanceof Error ? err.message : "unreachable";
@@ -162,7 +166,11 @@ export function createScanWorker(): Worker<ScanJobData> {
           if (job.data.type === "FULL" && repoZip) {
             const { findings: sastFindings, unevaluated } = await runSourceCodeAnalysis(repoZip);
             combined.push(...sastFindings);
-            sastUnevaluated = unevaluated;
+            // ZAP retire.js covers the client-side portion of A06 in every FULL scan,
+            // so don't let missing SAST data mark the whole category as not_evaluated.
+            const filteredUnevaluated = new Set(unevaluated);
+            filteredUnevaluated.delete("A06_VULNERABLE_COMPONENTS");
+            sastUnevaluated = filteredUnevaluated;
             scanMode = "FULL";
           } else {
             scanMode = "PASSIVE";

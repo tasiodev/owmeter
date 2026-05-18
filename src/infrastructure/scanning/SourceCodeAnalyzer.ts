@@ -469,7 +469,37 @@ function parseSemver(v: string): [number, number, number] {
   return [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0];
 }
 
-async function analyzeDependencies(pkgContent: string): Promise<RawFinding[]> {
+interface LockEntry { version?: string; dependencies?: Record<string, LockEntry> }
+
+function parseLockfileVersions(lockContent: string): Record<string, string> | null {
+  let lock: Record<string, unknown>;
+  try { lock = JSON.parse(lockContent) as Record<string, unknown>; } catch { return null; }
+
+  const result: Record<string, string> = {};
+  const v = (lock.lockfileVersion as number) ?? 1;
+
+  if (v >= 2) {
+    const pkgs = lock.packages as Record<string, { version?: string }> | undefined;
+    if (!pkgs) return null;
+    for (const [key, info] of Object.entries(pkgs)) {
+      if (!key.startsWith("node_modules/") || !info.version) continue;
+      result[key.slice("node_modules/".length)] = info.version;
+    }
+  } else {
+    const flatten = (deps: Record<string, LockEntry>) => {
+      for (const [name, info] of Object.entries(deps)) {
+        if (info.version && !result[name]) result[name] = info.version;
+        if (info.dependencies) flatten(info.dependencies);
+      }
+    };
+    const deps = lock.dependencies as Record<string, LockEntry> | undefined;
+    if (deps) flatten(deps);
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
+}
+
+async function analyzeDependencies(pkgContent: string, lockContent?: string): Promise<RawFinding[]> {
   let pkg: Record<string, unknown>;
   try {
     pkg = JSON.parse(pkgContent) as Record<string, unknown>;
@@ -477,14 +507,17 @@ async function analyzeDependencies(pkgContent: string): Promise<RawFinding[]> {
     return [];
   }
 
-  const allDeps: Record<string, string> = {
+  const declaredDeps: Record<string, string> = {
     ...((pkg.dependencies as Record<string, string>) ?? {}),
     ...((pkg.devDependencies as Record<string, string>) ?? {}),
   };
 
+  const lockedVersions = lockContent ? parseLockfileVersions(lockContent) : null;
+
   const results = await Promise.all(
-    Object.entries(allDeps).map(async ([name, rawVersion]) => {
-      const version = rawVersion.replace(/^[\^~>=<\s]+/, "");
+    Object.entries(declaredDeps).map(async ([name]) => {
+      const version = lockedVersions?.[name];
+      if (!version) return null;
       const advisories = await fetchGhsaAdvisories(name);
 
       const matching = advisories.filter(advisory =>
@@ -506,9 +539,9 @@ async function analyzeDependencies(pkgContent: string): Promise<RawFinding[]> {
       return {
         category: "A06_VULNERABLE_COMPONENTS" as const,
         severity: ghsaSeverityToOurs(worst.severity),
-        title: `Vulnerable dependency: ${name}@${rawVersion}`,
+        title: `Vulnerable dependency: ${name}@${version}`,
         description: descParts.join(" — ") || "Known vulnerability in this version range.",
-        evidence: `package.json — "${name}": "${rawVersion}"`,
+        evidence: `package-lock.json — "${name}": "${version}"`,
       };
     })
   );
@@ -588,17 +621,35 @@ export async function runSourceCodeAnalysis(
     });
   }
 
-  // Find package.json for dependency vulnerability analysis
+  // Find package.json and package-lock.json for dependency vulnerability analysis
   const pkgPath = paths.find(
     (p) => (p === "package.json" || p.endsWith("/package.json")) && !p.includes("node_modules")
   );
-  if (pkgPath) {
-    const content = new TextDecoder().decode(files[pkgPath]);
-    findings.push(...await analyzeDependencies(content));
+  const lockPath = paths.find(
+    (p) => (p === "package-lock.json" || p.endsWith("/package-lock.json")) && !p.includes("node_modules")
+  );
+
+  const a06Unevaluated = !pkgPath || !lockPath;
+  if (pkgPath && lockPath) {
+    const pkgContent = new TextDecoder().decode(files[pkgPath]);
+    const lockContent = new TextDecoder().decode(files[lockPath]);
+    findings.push(...await analyzeDependencies(pkgContent, lockContent));
+  } else if (pkgPath && !lockPath) {
+    findings.push({
+      category: "A06_VULNERABLE_COMPONENTS",
+      severity: "INFO",
+      title: "Dependency versions unverifiable — no lock file found",
+      description:
+        "A package-lock.json is required to check exact installed dependency versions. " +
+        "Without it, vulnerability checks are skipped to avoid false positives from version ranges (e.g. ^4.17.0). " +
+        "Committing your lock file is also a supply-chain security best practice (OWASP A08).",
+      evidence: "package.json present, package-lock.json not found",
+    });
   }
 
-  // A06 is only evaluable when package.json is present (dep analysis is the sole A06 check)
-  const unevaluated: Set<OWASPCategoryId> = pkgPath ? new Set() : new Set<OWASPCategoryId>(["A06_VULNERABLE_COMPONENTS"]);
+  const unevaluated: Set<OWASPCategoryId> = a06Unevaluated
+    ? new Set<OWASPCategoryId>(["A06_VULNERABLE_COMPONENTS"])
+    : new Set();
 
   // Analyze JS/TS source files
   for (const [filePath, data] of Object.entries(files)) {
