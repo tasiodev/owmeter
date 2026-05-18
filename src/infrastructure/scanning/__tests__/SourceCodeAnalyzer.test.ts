@@ -2,18 +2,20 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { zipSync, strToU8 } from "fflate";
 import { runSourceCodeAnalysis, NoValidCodeError } from "../SourceCodeAnalyzer";
 
-const FAKE_RETIRE_NPM_DB = {
-  jsonwebtoken: { vulnerabilities: [{ below: "9.0.0", severity: "high", identifiers: { summary: "Algorithm confusion attacks (CVE-2022-23529)", CVE: ["CVE-2022-23529"] } }] },
-  lodash:       { vulnerabilities: [{ below: "4.17.21", severity: "medium", identifiers: { summary: "Prototype pollution (CVE-2021-23337)", CVE: ["CVE-2021-23337"] } }] },
-  axios:        { vulnerabilities: [{ below: "1.6.0", severity: "high", identifiers: { summary: "SSRF and CSRF vulnerabilities" } }] },
-  express:      { vulnerabilities: [{ below: "4.18.0", severity: "medium", identifiers: { summary: "ReDoS and open redirect" } }] },
-  "node-fetch": { vulnerabilities: [{ below: "2.6.7", severity: "high", identifiers: { summary: "SSRF (CVE-2022-0235)", CVE: ["CVE-2022-0235"] } }] },
+const FAKE_GHSA_DB: Record<string, object[]> = {
+  jsonwebtoken: [{ ghsa_id: "GHSA-fake-1", cve_id: "CVE-2022-23529", severity: "high", summary: "Algorithm confusion attacks (CVE-2022-23529)", vulnerabilities: [{ package: { ecosystem: "npm", name: "jsonwebtoken" }, vulnerable_version_range: "< 9.0.0", first_patched_version: "9.0.0" }] }],
+  lodash:       [{ ghsa_id: "GHSA-fake-2", cve_id: "CVE-2021-23337", severity: "medium", summary: "Prototype pollution (CVE-2021-23337)", vulnerabilities: [{ package: { ecosystem: "npm", name: "lodash" }, vulnerable_version_range: "< 4.17.21", first_patched_version: "4.17.21" }] }],
+  axios:        [{ ghsa_id: "GHSA-fake-3", cve_id: null, severity: "high", summary: "SSRF and CSRF vulnerabilities", vulnerabilities: [{ package: { ecosystem: "npm", name: "axios" }, vulnerable_version_range: "< 1.6.0", first_patched_version: "1.6.0" }] }],
+  express:      [{ ghsa_id: "GHSA-fake-4", cve_id: null, severity: "medium", summary: "ReDoS and open redirect", vulnerabilities: [{ package: { ecosystem: "npm", name: "express" }, vulnerable_version_range: "< 4.18.0", first_patched_version: "4.18.0" }] }],
+  "node-fetch": [{ ghsa_id: "GHSA-fake-5", cve_id: "CVE-2022-0235", severity: "high", summary: "SSRF (CVE-2022-0235)", vulnerabilities: [{ package: { ecosystem: "npm", name: "node-fetch" }, vulnerable_version_range: "< 2.6.7", first_patched_version: "2.6.7" }] }],
 };
 
 beforeAll(() => {
-  vi.stubGlobal("fetch", vi.fn(() =>
-    Promise.resolve({ json: () => Promise.resolve(FAKE_RETIRE_NPM_DB) } as Response)
-  ));
+  vi.stubGlobal("fetch", vi.fn((url: string) => {
+    const match = decodeURIComponent(url).match(/affects=([^&]+)/);
+    const data = match ? (FAKE_GHSA_DB[match[1]] ?? []) : [];
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(data) } as Response);
+  }));
 });
 
 afterAll(() => {

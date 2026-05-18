@@ -308,43 +308,70 @@ const PATTERNS: SASTPattern[] = [
   },
 ];
 
-// ─── Retire.js npm vulnerability database ────────────────────────────────────
+// ─── GitHub Advisory Database (GHSA) ─────────────────────────────────────────
 
-interface RetireNpmVuln {
-  atOrAbove?: string;
-  below?: string;
-  severity?: string;
-  identifiers?: { CVE?: string[]; summary?: string };
+interface GhsaVulnerability {
+  package: { ecosystem: string; name: string };
+  vulnerable_version_range: string | null;
+  first_patched_version: string | null;
 }
 
-const RETIRE_NPM_DB_TTL_MS = 24 * 60 * 60 * 1000;
-let _retireNpmDb: Record<string, { vulnerabilities: RetireNpmVuln[] }> | null = null;
-let _retireNpmDbFetchedAt = 0;
+interface GhsaAdvisory {
+  ghsa_id: string;
+  cve_id: string | null;
+  severity: "low" | "medium" | "high" | "critical" | null;
+  summary: string;
+  vulnerabilities: GhsaVulnerability[];
+}
 
-async function getRetireNpmDb(): Promise<Record<string, { vulnerabilities: RetireNpmVuln[] }>> {
-  if (_retireNpmDb && Date.now() - _retireNpmDbFetchedAt < RETIRE_NPM_DB_TTL_MS) return _retireNpmDb;
+const GHSA_TTL_MS = 24 * 60 * 60 * 1000;
+const _ghsaCache = new Map<string, { data: GhsaAdvisory[]; fetchedAt: number }>();
+
+async function fetchGhsaAdvisories(packageName: string): Promise<GhsaAdvisory[]> {
+  const cached = _ghsaCache.get(packageName);
+  if (cached && Date.now() - cached.fetchedAt < GHSA_TTL_MS) return cached.data;
   try {
-    const res = await fetch(
-      "https://raw.githubusercontent.com/RetireJS/retire.js/master/repository/npmrepository.json",
-      { signal: AbortSignal.timeout(10_000) }
-    );
-    _retireNpmDb = await res.json() as Record<string, { vulnerabilities: RetireNpmVuln[] }>;
-    _retireNpmDbFetchedAt = Date.now();
-    logger.info("retire.js npm database loaded");
+    const url = `https://api.github.com/advisories?ecosystem=npm&affects=${encodeURIComponent(packageName)}&per_page=100`;
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(10_000),
+      headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json() as GhsaAdvisory[];
+    _ghsaCache.set(packageName, { data, fetchedAt: Date.now() });
+    return data;
   } catch (err) {
-    logger.warn({ err }, "Failed to fetch retire.js npm database — dependency checks skipped");
-    if (!_retireNpmDb) _retireNpmDb = {};
+    logger.warn({ err, packageName }, "Failed to fetch GHSA advisories — dependency checks may be incomplete");
+    return _ghsaCache.get(packageName)?.data ?? [];
   }
-  return _retireNpmDb;
 }
 
-function retireSeverityToOurs(s: string | undefined): Severity {
+function ghsaSeverityToOurs(s: string | null | undefined): Severity {
   switch (s?.toLowerCase()) {
-    case "critical":
+    case "critical": return "CRITICAL";
     case "high": return "HIGH";
     case "low": return "LOW";
     default: return "MEDIUM";
   }
+}
+
+function matchesVersionRange(version: string, range: string | null): boolean {
+  if (!range) return true;
+  return range.split(",").map(s => s.trim()).every(condition => {
+    const m = condition.match(/^([<>]=?|=)\s*(.+)$/);
+    if (!m) return true;
+    const [ma, mi, pa] = parseSemver(version);
+    const [mb, mib, pb] = parseSemver(m[2].trim());
+    const cmp = ma !== mb ? ma - mb : mi !== mib ? mi - mib : pa - pb;
+    switch (m[1]) {
+      case "<": return cmp < 0;
+      case "<=": return cmp <= 0;
+      case ">": return cmp > 0;
+      case ">=": return cmp >= 0;
+      case "=": return cmp === 0;
+      default: return true;
+    }
+  });
 }
 
 function shouldSkip(path: string): boolean {
@@ -442,21 +469,12 @@ function parseSemver(v: string): [number, number, number] {
   return [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0];
 }
 
-function isBelow(version: string, threshold: string): boolean {
-  const [ma, mi, pa] = parseSemver(version);
-  const [ta, ti, tp] = parseSemver(threshold);
-  if (ma !== ta) return ma < ta;
-  if (mi !== ti) return mi < ti;
-  return pa < tp;
-}
-
 async function analyzeDependencies(pkgContent: string): Promise<RawFinding[]> {
-  const findings: RawFinding[] = [];
   let pkg: Record<string, unknown>;
   try {
     pkg = JSON.parse(pkgContent) as Record<string, unknown>;
   } catch {
-    return findings;
+    return [];
   }
 
   const allDeps: Record<string, string> = {
@@ -464,40 +482,38 @@ async function analyzeDependencies(pkgContent: string): Promise<RawFinding[]> {
     ...((pkg.devDependencies as Record<string, string>) ?? {}),
   };
 
-  const db = await getRetireNpmDb();
+  const results = await Promise.all(
+    Object.entries(allDeps).map(async ([name, rawVersion]) => {
+      const version = rawVersion.replace(/^[\^~>=<\s]+/, "");
+      const advisories = await fetchGhsaAdvisories(name);
 
-  for (const [name, rawVersion] of Object.entries(allDeps)) {
-    const entry = db[name];
-    if (!entry) continue;
-    const version = rawVersion.replace(/^[\^~>=<\s]+/, "");
+      const matching = advisories.filter(advisory =>
+        advisory.vulnerabilities.some(v =>
+          v.package.ecosystem === "npm" &&
+          v.package.name === name &&
+          matchesVersionRange(version, v.vulnerable_version_range)
+        )
+      );
+      if (matching.length === 0) return null;
 
-    const matchingVulns = entry.vulnerabilities.filter((v) => {
-      const aboveOk = !v.atOrAbove || !isBelow(version, v.atOrAbove);
-      const belowOk = !v.below || isBelow(version, v.below);
-      return aboveOk && belowOk;
-    });
-    if (matchingVulns.length === 0) continue;
+      const cves = [...new Set(matching.map(a => a.cve_id).filter((c): c is string => !!c))];
+      const severityRank = (s: string | null) => {
+        switch (s?.toLowerCase()) { case "critical": return 4; case "high": return 3; case "medium": return 2; default: return 1; }
+      };
+      const worst = matching.reduce((a, b) => severityRank(a.severity) >= severityRank(b.severity) ? a : b);
 
-    const cves = [...new Set(matchingVulns.flatMap((v) => v.identifiers?.CVE ?? []))];
-    const summaries = [...new Set(
-      matchingVulns.map((v) => v.identifiers?.summary).filter((s): s is string => !!s)
-    )];
-    const severityRank = (s: string | undefined) => {
-      switch (s?.toLowerCase()) { case "critical": return 4; case "high": return 3; case "medium": return 2; default: return 1; }
-    };
-    const worst = matchingVulns.reduce((a, b) => severityRank(a.severity) >= severityRank(b.severity) ? a : b);
+      const descParts = [worst.summary, cves.length > 0 ? `CVE: ${cves.join(", ")}` : ""].filter(Boolean);
+      return {
+        category: "A06_VULNERABLE_COMPONENTS" as const,
+        severity: ghsaSeverityToOurs(worst.severity),
+        title: `Vulnerable dependency: ${name}@${rawVersion}`,
+        description: descParts.join(" — ") || "Known vulnerability in this version range.",
+        evidence: `package.json — "${name}": "${rawVersion}"`,
+      };
+    })
+  );
 
-    const descParts = [...summaries, cves.length > 0 ? `CVE: ${cves.join(", ")}` : ""].filter(Boolean);
-    findings.push({
-      category: "A06_VULNERABLE_COMPONENTS",
-      severity: retireSeverityToOurs(worst.severity),
-      title: `Vulnerable dependency: ${name}@${rawVersion}`,
-      description: descParts.join(" — ") || "Known vulnerability in this version range.",
-      evidence: `package.json — "${name}": "${rawVersion}"`,
-    });
-  }
-
-  return findings;
+  return results.filter((r) => r !== null) as RawFinding[];
 }
 
 export class NoValidCodeError extends Error {
