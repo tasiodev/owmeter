@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-175 -175 350 240" width="280" height="192">
-  <rect x="-175" y="-175" width="350" height="240" rx="16" ry="16" fill="#ffffff"/>
+  <rect x="-175" y="-175" width="350" height="240" rx="16" ry="16" fill="#0a0a0a"/>
   <!-- gauge track -->
-  <path d="M -150,0 A 150,150 0 0,1 150,0" fill="none" stroke="#d1d5db" stroke-width="24" stroke-linecap="round"/>
+  <path d="M -150,0 A 150,150 0 0,1 150,0" fill="none" stroke="#374151" stroke-width="24" stroke-linecap="round"/>
   <!-- green arc (high-score zone) -->
   <path d="M 50,-141.4 A 150,150 0 0,1 150,0" fill="none" stroke="#10B981" stroke-width="24" stroke-linecap="round"/>
   <!-- severity dots -->
@@ -17,12 +17,12 @@
   <circle cx="150"     cy="0"       r="6" fill="#10B981"/>
   <!-- needle pointing to green zone -->
   <g transform="rotate(55)">
-    <path d="M -8,0 L 0,-150 L 8,0 Z" fill="#111827"/>
-    <circle cx="0" cy="0" r="16" fill="#111827"/>
-    <circle cx="0" cy="0" r="6"  fill="#374151"/>
+    <path d="M -8,0 L 0,-150 L 8,0 Z" fill="#F9FAFB"/>
+    <circle cx="0" cy="0" r="16" fill="#F9FAFB"/>
+    <circle cx="0" cy="0" r="6"  fill="#0a0a0a"/>
   </g>
   <!-- wordmark -->
   <text x="0" y="52" text-anchor="middle" font-family="Arial Black, Arial, Helvetica, sans-serif" font-weight="900" font-size="52" letter-spacing="-1">
-    <tspan fill="#111827">OW</tspan><tspan fill="#10B981">Meter</tspan>
+    <tspan fill="#F9FAFB">OW</tspan><tspan fill="#10B981">Meter</tspan>
   </text>
 </svg>
