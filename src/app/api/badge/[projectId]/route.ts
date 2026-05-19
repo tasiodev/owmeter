@@ -116,7 +116,7 @@ export async function GET(
   return new NextResponse(svg, {
     headers: {
       "Content-Type": "image/svg+xml",
-      "Cache-Control": "no-cache, s-maxage=3600, stale-while-revalidate=86400",
+      "Cache-Control": "no-cache, s-maxage=300, stale-while-revalidate=600",
     },
   });
 }
