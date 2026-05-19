@@ -49,7 +49,7 @@ export async function GET(
   });
 
   const score = scan?.score ?? null;
-  const label = "OWASP Score";
+  const label = "OWMeter";
   const value = score !== null ? `${score}/100` : (lang === "es" ? "pendiente" : "pending");
   const valueColor = score !== null ? scoreColor(score) : "#6b7280";
 
