@@ -169,7 +169,7 @@ export async function LastScanCard({
               {t("lastScanTitle")}
             </p>
             <p className="text-sm text-gray-400 mt-0.5">
-              {new Date(scan.startedAt).toLocaleDateString(locale, { day: "numeric", month: "numeric", year: "numeric" })}
+              {new Date(scan.startedAt).toLocaleString(locale, { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
             </p>
           </div>
 

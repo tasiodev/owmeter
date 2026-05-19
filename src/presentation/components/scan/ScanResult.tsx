@@ -605,11 +605,11 @@ export function ScanResult({ scan, domain, projectId, repoVerified }: { scan: Sc
               )}
             </div>
             <p className="text-sm text-gray-400">
-              {t("started", { date: new Date(scan.startedAt).toLocaleDateString(locale, { day: "numeric", month: "numeric", year: "numeric" }) })}
+              {t("started", { date: new Date(scan.startedAt).toLocaleString(locale, { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) })}
             </p>
             {scan.completedAt && (
               <p className="text-sm text-gray-400">
-                {t("completed", { date: new Date(scan.completedAt).toLocaleDateString(locale, { day: "numeric", month: "numeric", year: "numeric" }) })}
+                {t("completed", { date: new Date(scan.completedAt).toLocaleString(locale, { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) })}
               </p>
             )}
             {scan.status === "RUNNING" && (
