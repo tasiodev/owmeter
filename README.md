@@ -3,9 +3,10 @@
 </p>
 
 <p align="center">
-  <a href="https://owmeter.dev"><strong>owmeter.dev</strong></a> [![OWASP Score](https://owmeter.dev/api/badge/cmpa3jtit000001o6sgmzl39o?lang=en)](https://owmeter.dev)
+  <a href="https://owmeter.dev"><strong>owmeter.dev</strong></a>
 </p>
-
+ [![OWASP Score](https://owmeter.dev/api/badge/cmpa3jtit000001o6sgmzl39o?lang=en)](https://owmeter.dev)
+ 
 Owmeter is an open-source web application that lets site owners scan their websites against the [OWASP Top 10](https://owasp.org/www-project-top-ten/) and receive a security score. Before any scan runs, the user must prove they own the domain — so results can never be abused to probe third-party sites.
 
 ---
