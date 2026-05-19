@@ -34,7 +34,9 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon")
   ) {
-    return NextResponse.next();
+    const res = NextResponse.next();
+    res.headers.delete("x-powered-by");
+    return res;
   }
 
   // Auth check for dashboard routes (any locale)
@@ -65,6 +67,7 @@ export async function proxy(req: NextRequest) {
 
   // Set CSP on the browser-facing response header
   response.headers.set("Content-Security-Policy", csp);
+  response.headers.delete("x-powered-by");
 
   // next-intl redirects can include the internal port (e.g. :3000) when the
   // app runs behind a proxy with x-forwarded-proto:https. Rewrite the Location

@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import type { Scan } from "@/domain/entities/Scan";
 import type { Severity } from "@/domain/value-objects/Severity";
@@ -125,6 +125,7 @@ export async function LastScanCard({
 }) {
   const t = await getTranslations("site");
   const ts = await getTranslations("scan");
+  const locale = await getLocale();
 
   const isActive = scan.status === "RUNNING" || scan.status === "PENDING";
   const isFailed = scan.status === "FAILED" || scan.status === "INVALID";
@@ -168,7 +169,7 @@ export async function LastScanCard({
               {t("lastScanTitle")}
             </p>
             <p className="text-sm text-gray-400 mt-0.5">
-              {new Date(scan.startedAt).toLocaleString()}
+              {new Date(scan.startedAt).toLocaleDateString(locale, { day: "numeric", month: "numeric", year: "numeric" })}
             </p>
           </div>
 
