@@ -8,6 +8,7 @@ export type CardData = {
   isWebsite: boolean;
   categoriesLabel: string;
   score: number;
+  completedAt: string;
   repoUrl?: string;
   zipSourceLabel?: string;
   zipSourceTitle?: string;
@@ -49,7 +50,7 @@ function repoDisplayUrl(repoUrl: string): string {
   }
 }
 
-function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, repoUrl, zipSourceLabel, zipSourceTitle }: CardData) {
+function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, completedAt, repoUrl, zipSourceLabel, zipSourceTitle }: CardData) {
   const size = 80;
   const sw = 7;
   const r = (size - sw) / 2;
@@ -57,7 +58,8 @@ function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, repoUrl, z
   const dash = circ * (score / 100);
 
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900/60 flex items-center gap-4 px-4 py-3 w-full sm:w-80 sm:shrink-0">
+    <div className="relative rounded-xl border border-gray-800 bg-gray-900/60 flex items-center gap-4 px-4 py-3 w-full sm:w-80 sm:shrink-0">
+      <span className="absolute top-2 right-3 text-xs text-gray-600">{completedAt}</span>
       <div className="relative shrink-0" style={{ width: size, height: size }}>
         <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1f2937" strokeWidth={sw} />

@@ -185,7 +185,7 @@ function evaluationStats(scanType: string) {
   };
 }
 
-async function SecureShowcase() {
+async function SecureShowcase({ locale }: { locale: string }) {
   const t = await getTranslations("home");
   const ts = await getTranslations("scan");
   const scanRepo = new PrismaScanRepository();
@@ -205,7 +205,8 @@ async function SecureShowcase() {
     const categoriesLabel =
       ts("categoriesEvaluated", { evaluated, total: TOTAL_CATEGORIES }) +
       (partial > 0 ? ts("categoriesPartial", { partial }) : "");
-    return { url: site.url, href, isWebsite, categoriesLabel, score: site.score, repoUrl: site.repoUrl, zipSourceLabel: site.zipSource ? t("showcaseZipSource") : undefined, zipSourceTitle: site.zipSource ? t("showcaseZipSourceTitle") : undefined };
+    const completedAt = site.completedAt.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+    return { url: site.url, href, isWebsite, categoriesLabel, score: site.score, completedAt, repoUrl: site.repoUrl, zipSourceLabel: site.zipSource ? t("showcaseZipSource") : undefined, zipSourceTitle: site.zipSource ? t("showcaseZipSourceTitle") : undefined };
   });
 
   const groups: CardData[][] = [];
@@ -328,7 +329,7 @@ export default async function HomePage({
           </div>
         </section>
 
-        <SecureShowcase />
+        <SecureShowcase locale={locale} />
         <WhySecurity />
         <HowItWorks />
         <OWASPGrid />
