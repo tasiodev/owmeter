@@ -89,6 +89,33 @@ function Features() {
   );
 }
 
+function WhySecurity() {
+  const t = useTranslations("home");
+  const stats = (["1", "2", "3", "4"] as const).map((n) => ({
+    value: t(`whyStat${n}Value`),
+    label: t(`whyStat${n}Label`),
+  }));
+
+  return (
+    <section className="w-full py-16 border-t border-gray-800">
+      <div className="max-w-3xl mx-auto px-6">
+        <div className="text-center mb-10 space-y-2">
+          <h2 className="text-2xl font-bold text-gray-100">{t("whySecurityTitle")}</h2>
+          <p className="text-sm text-gray-500 max-w-xl mx-auto">{t("whySecuritySubtitle")}</p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {stats.map(({ value, label }) => (
+            <div key={value} className="rounded-xl border border-gray-800 p-5 space-y-2 text-center">
+              <p className="text-2xl font-bold text-emerald-400">{value}</p>
+              <p className="text-xs text-gray-400 leading-relaxed">{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function HowItWorks() {
   const t = useTranslations("home");
   const steps = (["step1", "step2", "step3"] as const).map((key, i) => ({
@@ -302,6 +329,7 @@ export default async function HomePage({
         </section>
 
         <SecureShowcase />
+        <WhySecurity />
         <HowItWorks />
         <OWASPGrid />
       </main>
