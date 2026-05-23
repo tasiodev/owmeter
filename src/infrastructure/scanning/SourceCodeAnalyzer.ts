@@ -1,6 +1,7 @@
 import { unzipSync } from "fflate";
 import type { RawFinding } from "@/domain/services/ScoringService";
 import type { OWASPCategoryId } from "@/domain/value-objects/OWASPCategory";
+import { FOREIGN_LANG_UNEVALUATED } from "@/domain/value-objects/OWASPCategory";
 import type { Severity } from "@/domain/value-objects/Severity";
 import { createLogger } from "@/infrastructure/logger";
 
@@ -23,20 +24,6 @@ const FOREIGN_LANG_EXTENSIONS = new Set([
   ".rs",
 ]);
 
-// Categories that cannot be evaluated from foreign-language source code.
-// JS/TS-specific patterns (eval, CORS middleware, bcrypt, console.log, etc.) do not
-// apply to Java, Python, Go, etc. A04 is intentionally excluded — hardcoded-secrets
-// checks run cross-language. A05 is already in CODE_UNEVALUATED for all CODE scans.
-const FOREIGN_LANG_UNEVALUATED: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
-  "A01_BROKEN_ACCESS_CONTROL",
-  "A02_CRYPTOGRAPHIC_FAILURES",
-  "A03_INJECTION",
-  "A06_VULNERABLE_COMPONENTS",
-  "A07_AUTH_FAILURES",
-  "A08_DATA_INTEGRITY_FAILURES",
-  "A09_LOGGING_FAILURES",
-  "A10_SSRF",
-]);
 
 export interface SourceCodeAnalysisResult {
   findings: RawFinding[];
@@ -102,6 +89,11 @@ interface SASTPattern {
 const isNotExampleFile = (path: string) =>
   !path.endsWith(".example") && !path.includes(".env.example") && !path.includes(".sample");
 
+// Matches i18n resource files where `password: 'Contraseña'` is a field label, not a credential.
+const isI18nFile = (path: string) =>
+  /(?:^|\/)(?:messages|locales?|i18n|translations?|lang)\//i.test(path) ||
+  /\.(strings|po|pot)$/.test(path);
+
 const PATTERNS: SASTPattern[] = [
   // A03 Injection
   {
@@ -126,7 +118,9 @@ const PATTERNS: SASTPattern[] = [
     skipStrings: true,
   },
   {
-    regex: /`[^`]*SELECT[^`]*\$\{/gi,
+    // \b word boundaries prevent matching CSS/JS identifiers like "fileSelector" or "--selected"
+    // that contain the substring "select" but are not SQL keywords.
+    regex: /`[^`]*\b(?:SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|EXEC)\b[^`]*\$\{/gi,
     category: "A03_INJECTION",
     severity: "CRITICAL",
     title: "SQL injection via template literal",
@@ -226,20 +220,26 @@ const PATTERNS: SASTPattern[] = [
 
   // A04 Insecure Design
   {
-    regex: /password\s*(?:=|:)\s*['"][^'"]{8,}['"]/gi,
+    // Lookahead requires at least one digit or symbol in the value — real passwords almost
+    // always have them; i18n labels like password: 'Contraseña' are pure words and won't match.
+    // isI18nFile filters out messages/locales directories as a second layer of defence.
+    // Lookahead requires at least one digit or password-symbol in the value.
+    // Quote chars (' ") and common punctuation (. , ; :) are intentionally excluded from the
+    // class — the closing quote would otherwise satisfy the lookahead for plain words like 'Contraseña'.
+    regex: /password\s*(?:=|:)\s*['"](?=[^'"]*[\d!@#$%^&*_\-+=])[^'"]{8,}['"]/gi,
     category: "A04_INSECURE_DESIGN",
     severity: "CRITICAL",
     title: "Hardcoded password",
     description: "A password is hardcoded in source code. Use environment variables and a secrets manager instead.",
-    fileFilter: isNotExampleFile,
+    fileFilter: (path) => isNotExampleFile(path) && !isI18nFile(path),
   },
   {
-    regex: /secret\s*(?:=|:)\s*['"][^'"]{8,}['"]/gi,
+    regex: /secret\s*(?:=|:)\s*['"](?=[^'"]*[\d!@#$%^&*_\-+=])[^'"]{8,}['"]/gi,
     category: "A04_INSECURE_DESIGN",
     severity: "CRITICAL",
     title: "Hardcoded secret",
     description: "A secret value is hardcoded in source code. Rotate it immediately and move it to environment variables.",
-    fileFilter: isNotExampleFile,
+    fileFilter: (path) => isNotExampleFile(path) && !isI18nFile(path),
   },
   {
     regex: /(?:api_?key|apikey|api_?secret)\s*(?:=|:)\s*['"][^'"]{8,}['"]/gi,
@@ -438,6 +438,8 @@ function matchesVersionRange(version: string, range: string | null): boolean {
 function shouldSkip(path: string): boolean {
   if (SKIP_DIRS.some((d) => path.includes(d))) return true;
   const filename = path.split("/").pop() ?? "";
+  // Minified bundles: .min.js, .min.mjs, etc. — vendor files that produce noisy false positives
+  if (/\.min\.[cm]?[jt]sx?$/.test(filename)) return true;
   return /\.(test|spec)\.[cm]?[jt]sx?$/.test(filename);
 }
 

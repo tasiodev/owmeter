@@ -88,7 +88,7 @@ export class PrismaScanRepository implements IScanRepository {
 
   async findPublicPerfectScoreScans(
     limit = 20
-  ): Promise<Array<{ url: string; completedAt: Date; scanType: string; projectType: string; score: number; repoUrl?: string; zipSource?: boolean }>> {
+  ): Promise<Array<{ url: string; completedAt: Date; scanType: string; projectType: string; score: number; repoUrl?: string; zipSource?: boolean; isForeignLang?: boolean }>> {
     const records = await prisma.scan.findMany({
       where: {
         status: "COMPLETED",
@@ -106,6 +106,7 @@ export class PrismaScanRepository implements IScanRepository {
         score: true,
         type: true,
         project: { select: { type: true, domain: true, repoUrl: true, repoVerified: true } },
+        findings: { where: { title: { startsWith: "Limited code analysis:" } }, select: { id: true }, take: 1 },
       },
       orderBy: { completedAt: "desc" },
       distinct: ["projectId"],
@@ -121,7 +122,8 @@ export class PrismaScanRepository implements IScanRepository {
             ? r.project.repoUrl
             : undefined;
         const zipSource = r.project.type === "WEBSITE" && r.type === "FULL" && !repoUrl;
-        return [{ url, completedAt: r.completedAt, scanType: r.type, projectType: r.project.type, score: r.score, repoUrl, zipSource: zipSource || undefined }];
+        const isForeignLang = r.type === "CODE" && r.findings.length > 0;
+        return [{ url, completedAt: r.completedAt, scanType: r.type, projectType: r.project.type, score: r.score, repoUrl, zipSource: zipSource || undefined, isForeignLang: isForeignLang || undefined }];
       });
   }
 

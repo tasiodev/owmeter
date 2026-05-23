@@ -7,8 +7,8 @@ import { Link } from "@/i18n/navigation";
 import { LanguageSwitcher } from "@/presentation/components/ui/LanguageSwitcher";
 import { Logo } from "@/presentation/components/ui/Logo";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
-import { OWASP_CATEGORIES, evaluationLevel } from "@/domain/value-objects/OWASPCategory";
-import type { OWASPCategoryId, ScanMode } from "@/domain/value-objects/OWASPCategory";
+import { OWASP_CATEGORIES, evaluationStats } from "@/domain/value-objects/OWASPCategory";
+import type { ScanMode } from "@/domain/value-objects/OWASPCategory";
 import { ShowcaseCarousel } from "@/presentation/components/home/ShowcaseCarousel";
 import type { CardData } from "@/presentation/components/home/ShowcaseCarousel";
 import { Footer } from "@/presentation/components/ui/Footer";
@@ -176,15 +176,6 @@ function OWASPGrid() {
 
 const TOTAL_CATEGORIES = Object.keys(OWASP_CATEGORIES).length;
 
-function evaluationStats(scanType: string) {
-  const ids = Object.keys(OWASP_CATEGORIES) as OWASPCategoryId[];
-  const levels = ids.map((id) => evaluationLevel(id, scanType as ScanMode));
-  return {
-    evaluated: levels.filter((l) => l !== "none").length,
-    partial: levels.filter((l) => l === "partial").length,
-  };
-}
-
 async function SecureShowcase({ locale }: { locale: string }) {
   const t = await getTranslations("home");
   const ts = await getTranslations("scan");
@@ -201,7 +192,7 @@ async function SecureShowcase({ locale }: { locale: string }) {
   const cards: CardData[] = unique.map((site) => {
     const isWebsite = site.projectType === "WEBSITE";
     const href = isWebsite ? `https://${site.url}` : site.url;
-    const { evaluated, partial } = evaluationStats(site.scanType);
+    const { evaluated, partial } = evaluationStats(site.scanType as ScanMode, site.isForeignLang);
     const categoriesLabel =
       ts("categoriesEvaluated", { evaluated, total: TOTAL_CATEGORIES }) +
       (partial > 0 ? ts("categoriesPartial", { partial }) : "");

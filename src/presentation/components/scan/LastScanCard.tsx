@@ -3,20 +3,11 @@ import { LocalDate } from "@/presentation/components/ui/LocalDate";
 import { Link } from "@/i18n/navigation";
 import type { Scan } from "@/domain/entities/Scan";
 import type { Severity } from "@/domain/value-objects/Severity";
-import { OWASP_CATEGORIES, evaluationLevel } from "@/domain/value-objects/OWASPCategory";
-import type { OWASPCategoryId, ScanMode } from "@/domain/value-objects/OWASPCategory";
+import { OWASP_CATEGORIES, evaluationStats } from "@/domain/value-objects/OWASPCategory";
+import type { ScanMode } from "@/domain/value-objects/OWASPCategory";
 import { ScanPoller } from "./ScanPoller";
 
 const TOTAL_CATEGORIES = Object.keys(OWASP_CATEGORIES).length;
-
-function evaluationStats(scanType: ScanMode) {
-  const ids = Object.keys(OWASP_CATEGORIES) as OWASPCategoryId[];
-  const levels = ids.map((id) => evaluationLevel(id, scanType));
-  return {
-    evaluated: levels.filter((l) => l !== "none").length,
-    partial: levels.filter((l) => l === "partial").length,
-  };
-}
 
 const SEVERITY_ORDER: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"];
 
@@ -87,6 +78,25 @@ function FailedRing() {
   );
 }
 
+function NARing() {
+  const size = 140;
+  const sw = 10;
+  const r = (size - sw) / 2;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1f2937" strokeWidth={sw} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f97316" strokeWidth={sw}
+          strokeLinecap="round" strokeDasharray={`${circ} 0`} />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-2xl font-bold text-orange-400">N/A</span>
+      </div>
+    </div>
+  );
+}
+
 function SpinningRing() {
   const size = 140;
   const sw = 10;
@@ -130,7 +140,9 @@ export async function LastScanCard({
 
   const isActive = scan.status === "RUNNING" || scan.status === "PENDING";
   const isFailed = scan.status === "FAILED" || scan.status === "INVALID";
-  const { evaluated, partial } = evaluationStats(scan.type as ScanMode);
+  const isForeignLang = scan.type === "CODE" &&
+    scan.findings.some((f) => f.title.startsWith("Limited code analysis:"));
+  const { evaluated, partial } = evaluationStats(scan.type as ScanMode, isForeignLang);
 
   const countBySeverity = SEVERITY_ORDER.reduce<Record<Severity, number>>(
     (acc, s) => ({ ...acc, [s]: scan.findings.filter((f) => f.severity === s).length }),
@@ -151,6 +163,8 @@ export async function LastScanCard({
           <SpinningRing />
         ) : isFailed ? (
           <FailedRing />
+        ) : isForeignLang ? (
+          <NARing />
         ) : scan.score !== null && scan.maxScore !== null ? (
           <ScoreRing score={scan.score} maxScore={scan.maxScore} />
         ) : (

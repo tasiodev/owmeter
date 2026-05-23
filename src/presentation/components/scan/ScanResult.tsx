@@ -5,7 +5,7 @@ import { useRouter } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import type { Scan, Finding } from "@/domain/entities/Scan";
 import type { Severity } from "@/domain/value-objects/Severity";
-import { OWASP_CATEGORIES, evaluationLevel, PASSIVE_UNEVALUATED, CODE_UNEVALUATED } from "@/domain/value-objects/OWASPCategory";
+import { OWASP_CATEGORIES, evaluationLevel, PASSIVE_UNEVALUATED, CODE_UNEVALUATED, FOREIGN_LANG_UNEVALUATED } from "@/domain/value-objects/OWASPCategory";
 import type { OWASPCategoryId, ScanMode } from "@/domain/value-objects/OWASPCategory";
 import { generateFindingPrompt, generateAllFindingsPrompt } from "./promptGenerators";
 
@@ -75,6 +75,25 @@ function ScoreCircle({ score, maxScore }: { score: number; maxScore: number }) {
           {score}
         </span>
         <span className="text-xs text-gray-500">/ {maxScore}</span>
+      </div>
+    </div>
+  );
+}
+
+function NACircle() {
+  const size = 112;
+  const strokeWidth = 8;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  return (
+    <div className="relative shrink-0 w-28 h-28">
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#1f2937" strokeWidth={strokeWidth} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#f97316" strokeWidth={strokeWidth}
+          strokeLinecap="round" strokeDasharray={`${circumference} 0`} />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-lg font-bold text-orange-400">N/A</span>
       </div>
     </div>
   );
@@ -385,15 +404,19 @@ function CategoryBreakdownSection({
 
   const STATE_ORDER = { warn: 0, ok: 1, partial: 2, na: 3 };
 
+  const isForeignLang = scan.type === "CODE" &&
+    scan.findings.some((f) => f.title.startsWith("Limited code analysis:"));
+
   const entries = (
     Object.entries(OWASP_CATEGORIES) as [OWASPCategoryId, (typeof OWASP_CATEGORIES)[OWASPCategoryId]][]
   )
     .map(([id, cat]) => {
       const level = evaluationLevel(id, scan.type as ScanMode);
+      const foreignUnevaluated = isForeignLang && FOREIGN_LANG_UNEVALUATED.has(id);
       const lost = lostByCategory[id] ?? 0;
-      const hasFindings = level !== "none" && lost > 0;
+      const hasFindings = level !== "none" && !foreignUnevaluated && lost > 0;
       const state: "ok" | "warn" | "partial" | "na" =
-        level === "none" ? "na" :
+        level === "none" || foreignUnevaluated ? "na" :
         hasFindings ? "warn" :
         level === "partial" ? "partial" :
         "ok";
@@ -418,6 +441,8 @@ function CategoryBreakdownSection({
             ? t("notEvaluatedDesc")
             : CODE_UNEVALUATED.has(id)
             ? t("notEvaluatedServerDesc")
+            : isForeignLang && FOREIGN_LANG_UNEVALUATED.has(id)
+            ? t("notEvaluatedForeignLang")
             : null;
 
           const isExpanded = expandedId === id;
@@ -555,6 +580,9 @@ export function ScanResult({ scan, domain, projectId, repoVerified }: { scan: Sc
     );
   }
 
+  const isForeignLang = scan.type === "CODE" &&
+    scan.findings.some((f) => f.title.startsWith("Limited code analysis:"));
+
   const statusBadge: Record<string, string> = {
     PENDING: "bg-gray-800 text-gray-400",
     RUNNING: "bg-blue-900/40 text-blue-400",
@@ -578,7 +606,9 @@ export function ScanResult({ scan, domain, projectId, repoVerified }: { scan: Sc
     <div className="space-y-6">
       <div className="rounded-xl border border-gray-800 overflow-hidden">
         <div className="p-6 flex items-center gap-6">
-          {scan.score !== null && scan.maxScore !== null ? (
+          {isForeignLang ? (
+            <NACircle />
+          ) : scan.score !== null && scan.maxScore !== null ? (
             <ScoreCircle score={scan.score} maxScore={scan.maxScore} />
           ) : (
             <div className="relative shrink-0 w-28 h-28">

@@ -1,19 +1,10 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import type { Scan } from "@/domain/entities/Scan";
-import { OWASP_CATEGORIES, evaluationLevel } from "@/domain/value-objects/OWASPCategory";
-import type { OWASPCategoryId, ScanMode } from "@/domain/value-objects/OWASPCategory";
+import { OWASP_CATEGORIES, evaluationStats } from "@/domain/value-objects/OWASPCategory";
+import type { ScanMode } from "@/domain/value-objects/OWASPCategory";
 
 const TOTAL_CATEGORIES = Object.keys(OWASP_CATEGORIES).length;
-
-function evaluationStats(scanType: ScanMode) {
-  const ids = Object.keys(OWASP_CATEGORIES) as OWASPCategoryId[];
-  const levels = ids.map((id) => evaluationLevel(id, scanType));
-  return {
-    evaluated: levels.filter((l) => l !== "none").length,
-    partial: levels.filter((l) => l === "partial").length,
-  };
-}
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-gray-800 text-gray-400",
@@ -91,7 +82,9 @@ export async function ScanHistoryList({
                     {new Date(scan.startedAt).toLocaleString()}
                   </p>
                   {scan.status === "COMPLETED" && (() => {
-                    const { evaluated, partial } = evaluationStats(scan.type as ScanMode);
+                    const isForeignLang = scan.type === "CODE" &&
+                      scan.findings.some((f) => f.title.startsWith("Limited code analysis:"));
+                    const { evaluated, partial } = evaluationStats(scan.type as ScanMode, isForeignLang);
                     return (
                       <p className="text-xs text-gray-600">
                         {t("categoriesEvaluated", { evaluated, total: TOTAL_CATEGORIES })}

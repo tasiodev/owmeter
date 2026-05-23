@@ -1,20 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/infrastructure/database/prisma";
-import { OWASP_CATEGORIES, evaluationLevel } from "@/domain/value-objects/OWASPCategory";
-import type { OWASPCategoryId, ScanMode } from "@/domain/value-objects/OWASPCategory";
+import { OWASP_CATEGORIES, evaluationStats } from "@/domain/value-objects/OWASPCategory";
+import type { ScanMode } from "@/domain/value-objects/OWASPCategory";
 
 export const dynamic = "force-dynamic";
 
 const TOTAL_CATEGORIES = Object.keys(OWASP_CATEGORIES).length;
-
-function evaluationStats(scanType: ScanMode) {
-  const ids = Object.keys(OWASP_CATEGORIES) as OWASPCategoryId[];
-  const levels = ids.map((id) => evaluationLevel(id, scanType));
-  return {
-    evaluated: levels.filter((l) => l !== "none").length,
-    partial: levels.filter((l) => l === "partial").length,
-  };
-}
 
 function scoreColor(score: number): string {
   if (score >= 80) return "#34d399";
@@ -45,18 +36,23 @@ export async function GET(
   const scan = await prisma.scan.findFirst({
     where: { projectId, status: "COMPLETED" },
     orderBy: { completedAt: "desc" },
-    select: { score: true, type: true, completedAt: true },
+    select: {
+      score: true, type: true, completedAt: true,
+      findings: { where: { title: { startsWith: "Limited code analysis:" } }, select: { id: true }, take: 1 },
+    },
   });
 
   const score = scan?.score ?? null;
+  const isForeignLang = scan?.type === "CODE" && (scan?.findings?.length ?? 0) > 0;
   const label = "OWMeter";
-  const value = score !== null ? `${score}/100` : (lang === "es" ? "pendiente" : "pending");
-  const valueColor = score !== null ? scoreColor(score) : "#6b7280";
+  const value = isForeignLang ? "N/A" : score !== null ? `${score}/100` : (lang === "es" ? "pendiente" : "pending");
+  const valueColor = isForeignLang ? "#f97316" : score !== null ? scoreColor(score) : "#6b7280";
 
   // Row 2: categories evaluated + date
   let row2 = "";
   if (scan?.completedAt) {
-    const { evaluated, partial } = evaluationStats(scan.type as ScanMode);
+    const isForeignLang = scan.type === "CODE" && scan.findings.length > 0;
+    const { evaluated, partial } = evaluationStats(scan.type as ScanMode, isForeignLang);
     const catsText = lang === "es"
       ? `${evaluated}/${TOTAL_CATEGORIES} categorías evaluadas`
       : `${evaluated}/${TOTAL_CATEGORIES} categories evaluated`;

@@ -168,6 +168,7 @@
     "notEvaluatedLabel": "Not evaluated",
     "notEvaluatedDesc": "Requires source code access",
     "notEvaluatedServerDesc": "Requires a published/live domain",
+    "notEvaluatedForeignLang": "Code analysis requires JavaScript/TypeScript source",
     "codeNotCheckedBanner": "Passive scan — code-only categories were not evaluated.",
     "scanTypePASSIVEBadge": "Passive",
     "scanTypeFULLBadge": "Full",

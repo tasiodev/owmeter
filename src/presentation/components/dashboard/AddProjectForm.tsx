@@ -45,11 +45,8 @@ export function AddProjectForm({ children }: { children?: React.ReactNode }) {
         return;
       }
 
-      setName("");
-      setDomain("");
-      setIsPublic(true);
-      setStep("type");
-      router.refresh();
+      const { id } = await res.json();
+      router.push(`/dashboard/projects/${id}`);
     } catch {
       setError(t("networkError"));
     } finally {

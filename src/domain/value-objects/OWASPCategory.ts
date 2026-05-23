@@ -99,6 +99,19 @@ export const CODE_PARTIAL: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryI
   "A07_AUTH_FAILURES",          // code: auth logic, password hashing; server: cookie flags (HttpOnly, Secure, SameSite)
 ]);
 
+// Categories whose checks are JS/TS-specific. For foreign-language projects (e.g. .NET, Java)
+// these are skipped entirely — only A04 (hardcoded secrets) runs cross-language.
+export const FOREIGN_LANG_UNEVALUATED: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
+  "A01_BROKEN_ACCESS_CONTROL",
+  "A02_CRYPTOGRAPHIC_FAILURES",
+  "A03_INJECTION",
+  "A06_VULNERABLE_COMPONENTS",
+  "A07_AUTH_FAILURES",
+  "A08_DATA_INTEGRITY_FAILURES",
+  "A09_LOGGING_FAILURES",
+  "A10_SSRF",
+]);
+
 export type EvaluationLevel = "full" | "partial" | "none";
 
 export function evaluationLevel(category: OWASPCategoryId, mode: ScanMode): EvaluationLevel {
@@ -118,4 +131,21 @@ export function evaluationLevel(category: OWASPCategoryId, mode: ScanMode): Eval
 // partial counts as evaluated for backwards-compat callers
 export function isEvaluated(category: OWASPCategoryId, mode: ScanMode): boolean {
   return evaluationLevel(category, mode) !== "none";
+}
+
+export function evaluationStats(
+  scanType: ScanMode,
+  isForeignLang = false
+): { evaluated: number; partial: number } {
+  const ids = Object.keys(OWASP_CATEGORIES) as OWASPCategoryId[];
+  return {
+    evaluated: ids.filter((id) => {
+      const level = evaluationLevel(id, scanType);
+      return level !== "none" && !(isForeignLang && FOREIGN_LANG_UNEVALUATED.has(id));
+    }).length,
+    partial: ids.filter((id) => {
+      const level = evaluationLevel(id, scanType);
+      return level === "partial" && !(isForeignLang && FOREIGN_LANG_UNEVALUATED.has(id));
+    }).length,
+  };
 }
