@@ -49,7 +49,7 @@ export function ApiKeyCard({
     }
   }
 
-  const ghActionsExample = `name: OWASP Scan
+  const ghActionsExample = `name: OWMeter Scan
 on:
   push:
     branches: [main]
@@ -58,7 +58,7 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Owmeter scan
+      - name: Trigger OWMeter scan
         run: |
           curl -s -X POST \\
             -H "Authorization: Bearer \${{ secrets.OWMETER_API_KEY }}" \\
