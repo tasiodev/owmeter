@@ -1,4 +1,5 @@
 import { getTranslations, getLocale } from "next-intl/server";
+import { LocalDate } from "@/presentation/components/ui/LocalDate";
 import { Link } from "@/i18n/navigation";
 import type { Scan } from "@/domain/entities/Scan";
 import type { Severity } from "@/domain/value-objects/Severity";
@@ -169,7 +170,7 @@ export async function LastScanCard({
               {t("lastScanTitle")}
             </p>
             <p className="text-sm text-gray-400 mt-0.5">
-              {new Date(scan.startedAt).toLocaleString(locale, { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              <LocalDate iso={scan.startedAt.toISOString()} locale={locale} />
             </p>
           </div>
 
