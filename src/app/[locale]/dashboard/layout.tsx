@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { auth, signOut } from "@/infrastructure/auth/auth";
+import { isAdmin } from "@/infrastructure/auth/isAdmin";
 import { LanguageSwitcher } from "@/presentation/components/ui/LanguageSwitcher";
 import { Logo } from "@/presentation/components/ui/Logo";
 import { BetaBadge } from "@/presentation/components/ui/BetaBadge";
@@ -38,6 +39,14 @@ export default async function DashboardLayout({
         </div>
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <LanguageSwitcher />
+          {isAdmin(session.user.email) && (
+            <Link
+              href="/dashboard/admin/false-positives"
+              className="text-xs px-2.5 py-1 rounded-lg border border-amber-800 text-amber-500 hover:border-amber-600 hover:text-amber-300 transition-colors shrink-0"
+            >
+              Admin
+            </Link>
+          )}
           <span className="text-sm text-gray-400 hidden sm:block truncate max-w-[180px]">
             {session.user.email}
           </span>

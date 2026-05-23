@@ -67,6 +67,7 @@ function makeScanRepo(scan: Scan = makeScan()): IScanRepository {
     invalidate: vi.fn(),
     complete: vi.fn(),
     updateRanking: vi.fn(),
+    updateScore: vi.fn(),
   };
 }
 

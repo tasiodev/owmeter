@@ -93,6 +93,9 @@ Open `.env` and fill in the values:
 | `ZAP_URL` | ZAP daemon URL — `http://localhost:8050` by default |
 | `NEXT_PUBLIC_APP_URL` | Public base URL of the app (used in verification tokens and OAuth callbacks) |
 | `GITHUB_TOKEN` | *(Optional)* GitHub Personal Access Token for the Advisory API. Without it the API still works but is rate-limited to 60 requests/hour — enough for occasional use but easily exhausted during development. With a token the limit rises to 5 000 req/hour. No scopes are needed; create one at [github.com/settings/tokens](https://github.com/settings/tokens). |
+| `ADMIN_EMAILS` | *(Optional)* Comma-separated list of email addresses that have admin access (e.g. `alice@example.com,bob@example.com`). Admins can review false positive reports at `/dashboard/admin/false-positives`. If omitted, the admin panel is inaccessible to everyone. |
+| `RESEND_API_KEY` | *(Optional)* API key for [Resend](https://resend.com) (free tier: 3 000 emails/month). When set, users receive an email when their false positive report is approved or rejected, and admins receive an email when a new report is submitted. If omitted, the app works normally — emails are simply not sent. |
+| `EMAIL_FROM` | *(Optional)* Sender address used in outgoing emails, e.g. `OWMeter <no-reply@yourdomain.com>`. Defaults to `OWMeter <onboarding@resend.dev>`, which works on Resend's free tier but only delivers to the address registered on your Resend account. Set a verified domain address for production. |
 
 **Creating OAuth apps**
 
@@ -173,6 +176,30 @@ The app is a standard Next.js application. It requires:
 4. All environment variables from `.env.example` set in the production environment
 
 Set `NEXT_PUBLIC_APP_URL` and the OAuth callback URLs to your production domain before deploying.
+
+## False positive management
+
+Static analysis produces occasional false positives — findings that match a dangerous pattern but are safe in context (e.g. `password: 'Contraseña'` is a UI translation label, not a hardcoded credential).
+
+Users can report a finding as a false positive directly from the scan results page. Each report includes a free-text explanation and is routed to an admin for review.
+
+**User flow**
+
+1. Open a scan result and click **"False positive?"** on any finding.
+2. Fill in the reason (minimum 10 characters) and submit.
+3. The report appears in the **False Positives** section of the project page with its current status (`Pending`, `Approved`, or `Rejected`).
+
+**Admin flow**
+
+1. Set `ADMIN_EMAILS` in the environment to grant admin access to one or more accounts.
+2. Navigate to `/dashboard/admin/false-positives` to see all pending reports across all projects.
+3. Review the evidence snippet and the user's reason, add an optional note, then approve or reject.
+
+**Effect of approval**
+
+Once a report is approved, that specific finding is suppressed in all future scan results for the project — it is hidden from the findings list and a banner shows how many findings are suppressed. The stored score is not retroactively adjusted; only the display changes. The suppression key is `category + title + file path`, so it survives new scans as long as the finding recurs in the same file with the same title.
+
+---
 
 ## Roadmap
 

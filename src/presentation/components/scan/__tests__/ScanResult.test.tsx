@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ScanResult } from "../ScanResult";
 import type { Scan } from "@/domain/entities/Scan";
 
@@ -120,5 +121,99 @@ describe("ScanResult", () => {
     render(<ScanResult scan={makeScan({ findings: [] })} />);
     // The category breakdown list is always present; the findings list should not be
     expect(screen.getAllByRole("list")).toHaveLength(1);
+  });
+});
+
+const codeFinding = {
+  id: "f1",
+  scanId: "scan-1",
+  category: "A03_INJECTION" as const,
+  severity: "HIGH" as const,
+  title: "SQL Injection via template literal",
+  description: "Template literal used in query.",
+  evidence: "src/db.ts:42 — query = `SELECT * FROM ${table}`",
+  pointsLost: 4,
+};
+
+describe("ScanResult — false positive status on findings", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("shows the 'Report FP' button when no FP status is set", () => {
+    const scan = makeScan({ findings: [codeFinding] });
+    render(<ScanResult scan={scan} projectId="proj-1" />);
+    expect(screen.getByRole("button", { name: /scan\.reportFP/i })).toBeInTheDocument();
+  });
+
+  it("shows 'already reported' badge and hides button when fpStatus is PENDING", () => {
+    const scan = makeScan({ findings: [codeFinding] });
+    const reportedFpKeys = new Map([
+      ["A03_INJECTION:SQL Injection via template literal:src/db.ts", "PENDING"],
+    ]);
+    render(<ScanResult scan={scan} projectId="proj-1" reportedFpKeys={reportedFpKeys} />);
+
+    expect(screen.getByText("scan.fpModal.alreadyReported")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /scan\.reportFP/i })).not.toBeInTheDocument();
+  });
+
+  it("shows rejected badge and re-enables the Report FP button when fpStatus is REJECTED", () => {
+    const scan = makeScan({ findings: [codeFinding] });
+    const reportedFpKeys = new Map([
+      ["A03_INJECTION:SQL Injection via template literal:src/db.ts", "REJECTED"],
+    ]);
+    render(<ScanResult scan={scan} projectId="proj-1" reportedFpKeys={reportedFpKeys} />);
+
+    expect(screen.getByText("scan.rejectedFpBadge")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /scan\.reportFP/i })).toBeInTheDocument();
+  });
+});
+
+describe("ScanResult — suppressed findings (approved FPs)", () => {
+  it("does not show the suppressed banner when there are no approved FPs", () => {
+    const scan = makeScan({ findings: [codeFinding] });
+    render(<ScanResult scan={scan} projectId="proj-1" />);
+    expect(screen.queryByText(/scan\.suppressedBanner/)).not.toBeInTheDocument();
+  });
+
+  it("shows the suppressed banner when an approved FP key matches a finding", () => {
+    const scan = makeScan({ findings: [codeFinding] });
+    const approvedFpKeys = new Set(["A03_INJECTION:SQL Injection via template literal:src/db.ts"]);
+    render(<ScanResult scan={scan} projectId="proj-1" approvedFpKeys={approvedFpKeys} />);
+    expect(screen.getByText(/scan\.suppressedBanner/)).toBeInTheDocument();
+  });
+
+  it("hides suppressed findings by default and shows them after clicking Show", async () => {
+    const scan = makeScan({ findings: [codeFinding] });
+    const approvedFpKeys = new Set(["A03_INJECTION:SQL Injection via template literal:src/db.ts"]);
+    render(<ScanResult scan={scan} projectId="proj-1" approvedFpKeys={approvedFpKeys} />);
+
+    // Finding should not appear in the active list
+    expect(screen.queryByText("SQL Injection via template literal")).not.toBeInTheDocument();
+
+    // Click "Show"
+    await userEvent.click(screen.getByRole("button", { name: /scan\.suppressedShow/i }));
+
+    expect(screen.getByText("SQL Injection via template literal")).toBeInTheDocument();
+  });
+
+  it("shows the approved FP badge on a suppressed finding", async () => {
+    const scan = makeScan({ findings: [codeFinding] });
+    const approvedFpKeys = new Set(["A03_INJECTION:SQL Injection via template literal:src/db.ts"]);
+    render(<ScanResult scan={scan} projectId="proj-1" approvedFpKeys={approvedFpKeys} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /scan\.suppressedShow/i }));
+
+    expect(screen.getByText("scan.approvedFpBadge")).toBeInTheDocument();
+  });
+
+  it("hides suppressed findings again after clicking Hide", async () => {
+    const scan = makeScan({ findings: [codeFinding] });
+    const approvedFpKeys = new Set(["A03_INJECTION:SQL Injection via template literal:src/db.ts"]);
+    render(<ScanResult scan={scan} projectId="proj-1" approvedFpKeys={approvedFpKeys} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /scan\.suppressedShow/i }));
+    expect(screen.getByText("SQL Injection via template literal")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /scan\.suppressedHide/i }));
+    expect(screen.queryByText("SQL Injection via template literal")).not.toBeInTheDocument();
   });
 });

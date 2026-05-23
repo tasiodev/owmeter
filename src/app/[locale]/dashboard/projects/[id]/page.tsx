@@ -11,8 +11,10 @@ import { DeleteProjectButton } from "@/presentation/components/dashboard/DeleteP
 import { PrivacyToggle } from "@/presentation/components/dashboard/PrivacyToggle";
 import { ScanHistoryList } from "@/presentation/components/scan/ScanHistoryList";
 import { LastScanCard } from "@/presentation/components/scan/LastScanCard";
+import { FalsePositivesList } from "@/presentation/components/scan/FalsePositivesList";
 import { ApiKeyCard } from "@/presentation/components/dashboard/ApiKeyCard";
 import { BadgeCard } from "@/presentation/components/dashboard/BadgeCard";
+import { PrismaFalsePositiveReportRepository } from "@/infrastructure/database/repositories/PrismaFalsePositiveReportRepository";
 
 export default async function ProjectDetailPage({
   params,
@@ -29,14 +31,19 @@ export default async function ProjectDetailPage({
   const ta = await getTranslations("apiKey");
   const tsh = await getTranslations("scan");
   const tpr = await getTranslations("privacy");
+  const tfp = await getTranslations("scan.falsePositives");
 
   const projectRepo = new PrismaProjectRepository();
   const scanRepo = new PrismaScanRepository();
+  const fpRepo = new PrismaFalsePositiveReportRepository();
 
   const project = await projectRepo.findById(id);
   if (!project || project.userId !== session.user.id) notFound();
 
-  const scans = await scanRepo.findByProjectId(id);
+  const [scans, fpReports] = await Promise.all([
+    scanRepo.findByProjectId(id),
+    fpRepo.findByProject(id),
+  ]);
 
   const domainMethods = ["DNS_TXT", "META_TAG", "FILE"] as const;
   const methodLabels: Record<(typeof domainMethods)[number], string> = {
@@ -61,6 +68,7 @@ export default async function ProjectDetailPage({
     { href: "#badge", label: ta("badgeTitle") },
     { href: "#privacy", label: tpr("sectionTitle") },
     scans.length > 0 && { href: "#history", label: tsh("history.title") },
+    fpReports.length > 0 && { href: "#false-positives", label: tfp("sectionTitle") },
   ].filter(Boolean) as { href: string; label: string }[];
 
   return (
@@ -249,6 +257,14 @@ export default async function ProjectDetailPage({
           {scans.length > 0 && (
             <section id="history">
               <ScanHistoryList scans={scans} projectId={id} />
+            </section>
+          )}
+
+          {/* False positives */}
+          {fpReports.length > 0 && (
+            <section id="false-positives" className="rounded-xl border border-gray-800 p-4 space-y-4">
+              <h2 className="text-sm font-semibold">{tfp("sectionTitle")}</h2>
+              <FalsePositivesList reports={fpReports} />
             </section>
           )}
 

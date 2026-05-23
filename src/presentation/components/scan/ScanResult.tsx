@@ -8,6 +8,7 @@ import type { Severity } from "@/domain/value-objects/Severity";
 import { OWASP_CATEGORIES, evaluationLevel, PASSIVE_UNEVALUATED, CODE_UNEVALUATED, FOREIGN_LANG_UNEVALUATED } from "@/domain/value-objects/OWASPCategory";
 import type { OWASPCategoryId, ScanMode } from "@/domain/value-objects/OWASPCategory";
 import { generateFindingPrompt, generateAllFindingsPrompt } from "./promptGenerators";
+import { fpKey, extractFilePath } from "@/domain/entities/FalsePositiveReport";
 
 const SEVERITY_ORDER: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"];
 
@@ -235,30 +236,113 @@ function ScanTypeBadge({
   );
 }
 
-const GITHUB_ISSUES_URL = `${process.env.NEXT_PUBLIC_GITHUB_URL ?? ""}/issues`;
 
-function FalsePositiveHint({ t }: { t: ReturnType<typeof useTranslations<"scan">> }) {
+function FalsePositiveModal({
+  finding,
+  projectId,
+  onClose,
+  onSuccess,
+  t,
+}: {
+  finding: Finding;
+  projectId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+  t: ReturnType<typeof useTranslations<"scan">>;
+}) {
+  const [reason, setReason] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "duplicate">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: { preventDefault(): void }) {
+    e.preventDefault();
+    if (reason.trim().length < 10) {
+      setError(t("fpModal.errorMinLength"));
+      return;
+    }
+    setError(null);
+    setStatus("submitting");
+    try {
+      const res = await fetch(`/api/projects/${projectId}/false-positives`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: finding.category,
+          title: finding.title,
+          evidence: finding.evidence ?? "",
+          reason: reason.trim(),
+        }),
+      });
+      if (res.status === 422) {
+        const body = await res.json() as { error?: string };
+        if (typeof body.error === "string" && body.error.includes("already exists")) {
+          setStatus("duplicate");
+          return;
+        }
+      }
+      if (!res.ok) throw new Error("request failed");
+      setStatus("success");
+      onSuccess();
+    } catch {
+      setError(t("fpModal.errorMinLength"));
+      setStatus("idle");
+    }
+  }
+
   return (
-    <div className="flex gap-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3">
-      <svg className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="12" />
-        <line x1="12" y1="16" x2="12.01" y2="16" />
-      </svg>
-      <p className="text-xs text-gray-500 leading-relaxed">
-        {t("falsePositiveHint")}{" "}
-        <a
-          href={GITHUB_ISSUES_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-gray-400 underline underline-offset-2 hover:text-gray-200 transition-colors"
-        >
-          {t("falsePositiveLink")} →
-        </a>
-      </p>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-lg rounded-xl border border-gray-700 bg-gray-950 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+          <span className="font-semibold text-sm">{t("fpModal.title")}</span>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-200 transition-colors text-lg leading-none" aria-label={t("fpModal.close")}>×</button>
+        </div>
+
+        {status === "success" || status === "duplicate" ? (
+          <div className="px-5 py-8 text-center space-y-2">
+            <p className="font-medium text-emerald-400">
+              {status === "success" ? t("fpModal.successTitle") : t("fpModal.alreadyReported")}
+            </p>
+            <p className="text-sm text-gray-400">
+              {status === "success" ? t("fpModal.successDesc") : t("fpModal.alreadyReportedDesc")}
+            </p>
+            <button onClick={onClose} className="mt-4 text-sm px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors">{t("fpModal.close")}</button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            <p className="text-sm text-gray-400">{t("fpModal.subtitle")}</p>
+            <div className="space-y-1.5">
+              <label className="text-xs text-gray-400">{t("fpModal.reasonLabel")}</label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder={t("fpModal.reasonPlaceholder")}
+                rows={4}
+                className="w-full rounded-lg bg-gray-900 border border-gray-700 focus:border-gray-500 outline-none px-3 py-2 text-sm text-gray-200 placeholder-gray-600 resize-none"
+              />
+              {error && <p className="text-xs text-red-400">{error}</p>}
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={status === "submitting"}
+                className="text-sm px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 disabled:opacity-50 transition-colors font-medium"
+              >
+                {status === "submitting" ? t("fpModal.submitting") : t("fpModal.submit")}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
+
 
 const CVE_RE = /CVE-\d{4}-\d+/g;
 
@@ -317,12 +401,39 @@ function EvidenceBlock({ evidence }: { evidence: string }) {
   );
 }
 
-function FindingCard({ finding, t }: { finding: Finding; t: ReturnType<typeof useTranslations<"scan">> }) {
+function FindingCard({
+  finding,
+  projectId,
+  fpStatus,
+  isSuppressed,
+  t,
+}: {
+  finding: Finding;
+  projectId?: string;
+  fpStatus?: string;
+  isSuppressed?: boolean;
+  t: ReturnType<typeof useTranslations<"scan">>;
+}) {
+  const [fpOpen, setFpOpen] = useState(false);
+  const [reported, setReported] = useState(!!fpStatus && fpStatus !== "REJECTED");
+
   return (
-    <li id={`finding-${finding.id}`} className="rounded-xl border border-gray-800 p-4 space-y-2">
+    <li id={`finding-${finding.id}`} className={`rounded-xl border p-4 space-y-2 ${isSuppressed ? "border-emerald-900/40 bg-emerald-950/10 opacity-70" : "border-gray-800"}`}>
       <div className="flex items-start gap-3 justify-between">
         <div className="space-y-1">
-          <span className="font-medium text-sm">{finding.title}</span>
+          <div className="flex items-center flex-wrap gap-2">
+            <span className="font-medium text-sm">{finding.title}</span>
+            {isSuppressed && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-900/40 text-emerald-400">
+                {t("approvedFpBadge")}
+              </span>
+            )}
+            {fpStatus === "REJECTED" && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/40 text-red-400">
+                {t("rejectedFpBadge")}
+              </span>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2">
             <span className={`text-xs px-2 py-0.5 rounded-full ${SEVERITY_COLORS[finding.severity]}`}>
               {finding.severity}
@@ -348,10 +459,33 @@ function FindingCard({ finding, t }: { finding: Finding; t: ReturnType<typeof us
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <PromptIAButton getText={() => generateFindingPrompt(finding)} t={t} />
+          {projectId && (
+            reported ? (
+              <span className="text-xs px-2.5 py-1 rounded-lg border border-amber-800 text-amber-600">
+                {t("fpModal.alreadyReported")}
+              </span>
+            ) : (
+              <button
+                onClick={() => setFpOpen(true)}
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-gray-700 text-gray-500 hover:border-amber-600 hover:text-amber-400 transition-colors"
+              >
+                {t("reportFP")}
+              </button>
+            )
+          )}
         </div>
       </div>
       {finding.description && <DescriptionWithCveLinks text={finding.description} />}
       {finding.evidence && <EvidenceBlock evidence={finding.evidence} />}
+      {fpOpen && projectId && (
+        <FalsePositiveModal
+          finding={finding}
+          projectId={projectId}
+          onClose={() => setFpOpen(false)}
+          onSuccess={() => { setFpOpen(false); setReported(true); }}
+          t={t}
+        />
+      )}
     </li>
   );
 }
@@ -526,11 +660,28 @@ function CategoryBreakdownSection({
   );
 }
 
-export function ScanResult({ scan, domain, projectId, repoVerified }: { scan: Scan; domain?: string; projectId?: string; repoVerified?: boolean }) {
+export function ScanResult({
+  scan,
+  domain,
+  projectId,
+  repoVerified,
+  approvedFpKeys,
+  reportedFpKeys,
+}: {
+  scan: Scan;
+  domain?: string;
+  projectId?: string;
+  repoVerified?: boolean;
+  /** Set of `category:title:filePath` keys for approved false positives — these findings are hidden */
+  approvedFpKeys?: Set<string>;
+  /** Map of `category:title:filePath` → status for all user-reported FPs — shown on each FindingCard */
+  reportedFpKeys?: Map<string, string>;
+}) {
   const t = useTranslations("scan");
   const locale = useLocale();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<Severity | null>(null);
+  const [showSuppressed, setShowSuppressed] = useState(false);
 
   useEffect(() => {
     if (scan.status !== "PENDING" && scan.status !== "RUNNING") return;
@@ -600,7 +751,17 @@ export function ScanResult({ scan, domain, projectId, repoVerified }: { scan: Sc
     {} as Record<Severity, number>
   );
 
-  const visible = activeFilter ? sorted.filter((f) => f.severity === activeFilter) : sorted;
+  const getFpKey = (f: Finding) => fpKey(f.category, f.title, extractFilePath(f.evidence));
+
+  const unsuppressed = approvedFpKeys
+    ? sorted.filter((f) => !approvedFpKeys.has(getFpKey(f)))
+    : sorted;
+  const suppressedFindings = approvedFpKeys
+    ? sorted.filter((f) => approvedFpKeys.has(getFpKey(f)))
+    : [];
+  const suppressedCount = suppressedFindings.length;
+
+  const visible = activeFilter ? unsuppressed.filter((f) => f.severity === activeFilter) : unsuppressed;
 
   return (
     <div className="space-y-6">
@@ -609,7 +770,7 @@ export function ScanResult({ scan, domain, projectId, repoVerified }: { scan: Sc
           {isForeignLang ? (
             <NACircle />
           ) : scan.score !== null && scan.maxScore !== null ? (
-            <ScoreCircle score={scan.score} maxScore={scan.maxScore} />
+            <ScoreCircle score={scan.score!} maxScore={scan.maxScore} />
           ) : (
             <div className="relative shrink-0 w-28 h-28">
               <svg width={112} height={112} className="-rotate-90">
@@ -685,12 +846,25 @@ export function ScanResult({ scan, domain, projectId, repoVerified }: { scan: Sc
 
       {scan.findings.length > 0 && (
         <div className="space-y-4">
+          {suppressedCount > 0 && projectId && (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-900/40 bg-amber-950/20 px-4 py-2.5 text-xs text-amber-500">
+              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>{t("suppressedBanner", { count: suppressedCount })}</span>
+              <button
+                onClick={() => setShowSuppressed((v) => !v)}
+                className="underline underline-offset-2 hover:text-amber-300 transition-colors"
+              >
+                {showSuppressed ? t("suppressedHide") : t("suppressedShow")}
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-lg font-semibold">
-              {t("findings", { count: scan.findings.length })}
+              {t("findings", { count: unsuppressed.length })}
             </h2>
             <div className="flex items-center gap-3">
-              <PromptIAButton getText={() => generateAllFindingsPrompt(scan.findings, domain)} t={t} />
+              <PromptIAButton getText={() => generateAllFindingsPrompt(unsuppressed, domain)} t={t} />
               {activeFilter && (
                 <button
                   onClick={() => setActiveFilter(null)}
@@ -702,7 +876,7 @@ export function ScanResult({ scan, domain, projectId, repoVerified }: { scan: Sc
             </div>
           </div>
 
-          {/* Severity summary + filter */}
+          {/* Severity summary + filter (based on unsuppressed findings) */}
           <div className="flex flex-wrap gap-2">
             {SEVERITY_ORDER.filter((s) => countBySeverity[s] > 0).map((s) => (
               <button
@@ -721,11 +895,31 @@ export function ScanResult({ scan, domain, projectId, repoVerified }: { scan: Sc
 
           <ul className="space-y-3">
             {visible.map((f) => (
-              <FindingCard key={f.id} finding={f} t={t} />
+              <FindingCard
+                key={f.id}
+                finding={f}
+                projectId={projectId}
+                fpStatus={reportedFpKeys?.get(getFpKey(f))}
+                t={t}
+              />
             ))}
           </ul>
 
-          <FalsePositiveHint t={t} />
+          {showSuppressed && suppressedFindings.length > 0 && (
+            <ul className="space-y-3">
+              {suppressedFindings.map((f) => (
+                <FindingCard
+                  key={f.id}
+                  finding={f}
+                  projectId={projectId}
+                  fpStatus={reportedFpKeys?.get(getFpKey(f))}
+                  isSuppressed
+                  t={t}
+                />
+              ))}
+            </ul>
+          )}
+
         </div>
       )}
     </div>

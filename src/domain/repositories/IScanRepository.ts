@@ -19,4 +19,5 @@ export interface IScanRepository {
   invalidate(id: string, errorMessage: string): Promise<void>;
   complete(id: string, score: number, maxScore: number, findings: CreateFindingData[]): Promise<Scan>;
   updateRanking(id: string, inRanking: boolean): Promise<void>;
+  updateScore(id: string, score: number): Promise<void>;
 }

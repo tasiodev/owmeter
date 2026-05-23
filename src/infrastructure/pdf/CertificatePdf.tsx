@@ -22,6 +22,8 @@ const STRINGS = {
     findingsDetail: "FINDINGS DETAIL",
     noFindings: "No issues detected.",
     evidence: "Evidence",
+    suppressedNote: (n: number) =>
+      `${n} ${n === 1 ? "finding" : "findings"} suppressed as approved ${n === 1 ? "false positive" : "false positives"} — score adjusted.`,
   },
   es: {
     title: "Informe de Seguridad",
@@ -40,6 +42,8 @@ const STRINGS = {
     findingsDetail: "DETALLE DE PROBLEMAS",
     noFindings: "No se detectaron problemas.",
     evidence: "Evidencia",
+    suppressedNote: (n: number) =>
+      `${n} ${n === 1 ? "hallazgo suprimido" : "hallazgos suprimidos"} como ${n === 1 ? "falso positivo aprobado" : "falsos positivos aprobados"} — puntuación ajustada.`,
   },
 } as const;
 
@@ -393,9 +397,10 @@ interface CertificatePdfProps {
     completedAt: Date | null;
   };
   locale: "en" | "es";
+  suppressedCount?: number;
 }
 
-export function CertificatePdf({ project, scan, locale }: CertificatePdfProps) {
+export function CertificatePdf({ project, scan, locale, suppressedCount = 0 }: CertificatePdfProps) {
   const isUnverifiedSource =
     (scan.type === "FULL" || scan.type === "CODE") && !project.repoVerified;
   const s = STRINGS[locale];
@@ -458,6 +463,13 @@ export function CertificatePdf({ project, scan, locale }: CertificatePdfProps) {
         <View style={styles.scoreSection}>
           <ScoreArc score={score} maxScore={maxScore} />
           <Text style={styles.scoreLabel}>{s.scoreLabel}</Text>
+          {suppressedCount > 0 && (
+            <View style={{ marginTop: 8, backgroundColor: "#f0fdf4", borderRadius: 4, paddingHorizontal: 10, paddingVertical: 5 }}>
+              <Text style={{ fontSize: 8, color: "#15803d", textAlign: "center" }}>
+                {s.suppressedNote(suppressedCount)}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View>

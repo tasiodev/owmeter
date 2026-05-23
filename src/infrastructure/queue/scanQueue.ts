@@ -9,7 +9,10 @@ import { fetchRepoAsZip } from "@/infrastructure/scanning/RepoFetcher";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
 import { createLogger } from "@/infrastructure/logger";
 import type { FullZipScanJobData } from "@/application/use-cases/CreateFullScanFromZip";
+import { FOREIGN_LANG_UNEVALUATED } from "@/domain/value-objects/OWASPCategory";
 import type { OWASPCategoryId } from "@/domain/value-objects/OWASPCategory";
+import { prisma } from "@/infrastructure/database/prisma";
+import { fpKey, extractFilePath } from "@/domain/entities/FalsePositiveReport";
 
 const logger = createLogger("ScanWorker");
 
@@ -180,7 +183,24 @@ export function createScanWorker(): Worker<ScanJobData> {
         }
 
         const { score, maxScore, findings: scoredFindings } = calculateScore(allRawFindings, scanMode, sastUnevaluated);
-        await repo.complete(scanId, score, maxScore, scoredFindings);
+        const completedScan = await repo.complete(scanId, score, maxScore, scoredFindings);
+
+        // Apply any already-approved false positives to the stored score
+        const approvedFps = await prisma.falsePositiveReport.findMany({
+          where: { projectId: completedScan.projectId, status: "APPROVED" },
+        });
+        if (approvedFps.length > 0) {
+          const approvedKeys = new Set(
+            approvedFps.map((r) => fpKey(r.category as Parameters<typeof fpKey>[0], r.title, r.filePath))
+          );
+          const isForeignLang = scoredFindings.some((f) => f.title.startsWith("Limited code analysis:"));
+          const additionalUnevaluated = isForeignLang ? FOREIGN_LANG_UNEVALUATED : new Set<OWASPCategoryId>();
+          const nonFpFindings = scoredFindings.filter(
+            (f) => !approvedKeys.has(fpKey(f.category, f.title, extractFilePath(f.evidence ?? "")))
+          );
+          const { score: adjustedScore } = calculateScore(nonFpFindings, scanMode, additionalUnevaluated);
+          await repo.updateScore(completedScan.id, adjustedScore);
+        }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
         await repo.updateStatus(scanId, "FAILED", errorMessage);

@@ -4,7 +4,9 @@ import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { auth } from "@/infrastructure/auth/auth";
 import { PrismaProjectRepository } from "@/infrastructure/database/repositories/PrismaProjectRepository";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
+import { PrismaFalsePositiveReportRepository } from "@/infrastructure/database/repositories/PrismaFalsePositiveReportRepository";
 import { CertificatePdf } from "@/infrastructure/pdf/CertificatePdf";
+import { fpKey, extractFilePath } from "@/domain/entities/FalsePositiveReport";
 
 export const dynamic = "force-dynamic";
 
@@ -33,9 +35,16 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const fpRepo = new PrismaFalsePositiveReportRepository();
+  const approvedFps = await fpRepo.findApprovedByProject(id);
+  const approvedKeys = new Set(approvedFps.map((r) => fpKey(r.category, r.title, r.filePath)));
+  const suppressedCount = scan.findings.filter((f) =>
+    approvedKeys.has(fpKey(f.category, f.title, extractFilePath(f.evidence ?? "")))
+  ).length;
+
   const element = React.createElement(
     CertificatePdf,
-    { project, scan, locale }
+    { project, scan, locale, suppressedCount }
   ) as React.ReactElement<DocumentProps>;
   const buffer = await renderToBuffer(element);
 

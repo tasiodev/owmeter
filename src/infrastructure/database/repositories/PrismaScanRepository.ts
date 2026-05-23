@@ -188,4 +188,8 @@ export class PrismaScanRepository implements IScanRepository {
   async updateRanking(id: string, inRanking: boolean): Promise<void> {
     await prisma.scan.update({ where: { id }, data: { inRanking } });
   }
+
+  async updateScore(id: string, score: number): Promise<void> {
+    await prisma.scan.update({ where: { id }, data: { score } });
+  }
 }

@@ -55,6 +55,8 @@ model User {
   accounts      Account[]
   sessions      Session[]
   projects      Project[]
+  falsePositiveReports         FalsePositiveReport[] @relation("FalsePositiveReporter")
+  falsePositiveReviewsDone     FalsePositiveReport[] @relation("FalsePositiveReviewer")
   createdAt     DateTime  @default(now())
 }
 
@@ -62,6 +64,7 @@ model Project {
   id   String      @id @default(cuid())
   type ProjectType @default(WEBSITE)
   name String
+  falsePositiveReports FalsePositiveReport[]
 
   // ── Domain ownership (WEBSITE type) ──────────────────────────────────────
   domain             String?
@@ -163,4 +166,35 @@ enum VerificationMethod {
   DNS_TXT
   META_TAG
   FILE
+}
+
+model FalsePositiveReport {
+  id           String                @id @default(cuid())
+  projectId    String
+  project      Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reportedById String
+  reportedBy   User                  @relation("FalsePositiveReporter", fields: [reportedById], references: [id], onDelete: Cascade)
+
+  category     OWASPCategory
+  title        String
+  filePath     String                @default("")
+  evidence     String                @db.Text
+  reason       String                @db.Text
+
+  status       FalsePositiveStatus   @default(PENDING)
+  reviewedById String?
+  reviewedBy   User?                 @relation("FalsePositiveReviewer", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  adminNote    String?               @db.Text
+
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@unique([projectId, category, title, filePath])
+}
+
+enum FalsePositiveStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
