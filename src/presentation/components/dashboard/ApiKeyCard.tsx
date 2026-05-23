@@ -60,9 +60,9 @@ jobs:
     steps:
       - name: Trigger OWMeter scan
         run: |
-          curl -s -X POST \\
+          curl -sf -X POST \\
             -H "Authorization: Bearer \${{ secrets.OWMETER_API_KEY }}" \\
-            https://owmeter.app/api/projects/\${{ secrets.OWMETER_PROJECT_ID }}/trigger-scan`;
+            https://owmeter.dev/api/projects/\${{ secrets.OWMETER_PROJECT_ID }}/trigger-scan`;
 
   return (
     <div className="rounded-xl border border-gray-800 p-6 space-y-6">
