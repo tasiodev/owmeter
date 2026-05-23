@@ -62,7 +62,7 @@ jobs:
         run: |
           curl -s -X POST \\
             -H "Authorization: Bearer \${{ secrets.OWMETER_API_KEY }}" \\
-            https://owmeter.app/api/projects/${projectId}/trigger-scan`;
+            https://owmeter.app/api/projects/\${{ secrets.OWMETER_PROJECT_ID }}/trigger-scan`;
 
   return (
     <div className="rounded-xl border border-gray-800 p-6 space-y-6">
@@ -96,9 +96,7 @@ jobs:
             <CopyButton text={ghActionsExample} label={t("copy")} copiedLabel={t("copied")} />
           </div>
         </div>
-        <p className="text-xs text-gray-500">
-          Add <code className="text-gray-300">OWMETER_API_KEY</code> as a repository secret in GitHub → Settings → Secrets.
-        </p>
+        <p className="text-xs text-gray-500">{t("exampleHint")}</p>
       </div>
     </div>
   );

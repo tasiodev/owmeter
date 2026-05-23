@@ -228,6 +228,7 @@
     "regenerating": "Regenerando…",
     "regenerateConfirm": "Esto invalidará la clave actual. ¿Continuar?",
     "exampleTitle": "Ejemplo para GitHub Actions",
+    "exampleHint": "Añade OWMETER_API_KEY y OWMETER_PROJECT_ID como secrets del repositorio en GitHub → Settings → Secrets.",
     "badgeTitle": "Badge",
     "badgeDescription": "Añade este badge a tu README para mostrar la puntuación de seguridad de tu proyecto.",
     "badgeLang": "Idioma del badge",
