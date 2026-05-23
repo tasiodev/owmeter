@@ -3,9 +3,9 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AddProjectForm } from "../AddProjectForm";
 
-const mockRefresh = vi.fn();
+const mockPush = vi.fn();
 vi.mock("@/i18n/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: mockRefresh }),
+  useRouter: () => ({ push: mockPush, replace: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/",
   Link: ({ href, children }: { href: string; children: React.ReactNode }) => (
     <a href={href}>{children}</a>
@@ -92,7 +92,7 @@ describe("AddProjectForm", () => {
     });
   });
 
-  it("calls router.refresh() on success", async () => {
+  it("redirects to the new project page on success", async () => {
     renderForm();
     const user = userEvent.setup();
 
@@ -100,7 +100,7 @@ describe("AddProjectForm", () => {
     await user.type(screen.getByPlaceholderText("dashboard.projectNamePlaceholder"), "My Lib");
     await user.click(screen.getByRole("button", { name: /dashboard.addProject/i }));
 
-    await waitFor(() => expect(mockRefresh).toHaveBeenCalled());
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/dashboard/projects/proj-1"));
   });
 
   it("shows domain error on DOMAIN_ALREADY_IN_LIST response", async () => {
