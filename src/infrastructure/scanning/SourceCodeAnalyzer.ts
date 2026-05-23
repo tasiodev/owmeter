@@ -89,7 +89,7 @@ interface SASTPattern {
 const isNotExampleFile = (path: string) =>
   !path.endsWith(".example") && !path.includes(".env.example") && !path.includes(".sample");
 
-// Matches i18n resource files where `password: 'Contraseña'` is a field label, not a credential.
+// Matches i18n resource files where is a field label, not a credential.
 const isI18nFile = (path: string) =>
   /(?:^|\/)(?:messages|locales?|i18n|translations?|lang)\//i.test(path) ||
   /\.(strings|po|pot)$/.test(path);

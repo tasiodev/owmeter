@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { auth, signOut } from "@/infrastructure/auth/auth";
 import { isAdmin } from "@/infrastructure/auth/isAdmin";
+import { PrismaUserRepository } from "@/infrastructure/database/repositories/PrismaUserRepository";
 import { LanguageSwitcher } from "@/presentation/components/ui/LanguageSwitcher";
 import { Logo } from "@/presentation/components/ui/Logo";
 import { BetaBadge } from "@/presentation/components/ui/BetaBadge";
@@ -24,6 +25,9 @@ export default async function DashboardLayout({
   const { locale } = await params;
   if (!session?.user?.id) redirect(`/${locale}/login`);
 
+  const banned = await new PrismaUserRepository().isBanned(session.user.id);
+  if (banned) redirect(`/${locale}/login?error=banned`);
+
   const tc = await getTranslations("common");
 
   return (
@@ -41,7 +45,7 @@ export default async function DashboardLayout({
           <LanguageSwitcher />
           {isAdmin(session.user.email) && (
             <Link
-              href="/dashboard/admin/false-positives"
+              href="/dashboard/admin/users"
               className="text-xs px-2.5 py-1 rounded-lg border border-amber-800 text-amber-500 hover:border-amber-600 hover:text-amber-300 transition-colors shrink-0"
             >
               Admin

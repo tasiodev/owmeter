@@ -57,6 +57,7 @@ model User {
   projects      Project[]
   falsePositiveReports         FalsePositiveReport[] @relation("FalsePositiveReporter")
   falsePositiveReviewsDone     FalsePositiveReport[] @relation("FalsePositiveReviewer")
+  bannedAt      DateTime?
   createdAt     DateTime  @default(now())
 }
 
