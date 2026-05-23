@@ -13,6 +13,7 @@ import { ShowcaseCarousel } from "@/presentation/components/home/ShowcaseCarouse
 import type { CardData } from "@/presentation/components/home/ShowcaseCarousel";
 import { Footer } from "@/presentation/components/ui/Footer";
 import { BetaBadge } from "@/presentation/components/ui/BetaBadge";
+import { isAdmin } from "@/infrastructure/auth/isAdmin";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://owmeter.dev";
 
@@ -263,6 +264,14 @@ export default async function HomePage({
         </div>
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <LanguageSwitcher />
+           {session && isAdmin(session.user?.email) && (
+                      <Link
+                        href="/dashboard/admin/users"
+                        className="text-xs px-2.5 py-1 rounded-lg border border-amber-800 text-amber-500 hover:border-amber-600 hover:text-amber-300 transition-colors shrink-0"
+                      >
+                        Admin
+                      </Link>
+          )}
           {session ? (
             <>
               <span className="hidden sm:block text-sm text-gray-400 truncate max-w-[180px]">{session.user?.email}</span>
