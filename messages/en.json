@@ -4,6 +4,7 @@
     "signIn": "Sign in",
     "signOut": "Sign out",
     "dashboard": "Dashboard",
+    "settings": "Settings",
     "loading": "Loading…",
     "betaLabel": "BETA",
     "betaTooltip": "This platform is still in development and may have bugs. Use with caution."
@@ -311,6 +312,48 @@
     "s4Body": "OWMeter is open source software. You may inspect, fork, and self-host it under the terms of its open source licence. The hosted service at owmeter.dev is free to use.",
     "s5Title": "Changes",
     "s5Body": "We may update these terms at any time. Continued use of the service after changes are posted implies acceptance of the updated terms."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your integrations and account preferences.",
+    "noIntegrations": "No integrations available",
+    "noIntegrationsHint": "This instance has no integrations configured by the administrator."
+  },
+  "githubApp": {
+    "sectionTitle": "GitHub App Integration",
+    "sectionDesc": "Connect the GitHub App to access private repositories for code analysis.",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "connectedAs": "Connected as {login}",
+    "connectBtn": "Connect GitHub App",
+    "disconnectBtn": "Disconnect",
+    "disconnecting": "Disconnecting…",
+    "disconnectConfirm": "This will remove access to all private repositories linked to your projects. Are you sure?",
+    "reposTitle": "Accessible repositories",
+    "reposEmpty": "No repositories found. Make sure you granted access to at least one repo during installation.",
+    "reposLoading": "Loading repositories…",
+    "reposError": "Could not load repositories. Please try again.",
+    "privateLabel": "Private",
+    "publicLabel": "Public",
+    "howItWorks": "How it works",
+    "step1": "Click \"Connect GitHub App\" to install it on your GitHub account or organization.",
+    "step2": "Select which repositories you want to grant access to.",
+    "step3": "On any project's settings page, choose a private repo instead of entering a public URL.",
+    "securityNote": "Only the installation ID is stored. Access tokens are generated on-demand and never persisted."
+  },
+  "verifyRepoPrivate": {
+    "tabPublic": "Public repo",
+    "tabPrivate": "Private repo (GitHub App)",
+    "noAppTitle": "GitHub App not connected",
+    "noAppDesc": "Connect the GitHub App from Settings to access private repositories.",
+    "goToSettings": "Go to Settings →",
+    "selectRepo": "Select repository",
+    "selectRepoPlaceholder": "Select a repository…",
+    "linkBtn": "Link this repository",
+    "linking": "Linking…",
+    "loadRepos": "Load repositories",
+    "failed": "Failed to link repository. Make sure the GitHub App has access to it.",
+    "networkError": "Network error. Please try again."
   },
   "privacy": {
     "sectionTitle": "Privacy",

@@ -13,4 +13,11 @@ export interface IProjectRepository {
   regenerateApiKey(id: string): Promise<string>;
   deleteUnverifiedByDomain(domain: string, excludeUserId: string): Promise<void>;
   delete(id: string): Promise<void>;
+  linkPrivateRepo(
+    id: string,
+    repoUrl: string,
+    installationNumericId: number,
+    githubRepoFullName: string
+  ): Promise<Project>;
+  clearPrivateReposByInstallation(installationNumericId: number): Promise<void>;
 }

@@ -5,7 +5,7 @@ import { runZapActiveScan } from "@/infrastructure/scanning/ZapClient";
 import { calculateScore } from "@/domain/services/ScoringService";
 import type { RawFinding, ScanMode } from "@/domain/services/ScoringService";
 import { runSourceCodeAnalysis } from "@/infrastructure/scanning/SourceCodeAnalyzer";
-import { fetchRepoAsZip } from "@/infrastructure/scanning/RepoFetcher";
+import { fetchRepoAsZip, fetchPrivateRepoAsZip } from "@/infrastructure/scanning/RepoFetcher";
 import { PrismaScanRepository } from "@/infrastructure/database/repositories/PrismaScanRepository";
 import { createLogger } from "@/infrastructure/logger";
 import type { FullZipScanJobData } from "@/application/use-cases/CreateFullScanFromZip";
@@ -43,12 +43,14 @@ export type FullScanJobData = {
   targetUrl: string;
   type: "FULL";
   repoUrl: string;
+  githubInstallationId?: number;
 };
 
 export type CodeScanJobData = {
   scanId: string;
   type: "CODE";
   repoUrl: string;
+  githubInstallationId?: number;
 };
 
 export type ScanJobData = PassiveScanJobData | FullScanJobData | CodeScanJobData | FullZipScanJobData;
@@ -110,7 +112,9 @@ export function createScanWorker(): Worker<ScanJobData> {
 
         if (job.data.type === "CODE") {
           // Code-only scan for CODE_REPO projects
-          const zipBuffer = await fetchRepoAsZip(job.data.repoUrl);
+          const zipBuffer = job.data.githubInstallationId
+            ? await fetchPrivateRepoAsZip(job.data.repoUrl.replace("https://github.com/", ""), job.data.githubInstallationId)
+            : await fetchRepoAsZip(job.data.repoUrl);
           const { findings, unevaluated } = await runSourceCodeAnalysis(zipBuffer);
           allRawFindings = deduplicateFindings(findings);
           sastUnevaluated = unevaluated;
@@ -151,8 +155,11 @@ export function createScanWorker(): Worker<ScanJobData> {
           // inaccessible repo fails fast rather than after wasting ZAP scan time.
           let repoZip: Uint8Array | undefined;
           if (job.data.type === "FULL") {
-            const { repoUrl } = job.data;
-            repoZip = await fetchRepoAsZip(repoUrl).catch((err: unknown) => {
+            const { repoUrl, githubInstallationId } = job.data;
+            const fetchZip = githubInstallationId
+              ? () => fetchPrivateRepoAsZip(repoUrl.replace("https://github.com/", ""), githubInstallationId)
+              : () => fetchRepoAsZip(repoUrl);
+            repoZip = await fetchZip().catch((err: unknown) => {
               const reason = err instanceof Error ? err.message : "unknown";
               logger.error({ scanId, repoUrl, reason }, "Repo not accessible — aborting scan");
               throw err;

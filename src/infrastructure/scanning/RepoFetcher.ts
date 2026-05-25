@@ -101,11 +101,21 @@ export function buildVerificationUrls(repoUrl: string): { branch: string; url: s
   }));
 }
 
-async function fetchZipFromUrl(url: string): Promise<Uint8Array | null> {
+async function fetchZipFromUrl(
+  url: string,
+  authToken?: string
+): Promise<Uint8Array | null> {
+  const headers: Record<string, string> = { "User-Agent": "Owmeter/1.0" };
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+    headers["Accept"] = "application/vnd.github+json";
+    headers["X-GitHub-Api-Version"] = "2022-11-28";
+  }
+
   const res = await fetch(url, {
     redirect: "follow",
     signal: AbortSignal.timeout(60_000),
-    headers: { "User-Agent": "Owmeter/1.0" },
+    headers,
   });
   if (!res.ok) return null;
 
@@ -133,4 +143,30 @@ export async function fetchRepoAsZip(repoUrl: string): Promise<Uint8Array> {
     `Could not download repository "${parsed.namespace}/${parsed.repo}". ` +
       "The repository may be private, empty, or use a non-standard default branch."
   );
+}
+
+/**
+ * Fetches a private GitHub repository ZIP using a GitHub App installation token.
+ * The token is generated fresh each call and never persisted.
+ */
+export async function fetchPrivateRepoAsZip(
+  repoFullName: string,
+  installationId: number
+): Promise<Uint8Array> {
+  // Import lazily to avoid loading GitHub App config in environments where it's not needed
+  const { getInstallationToken } = await import("@/infrastructure/github/GitHubAppClient");
+  const token = await getInstallationToken(installationId);
+
+  // GitHub API zipball endpoint: redirects to the actual ZIP for the default branch
+  const url = `https://api.github.com/repos/${repoFullName}/zipball`;
+  const bytes = await fetchZipFromUrl(url, token);
+
+  if (!bytes) {
+    throw new RepoFetchError(
+      `Could not download private repository "${repoFullName}". ` +
+        "The GitHub App may no longer have access to this repository."
+    );
+  }
+
+  return bytes;
 }

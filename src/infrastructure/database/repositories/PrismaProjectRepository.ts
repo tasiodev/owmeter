@@ -16,6 +16,8 @@ type DbProject = {
   repoVerified: boolean;
   repoVerificationToken: string | null;
   repoVerifiedAt: Date | null;
+  githubInstallationNumericId: number | null;
+  githubRepoFullName: string | null;
   isPublic: boolean;
   apiKey: string;
   createdAt: Date;
@@ -106,5 +108,36 @@ export class PrismaProjectRepository implements IProjectRepository {
 
   async delete(id: string): Promise<void> {
     await prisma.project.delete({ where: { id } });
+  }
+
+  async linkPrivateRepo(
+    id: string,
+    repoUrl: string,
+    installationNumericId: number,
+    githubRepoFullName: string
+  ): Promise<Project> {
+    const r = await prisma.project.update({
+      where: { id },
+      data: {
+        repoUrl,
+        repoVerified: true,
+        repoVerifiedAt: new Date(),
+        githubInstallationNumericId: installationNumericId,
+        githubRepoFullName,
+      },
+    });
+    return toEntity(r);
+  }
+
+  async clearPrivateReposByInstallation(installationNumericId: number): Promise<void> {
+    await prisma.project.updateMany({
+      where: { githubInstallationNumericId: installationNumericId },
+      data: {
+        repoVerified: false,
+        repoVerifiedAt: null,
+        githubInstallationNumericId: null,
+        githubRepoFullName: null,
+      },
+    });
   }
 }

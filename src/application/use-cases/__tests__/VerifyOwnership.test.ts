@@ -20,6 +20,10 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     repoVerified: false,
     repoVerificationToken: "REPO-TOKEN",
     repoVerifiedAt: null,
+    githubInstallationNumericId: null,
+    githubRepoFullName: null,
+    isPublic: true,
+    apiKey: "key-1",
     createdAt: now,
     ...overrides,
   };
@@ -32,12 +36,17 @@ function makeRepo(project: Project | null = makeProject()): IProjectRepository {
     findVerifiedByDomain: vi.fn(),
     findByUserId: vi.fn(),
     create: vi.fn(),
+    updatePrivacy: vi.fn(),
     markDomainVerified: vi.fn().mockImplementation((_id, method) =>
       Promise.resolve({ ...makeProject(), verified: true, verificationMethod: method })
     ),
     markRepoVerified: vi.fn(),
+    findByApiKey: vi.fn(),
+    regenerateApiKey: vi.fn(),
     deleteUnverifiedByDomain: vi.fn().mockResolvedValue(undefined),
     delete: vi.fn(),
+    linkPrivateRepo: vi.fn(),
+    clearPrivateReposByInstallation: vi.fn(),
   };
 }
 

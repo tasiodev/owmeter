@@ -6,6 +6,7 @@ export type CodeScanJobData = {
   scanId: string;
   type: "CODE";
   repoUrl: string;
+  githubInstallationId?: number; // set for private repos accessed via GitHub App
 };
 
 export class CreateCodeScanError extends Error {}
@@ -32,6 +33,7 @@ export async function createCodeScan(
     scanId: scan.id,
     type: "CODE",
     repoUrl: project.repoUrl,
+    githubInstallationId: project.githubInstallationNumericId ?? undefined,
   });
 
   return scan;

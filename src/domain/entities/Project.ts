@@ -17,6 +17,9 @@ export interface Project {
   repoVerified: boolean;
   repoVerificationToken: string | null;
   repoVerifiedAt: Date | null;
+  // GitHub App private repo (optional)
+  githubInstallationNumericId: number | null;
+  githubRepoFullName: string | null;
   // Visibility
   isPublic: boolean;
   // CI/CD integration

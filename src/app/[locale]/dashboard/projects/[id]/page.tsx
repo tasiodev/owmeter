@@ -15,6 +15,8 @@ import { FalsePositivesList } from "@/presentation/components/scan/FalsePositive
 import { ApiKeyCard } from "@/presentation/components/dashboard/ApiKeyCard";
 import { BadgeCard } from "@/presentation/components/dashboard/BadgeCard";
 import { PrismaFalsePositiveReportRepository } from "@/infrastructure/database/repositories/PrismaFalsePositiveReportRepository";
+import { PrismaGitHubInstallationRepository } from "@/infrastructure/database/repositories/PrismaGitHubInstallationRepository";
+import { isGitHubAppEnabled } from "@/infrastructure/github/isGitHubAppEnabled";
 
 export default async function ProjectDetailPage({
   params,
@@ -36,14 +38,19 @@ export default async function ProjectDetailPage({
   const projectRepo = new PrismaProjectRepository();
   const scanRepo = new PrismaScanRepository();
   const fpRepo = new PrismaFalsePositiveReportRepository();
+  const installationRepo = new PrismaGitHubInstallationRepository();
 
   const project = await projectRepo.findById(id);
   if (!project || project.userId !== session.user.id) notFound();
 
-  const [scans, fpReports] = await Promise.all([
+  const [scans, fpReports, githubInstallation] = await Promise.all([
     scanRepo.findByProjectId(id),
     fpRepo.findByProject(id),
+    installationRepo.findByUserId(session.user.id),
   ]);
+
+  const gitHubAppEnabled = isGitHubAppEnabled();
+  const hasGitHubApp = gitHubAppEnabled && githubInstallation !== null;
 
   const domainMethods = ["DNS_TXT", "META_TAG", "FILE"] as const;
   const methodLabels: Record<(typeof domainMethods)[number], string> = {
@@ -233,6 +240,8 @@ export default async function ProjectDetailPage({
                 <VerifyRepoForm
                   projectId={id}
                   token={project.repoVerificationToken ?? project.verificationToken}
+                  gitHubAppEnabled={gitHubAppEnabled}
+                  hasGitHubApp={hasGitHubApp}
                 />
               </div>
             )}

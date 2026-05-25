@@ -22,6 +22,10 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     repoVerified: true,
     repoVerificationToken: "repo-token",
     repoVerifiedAt: now,
+    githubInstallationNumericId: null,
+    githubRepoFullName: null,
+    isPublic: true,
+    apiKey: "key-1",
     createdAt: now,
     ...overrides,
   };
@@ -36,6 +40,7 @@ function makeScan(): Scan {
     score: null,
     maxScore: null,
     inRanking: false,
+    errorMessage: null,
     findings: [],
     startedAt: now,
     completedAt: null,
@@ -49,10 +54,15 @@ function makeProjectRepo(project: Project | null = makeProject()): IProjectRepos
     findVerifiedByDomain: vi.fn(),
     findByUserId: vi.fn(),
     create: vi.fn(),
+    updatePrivacy: vi.fn(),
     markDomainVerified: vi.fn(),
     markRepoVerified: vi.fn(),
+    findByApiKey: vi.fn(),
+    regenerateApiKey: vi.fn(),
     deleteUnverifiedByDomain: vi.fn(),
     delete: vi.fn(),
+    linkPrivateRepo: vi.fn(),
+    clearPrivateReposByInstallation: vi.fn(),
   };
 }
 

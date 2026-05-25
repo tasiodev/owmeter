@@ -22,6 +22,8 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     repoVerified: false,
     repoVerificationToken: "repo-token",
     repoVerifiedAt: null,
+    githubInstallationNumericId: null,
+    githubRepoFullName: null,
     isPublic: false,
     apiKey: "key-abc",
     createdAt: now,

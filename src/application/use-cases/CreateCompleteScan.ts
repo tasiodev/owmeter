@@ -8,6 +8,7 @@ export type FullScanJobData = {
   targetUrl: string;
   type: "FULL";
   repoUrl: string;
+  githubInstallationId?: number; // set for private repos accessed via GitHub App
 };
 
 export class CreateCompleteScanError extends Error {}
@@ -37,6 +38,7 @@ export async function createCompleteScan(
     targetUrl: resolveBaseUrl(project.domain),
     type: "FULL",
     repoUrl: project.repoUrl,
+    githubInstallationId: project.githubInstallationNumericId ?? undefined,
   });
 
   return scan;
