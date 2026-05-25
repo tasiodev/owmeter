@@ -268,7 +268,6 @@ npx prisma migrate dev
 ## Roadmap
 
 - **Multi-language source code analysis** — extend SAST and dependency vulnerability checks to .NET (`.csproj`, NuGet), Java (`pom.xml`, Gradle), Python (`requirements.txt`, `pyproject.toml`), and Go (`go.mod`)
-- **GitLab / Bitbucket App integration** — private repository support for GitLab and Bitbucket, mirroring the existing GitHub App flow
 
 ## Contributing
 
