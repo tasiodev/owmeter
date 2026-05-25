@@ -97,7 +97,8 @@ export class PrismaScanRepository implements IScanRepository {
           isPublic: true,
           OR: [
             { type: "WEBSITE", verified: true },
-            { type: "CODE_REPO", repoVerified: true },
+            // private CODE_REPO projects have no public domain — never show them on the home showcase
+            { type: "CODE_REPO", repoVerified: true, githubRepoFullName: null },
           ],
         },
       },
