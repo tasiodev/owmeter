@@ -17,8 +17,11 @@ Owmeter is an open-source web application that lets site owners scan their websi
 - **Domain ownership verification** before scanning (DNS TXT record, HTML meta tag, or `.well-known` file)
 - **Passive scan** — checks HTTP headers, TLS configuration, cookie flags, and common misconfigurations without sending traffic through ZAP
 - **Active scan** — full OWASP ZAP spider + active attack mode for deeper findings
+- **Code repository scanning** — static source-code analysis for JavaScript and TypeScript projects (package.json, dependency CVEs, insecure patterns)
+- **Private GitHub repositories** — connect via GitHub App and grant access to selected private repos; no `.owmeter` verification file required
 - **OWASP Top 10 coverage** — findings mapped to all ten categories (A01–A10)
 - **Per-category score breakdown** — see exactly where points are lost
+- **False positive reporting** — flag inaccurate findings from the results page; reports are reviewed by admins and suppressed on approval
 - **PDF certificate** — download a shareable security report after each scan
 - **Async job queue** — long-running ZAP scans are processed in the background via BullMQ + Redis
 - **i18n** — English and Spanish UI out of the box
@@ -96,6 +99,13 @@ Open `.env` and fill in the values:
 | `ADMIN_EMAILS` | *(Optional)* Comma-separated list of email addresses that have admin access (e.g. `alice@example.com,bob@example.com`). Admins can review false positive reports at `/dashboard/admin/false-positives`. If omitted, the admin panel is inaccessible to everyone. |
 | `RESEND_API_KEY` | *(Optional)* API key for [Resend](https://resend.com) (free tier: 3 000 emails/month). When set, users receive an email when their false positive report is approved or rejected, and admins receive an email when a new report is submitted. If omitted, the app works normally — emails are simply not sent. |
 | `EMAIL_FROM` | *(Optional)* Sender address used in outgoing emails, e.g. `OWMeter <no-reply@yourdomain.com>`. Defaults to `OWMeter <onboarding@resend.dev>`, which works on Resend's free tier but only delivers to the address registered on your Resend account. Set a verified domain address for production. |
+| `LOG_LEVEL` | *(Optional)* Pino log level: `trace`, `debug`, `info`, `warn`, `error`, or `fatal`. Defaults to `info` in development and `warn` in production. Set to `warn` locally to silence verbose scan-progress logs. |
+| `GITHUB_APP_ID` | *(Optional)* Numeric App ID shown on the GitHub App settings page. Required to enable private repository support. |
+| `GITHUB_APP_SLUG` | *(Optional)* URL slug of your GitHub App (appears in `github.com/apps/{slug}`). Used to build the installation redirect URL. |
+| `GITHUB_APP_PRIVATE_KEY` | *(Optional)* Base64-encoded RSA private key (`.pem` file) used to sign JWT tokens for the GitHub App API. Encode with `base64 -w 0 your-app.private-key.pem`. |
+| `GITHUB_WEBHOOK_SECRET` | *(Optional)* A random string used to verify the HMAC-SHA256 signature of incoming webhook events from GitHub. Set the same value in the GitHub App's webhook configuration. |
+
+> **Private repo support is entirely optional.** If the four `GITHUB_APP_*` variables are not set, the GitHub App integration is hidden everywhere in the UI and no GitHub API calls are made.
 
 **Creating OAuth apps**
 
@@ -201,10 +211,64 @@ Once a report is approved, that specific finding is suppressed in all future sca
 
 ---
 
+## GitHub App integration (private repositories)
+
+Private repository scanning is an optional feature. When enabled, users can connect their GitHub account via a GitHub App installation and select which repositories to grant access to. OWMeter then downloads the repository ZIP using a short-lived installation token — **no tokens are ever stored in the database**.
+
+### 1. Create a GitHub App
+
+Go to **GitHub → Settings → Developer settings → GitHub Apps → New GitHub App** and fill in:
+
+| Field | Value |
+|---|---|
+| App name | `Owmeter` (or `Owmeter Dev` for local development) |
+| Homepage URL | Your app's public URL |
+| Callback URL | `https://your-domain.com/api/github/app/callback` |
+| Setup URL | `https://your-domain.com/api/github/app/callback` |
+| Redirect on update | ✅ Enabled |
+| Webhook URL | `https://your-domain.com/api/github/webhooks` |
+| Webhook secret | A random string (save it as `GITHUB_WEBHOOK_SECRET`) |
+| Repository permissions | **Contents → Read-only** |
+| Subscribe to events | `Installation`, `Installation repositories` |
+| Where can this app be installed | Any account |
+
+After saving:
+1. Note the **App ID** (number) and the **slug** from the URL (`github.com/apps/{slug}`).
+2. Generate and download a **Private Key** (`.pem` file).
+3. Base64-encode it: `base64 -w 0 your-app.private-key.pem`
+
+### 2. Set environment variables
+
+```env
+GITHUB_APP_ID=123456
+GITHUB_APP_SLUG=owmeter-dev
+GITHUB_APP_PRIVATE_KEY=<base64-encoded .pem>
+GITHUB_WEBHOOK_SECRET=<random string>
+```
+
+### 3. Run the migration
+
+The feature requires a `GitHubInstallation` table and two optional columns on `Project`:
+
+```bash
+npx prisma migrate dev
+```
+
+### How it works
+
+1. The user goes to **Dashboard → Settings** and clicks **Connect GitHub App**.
+2. GitHub redirects them to the app installation page where they choose which repositories to share.
+3. After installation, GitHub redirects back to `/api/github/app/callback`. A CSRF-protected cookie (HMAC-SHA256 signed, `httpOnly; Secure; SameSite=lax`) prevents state forgery. The installation ID is saved — nothing else.
+4. When configuring a project's repository, a **Private Repo** tab appears. The user picks a repo from the dropdown; OWMeter verifies access and marks the project as verified — no `.owmeter` file needed.
+5. During a scan, a fresh installation token is generated on demand via the GitHub API and discarded immediately after use.
+6. If the user uninstalls the app from GitHub, a webhook event fires and OWMeter removes the installation record and unlinks all affected projects automatically.
+
+---
+
 ## Roadmap
 
-- **Private GitHub repository support** — integrate as a GitHub App to allow scanning private repos without requiring a manual ZIP upload
 - **Multi-language source code analysis** — extend SAST and dependency vulnerability checks to .NET (`.csproj`, NuGet), Java (`pom.xml`, Gradle), Python (`requirements.txt`, `pyproject.toml`), and Go (`go.mod`)
+- **GitLab / Bitbucket App integration** — private repository support for GitLab and Bitbucket, mirroring the existing GitHub App flow
 
 ## Contributing
 

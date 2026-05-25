@@ -41,10 +41,17 @@ export async function GET(req: NextRequest) {
     .update(storedState)
     .digest("hex");
 
-  const hmacMatch =
-    storedHmac.length > 0 &&
-    expectedHmac.length > 0 &&
-    crypto.timingSafeEqual(Buffer.from(storedHmac, "hex"), Buffer.from(expectedHmac, "hex"));
+  const hmacMatch = (() => {
+    try {
+      if (!storedHmac || !expectedHmac) return false;
+      const storedBuf = Buffer.from(storedHmac, "hex");
+      const expectedBuf = Buffer.from(expectedHmac, "hex");
+      if (storedBuf.length !== expectedBuf.length) return false;
+      return crypto.timingSafeEqual(storedBuf, expectedBuf);
+    } catch {
+      return false;
+    }
+  })();
 
   if (!hmacMatch || storedState !== state) {
     logger.warn({ userId: session.user.id }, "GitHub App callback: CSRF state mismatch");

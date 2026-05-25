@@ -16,11 +16,15 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const repos = await getAccessibleRepos(
-    session.user.id,
-    new PrismaGitHubInstallationRepository(),
-    listInstallationRepos
-  );
-
-  return NextResponse.json({ repos });
+  try {
+    const repos = await getAccessibleRepos(
+      session.user.id,
+      new PrismaGitHubInstallationRepository(),
+      listInstallationRepos
+    );
+    return NextResponse.json({ repos });
+  } catch {
+    // GitHub API unavailable — return empty list rather than 500
+    return NextResponse.json({ repos: [], error: "github_unavailable" }, { status: 503 });
+  }
 }
