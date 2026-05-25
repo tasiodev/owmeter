@@ -88,7 +88,7 @@ export class PrismaScanRepository implements IScanRepository {
 
   async findPublicPerfectScoreScans(
     limit = 20
-  ): Promise<Array<{ url: string; completedAt: Date; scanType: string; projectType: string; score: number; repoUrl?: string; zipSource?: boolean; isForeignLang?: boolean }>> {
+  ): Promise<Array<{ url: string; completedAt: Date; scanType: string; projectType: string; score: number; repoUrl?: string; zipSource?: boolean; isForeignLang?: boolean; isPrivateRepo?: boolean }>> {
     const records = await prisma.scan.findMany({
       where: {
         status: "COMPLETED",
@@ -105,7 +105,7 @@ export class PrismaScanRepository implements IScanRepository {
         completedAt: true,
         score: true,
         type: true,
-        project: { select: { type: true, domain: true, repoUrl: true, repoVerified: true } },
+        project: { select: { type: true, domain: true, repoUrl: true, repoVerified: true, githubRepoFullName: true } },
         findings: { where: { title: { startsWith: "Limited code analysis:" } }, select: { id: true }, take: 1 },
       },
       orderBy: { completedAt: "desc" },
@@ -115,15 +115,16 @@ export class PrismaScanRepository implements IScanRepository {
     return records
       .filter((r): r is typeof r & { completedAt: Date; score: number } => r.completedAt !== null && r.score !== null)
       .flatMap((r) => {
-        const url = r.project.type === "WEBSITE" ? r.project.domain : r.project.repoUrl;
+        const isPrivateRepo = r.project.githubRepoFullName !== null && r.project.githubRepoFullName !== undefined;
+        const url = r.project.type === "WEBSITE" ? r.project.domain : (isPrivateRepo ? r.project.githubRepoFullName : r.project.repoUrl);
         if (!url) return [];
         const repoUrl =
-          r.project.type === "WEBSITE" && r.project.repoVerified && r.project.repoUrl
+          !isPrivateRepo && r.project.type === "WEBSITE" && r.project.repoVerified && r.project.repoUrl
             ? r.project.repoUrl
             : undefined;
-        const zipSource = r.project.type === "WEBSITE" && r.type === "FULL" && !repoUrl;
+        const zipSource = r.project.type === "WEBSITE" && r.type === "FULL" && !repoUrl && !isPrivateRepo;
         const isForeignLang = r.type === "CODE" && r.findings.length > 0;
-        return [{ url, completedAt: r.completedAt, scanType: r.type, projectType: r.project.type, score: r.score, repoUrl, zipSource: zipSource || undefined, isForeignLang: isForeignLang || undefined }];
+        return [{ url, completedAt: r.completedAt, scanType: r.type, projectType: r.project.type, score: r.score, repoUrl, zipSource: zipSource || undefined, isForeignLang: isForeignLang || undefined, isPrivateRepo: isPrivateRepo || undefined }];
       });
   }
 

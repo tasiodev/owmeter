@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { auth, signOut } from "@/infrastructure/auth/auth";
+import { auth } from "@/infrastructure/auth/auth";
 import { isAdmin } from "@/infrastructure/auth/isAdmin";
 import { PrismaUserRepository } from "@/infrastructure/database/repositories/PrismaUserRepository";
 import { LanguageSwitcher } from "@/presentation/components/ui/LanguageSwitcher";
 import { Logo } from "@/presentation/components/ui/Logo";
 import { BetaBadge } from "@/presentation/components/ui/BetaBadge";
 import { Footer } from "@/presentation/components/ui/Footer";
+import { UserSettingsLink } from "@/presentation/components/ui/UserSettingsLink";
+import { SignOutButton } from "@/presentation/components/ui/SignOutButton";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -51,28 +53,8 @@ export default async function DashboardLayout({
               Admin
             </Link>
           )}
-          <Link
-            href="/dashboard/settings"
-            className="text-xs px-2.5 py-1 rounded-lg border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200 transition-colors shrink-0"
-          >
-            {tc("settings")}
-          </Link>
-          <span className="text-sm text-gray-400 hidden sm:block truncate max-w-[180px]">
-            {session.user.email}
-          </span>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: `/${locale}` });
-            }}
-          >
-            <button
-              type="submit"
-              className="text-sm text-gray-400 hover:text-white transition-colors shrink-0"
-            >
-              {tc("signOut")}
-            </button>
-          </form>
+          <UserSettingsLink email={session.user.email ?? ""} />
+          <SignOutButton locale={locale} label={tc("signOut")} />
         </div>
       </header>
       <main className="flex-1">{children}</main>

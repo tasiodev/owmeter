@@ -12,6 +12,7 @@ export type CardData = {
   repoUrl?: string;
   zipSourceLabel?: string;
   zipSourceTitle?: string;
+  isPrivateRepo?: boolean;
 };
 
 type Phase = "entering" | "visible" | "leaving";
@@ -50,7 +51,7 @@ function repoDisplayUrl(repoUrl: string): string {
   }
 }
 
-function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, completedAt, repoUrl, zipSourceLabel, zipSourceTitle }: CardData) {
+function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, completedAt, repoUrl, zipSourceLabel, zipSourceTitle, isPrivateRepo }: CardData) {
   const size = 80;
   const sw = 7;
   const r = (size - sw) / 2;
@@ -94,7 +95,27 @@ function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, completedA
           </span>
           <ExternalLinkIcon />
         </a>
-        {repoUrl && (
+        {isPrivateRepo ? (
+          <div className="flex items-center gap-1">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="shrink-0 text-gray-500"
+              aria-hidden="true"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span className="text-xs text-gray-500">Private repo</span>
+          </div>
+        ) : repoUrl ? (
           <a
             href={repoUrl}
             target="_blank"
@@ -117,7 +138,7 @@ function ShowcaseCard({ url, href, isWebsite, categoriesLabel, score, completedA
               {repoDisplayUrl(repoUrl)}
             </span>
           </a>
-        )}
+        ) : null}
         {!repoUrl && zipSourceLabel && (
           <div className="flex items-center gap-1" title={zipSourceTitle}>
             <svg

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
-import { auth, signOut } from "@/infrastructure/auth/auth";
+import { auth } from "@/infrastructure/auth/auth";
 import { Link } from "@/i18n/navigation";
 import { LanguageSwitcher } from "@/presentation/components/ui/LanguageSwitcher";
 import { Logo } from "@/presentation/components/ui/Logo";
@@ -14,6 +14,8 @@ import type { CardData } from "@/presentation/components/home/ShowcaseCarousel";
 import { Footer } from "@/presentation/components/ui/Footer";
 import { BetaBadge } from "@/presentation/components/ui/BetaBadge";
 import { isAdmin } from "@/infrastructure/auth/isAdmin";
+import { UserSettingsLink } from "@/presentation/components/ui/UserSettingsLink";
+import { SignOutButton } from "@/presentation/components/ui/SignOutButton";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://owmeter.dev";
 
@@ -192,13 +194,17 @@ async function SecureShowcase({ locale }: { locale: string }) {
 
   const cards: CardData[] = unique.map((site) => {
     const isWebsite = site.projectType === "WEBSITE";
-    const href = isWebsite ? `https://${site.url}` : site.url;
+    const href = isWebsite
+      ? `https://${site.url}`
+      : site.isPrivateRepo
+      ? `https://github.com/${site.url}`
+      : site.url;
     const { evaluated, partial } = evaluationStats(site.scanType as ScanMode, site.isForeignLang);
     const categoriesLabel =
       ts("categoriesEvaluated", { evaluated, total: TOTAL_CATEGORIES }) +
       (partial > 0 ? ts("categoriesPartial", { partial }) : "");
     const completedAt = site.completedAt.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
-    return { url: site.url, href, isWebsite, categoriesLabel, score: site.score, completedAt, repoUrl: site.repoUrl, zipSourceLabel: site.zipSource ? t("showcaseZipSource") : undefined, zipSourceTitle: site.zipSource ? t("showcaseZipSourceTitle") : undefined };
+    return { url: site.url, href, isWebsite, categoriesLabel, score: site.score, completedAt, repoUrl: site.repoUrl, zipSourceLabel: site.zipSource ? t("showcaseZipSource") : undefined, zipSourceTitle: site.zipSource ? t("showcaseZipSourceTitle") : undefined, isPrivateRepo: site.isPrivateRepo };
   });
 
   const groups: CardData[][] = [];
@@ -274,20 +280,8 @@ export default async function HomePage({
           )}
           {session ? (
             <>
-              <span className="hidden sm:block text-sm text-gray-400 truncate max-w-[180px]">{session.user?.email}</span>
-              <form
-                action={async () => {
-                  "use server";
-                  await signOut({ redirectTo: `/${locale}` });
-                }}
-              >
-                <button
-                  type="submit"
-                  className="text-sm text-gray-400 hover:text-white transition-colors"
-                >
-                  {tc("signOut")}
-                </button>
-              </form>
+              <UserSettingsLink email={session.user?.email ?? ""} />
+              <SignOutButton locale={locale} label={tc("signOut")} />
             </>
           ) : (
             <Link
