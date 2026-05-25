@@ -82,6 +82,14 @@ export class PrismaScanRepository implements IScanRepository {
       where: { projectId: { in: projectIds }, status: "COMPLETED" },
       orderBy: { startedAt: "desc" },
       distinct: ["projectId"],
+      // Load only the sentinel finding that marks a foreign-language scan (e.g. .NET, Java).
+      // This lets the dashboard mini-ring show N/A instead of a numeric score.
+      include: {
+        findings: {
+          where: { title: { startsWith: "Limited code analysis:" } },
+          take: 1,
+        },
+      },
     });
     return new Map(records.map((r) => [r.projectId, toScan(r)]));
   }

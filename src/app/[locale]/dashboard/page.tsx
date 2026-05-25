@@ -25,6 +25,24 @@ function MiniScoreRing({ scan }: { scan: Scan | undefined }) {
     );
   }
 
+  const isForeignLang =
+    scan.type === "CODE" &&
+    scan.findings.some((f) => f.title.startsWith("Limited code analysis:"));
+
+  if (isForeignLang) {
+    return (
+      <div className="relative shrink-0" style={{ width: size, height: size }}>
+        <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1f2937" strokeWidth={sw} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f97316" strokeWidth={sw} strokeLinecap="round" strokeDasharray={`${circ} 0`} />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-orange-400 text-xs font-bold">N/A</span>
+        </div>
+      </div>
+    );
+  }
+
   const pct = scan.score / scan.maxScore;
   const pctRounded = Math.round(pct * 100);
   const color = pctRounded >= 80 ? "#34d399" : pctRounded >= 50 ? "#facc15" : "#f87171";
