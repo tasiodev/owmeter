@@ -50,10 +50,10 @@ Each OWASP category carries a maximum point value. A passive scan evaluates the 
 | Severity | Points lost |
 |---|---|
 | Info | 0 |
-| Low | 2 |
-| Medium | 5 |
-| High | 10 |
-| Critical | 20 |
+| Low | 1 |
+| Medium | 2 |
+| High | 4 |
+| Critical | 6 |
 
 The final score is capped at 100. Categories not evaluated in a given scan mode count as full marks.
 

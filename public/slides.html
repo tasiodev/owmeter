@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Owmeter — Presentación</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --accent: #238636;
+      --accent2: #10B981;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --danger: #da3633;
+      --warn: #d29922;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── Slideshow engine ── */
+    .deck { width: 100%; height: 100%; position: relative; }
+
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      justify-content: safe center; align-items: center;
+      padding: 48px 80px 80px;
+      overflow-y: auto;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+    .slide.active { opacity: 1; pointer-events: all; }
+
+    /* ── Navigation ── */
+    nav {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 12px; align-items: center;
+      z-index: 100;
+    }
+    nav button {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: 8px 20px; border-radius: 6px;
+      cursor: pointer; font-size: 14px; transition: background 0.2s;
+    }
+    nav button:hover { background: var(--border); }
+    nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+    #counter { color: var(--muted); font-size: 13px; min-width: 60px; text-align: center; }
+
+    /* ── Progress bar ── */
+    .progress {
+      position: fixed; top: 0; left: 0; height: 3px;
+      background: var(--accent2); transition: width 0.4s ease;
+    }
+
+    /* ── Slide number ── */
+    .slide-num {
+      position: fixed; top: 18px; right: 24px;
+      font-size: 12px; color: var(--muted);
+    }
+
+    /* ── Typography ── */
+    h1 { font-size: 3.2rem; font-weight: 700; line-height: 1.15; }
+    h2 { font-size: 2rem; font-weight: 600; line-height: 1.3; }
+    h3 { font-size: 1.3rem; font-weight: 600; color: var(--muted); margin-bottom: 28px; }
+    p { font-size: 1.1rem; line-height: 1.7; color: var(--muted); }
+    .accent { color: var(--accent2); }
+    .green { color: var(--accent); }
+
+    /* ── Cover slide ── */
+    .cover { text-align: center; gap: 20px; }
+    .cover .logo { font-size: 4.5rem; font-weight: 800; letter-spacing: -2px; }
+    .cover .logo span { color: var(--accent2); }
+    .cover .tagline { font-size: 1.3rem; color: var(--muted); max-width: 540px; }
+    .cover .badge {
+      margin-top: 16px;
+      display: inline-block; padding: 6px 16px; border-radius: 20px;
+      background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4);
+      font-size: 0.85rem; color: var(--accent2);
+    }
+    .cover .url { margin-top: 8px; font-size: 1rem; color: var(--muted); }
+    .cover .url a { color: var(--text); text-decoration: none; }
+
+    /* ── Section header ── */
+    .section-header {
+      text-align: center; gap: 16px;
+      border-left: 4px solid var(--accent2); padding-left: 32px;
+      align-items: flex-start;
+    }
+    .section-label {
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 3px;
+      color: var(--accent2); font-weight: 600;
+    }
+
+    /* ── Two-column layout ── */
+    .two-col {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 48px;
+      width: 100%; max-width: 1100px; align-items: start;
+    }
+    .col { display: flex; flex-direction: column; gap: 0; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px 24px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .card h4 { font-size: 1rem; font-weight: 600; }
+    .card p { font-size: 0.9rem; }
+
+    /* ── Icon list ── */
+    .icon-list { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 860px; }
+    .icon-item { display: flex; gap: 16px; align-items: flex-start; }
+    .icon-item .icon {
+      width: 40px; height: 40px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+    }
+    .icon-item .text h4 { font-size: 1rem; font-weight: 600; margin-bottom: 2px; }
+    .icon-item .text p { font-size: 0.88rem; line-height: 1.5; }
+    .bg-blue { background: rgba(16,185,129,0.15); }
+    .bg-green { background: rgba(35,134,54,0.15); }
+    .bg-warn { background: rgba(210,153,34,0.15); }
+    .bg-red { background: rgba(218,54,51,0.15); }
+    .bg-purple { background: rgba(139,92,246,0.15); }
+    .bg-cyan { background: rgba(34,211,238,0.15); }
+
+    /* ── Pills ── */
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 20px; font-size: 0.82rem;
+      border: 1px solid;
+    }
+    .pill-blue { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.4); color: #10B981; }
+    .pill-green { background: rgba(35,134,54,0.1); border-color: rgba(35,134,54,0.4); color: #56d364; }
+    .pill-warn { background: rgba(210,153,34,0.1); border-color: rgba(210,153,34,0.4); color: #e3b341; }
+    .pill-red { background: rgba(218,54,51,0.1); border-color: rgba(218,54,51,0.4); color: #ff7b72; }
+
+    /* ── Table ── */
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    thead tr { background: var(--surface); }
+    th { padding: 10px 16px; text-align: left; color: var(--muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Score ring ── */
+    .score-demo {
+      display: flex; gap: 32px; align-items: center; justify-content: center;
+      flex-wrap: wrap; margin-top: 16px;
+    }
+    .score-ring {
+      width: 100px; height: 100px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; font-weight: 700;
+      position: relative;
+    }
+    .ring-a { background: conic-gradient(#56d364 324deg, var(--surface) 0deg); }
+    .ring-b { background: conic-gradient(#e3b341 252deg, var(--surface) 0deg); }
+    .ring-c { background: conic-gradient(#ff7b72 144deg, var(--surface) 0deg); }
+    .ring-inner {
+      position: absolute; width: 76px; height: 76px; border-radius: 50%;
+      background: var(--bg); display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+    }
+    .ring-inner span { font-size: 1.3rem; font-weight: 700; }
+    .ring-inner small { font-size: 0.65rem; color: var(--muted); }
+
+    /* ── OWASP categories ── */
+    .cats {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+      width: 100%; max-width: 920px;
+    }
+    .cat {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 10px; text-align: center;
+    }
+    .cat .code { font-size: 0.78rem; color: var(--accent2); font-weight: 700; }
+    .cat .name { font-size: 0.72rem; color: var(--muted); margin-top: 4px; line-height: 1.3; }
+
+    /* ── Arch diagram ── */
+    .arch {
+      display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 700px;
+    }
+    .arch-layer {
+      border-radius: 8px; padding: 12px 20px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .arch-layer .layer-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; min-width: 140px; }
+    .arch-layer .layer-content { font-size: 0.88rem; color: var(--muted); }
+    .layer-domain   { background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); }
+    .layer-app      { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); }
+    .layer-infra    { background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.3); }
+    .layer-pres     { background: rgba(35,134,54,0.1);  border: 1px solid rgba(35,134,54,0.3);  }
+    .arch-arrow { text-align: center; color: var(--muted); font-size: 1rem; }
+
+    .layer-domain   .layer-label { color: #c084fc; }
+    .layer-app      .layer-label { color: #79c0ff; }
+    .layer-infra    .layer-label { color: #22d3ee; }
+    .layer-pres     .layer-label { color: #56d364; }
+
+    /* ── Flow steps ── */
+    .flow {
+      display: flex; align-items: center; gap: 0; width: 100%; max-width: 900px;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .flow-step {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 20px; text-align: center;
+      min-width: 130px; flex: 1; max-width: 160px;
+    }
+    .flow-step .step-num { font-size: 0.7rem; color: var(--accent2); font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+    .flow-step .step-icon { font-size: 1.8rem; margin: 6px 0; }
+    .flow-step .step-label { font-size: 0.82rem; color: var(--text); font-weight: 500; line-height: 1.3; }
+    .flow-arrow { font-size: 1.2rem; color: var(--border); margin: 0 4px; flex-shrink: 0; }
+
+    /* ── Closing ── */
+    .closing { text-align: center; gap: 24px; }
+    .stat-row { display: flex; gap: 40px; justify-content: center; margin-top: 12px; }
+    .stat { text-align: center; }
+    .stat .num { font-size: 2.2rem; font-weight: 700; color: var(--accent2); }
+    .stat .lbl { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+
+    .title-row { width: 100%; max-width: 1100px; margin-bottom: 32px; }
+    .title-row h2 { border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+    .content-row { width: 100%; max-width: 1100px; }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="slide-num" id="slideNum"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ── 1. PORTADA ── -->
+  <div class="slide cover active">
+    <img src="logo.svg" alt="OWMeter" style="width:260px;height:auto;margin-bottom:8px;" />
+    <div class="tagline">Analiza la seguridad de tu sitio web contra el estándar OWASP Top 10 y obtén una puntuación de cumplimiento</div>
+    <div class="url"><a href="https://owmeter.dev">owmeter.dev</a></div>
+  </div>
+
+  <!-- ── 2. PRESENTACIÓN ── -->
+  <div class="slide" style="align-items:flex-start; gap:32px;">
+    <div class="title-row">
+      <div class="section-label">01 · Presentación</div>
+      <h2 style="margin-top:10px;">¿Qué es Owmeter?</h2>
+    </div>
+    <div class="icon-list content-row">
+      <div class="icon-item">
+        <div class="icon bg-blue">🔍</div>
+        <div class="text">
+          <h4>Escáner de seguridad web open-source</h4>
+          <p>Owmeter permite a los propietarios de sitios web analizar su dominio frente al <strong>OWASP Top 10</strong> — la lista oficial de las vulnerabilidades web más críticas — y recibir una puntuación de seguridad clara y accionable.</p>
+        </div>
+      </div>
+      <div class="icon-item">
+        <div class="icon bg-purple" style="background:rgba(250,204,21,0.15);">🤖</div>
+        <div class="text">
+          <h4>Prompts listos para IA — no solo detecta, ayuda a corregir</h4>
+          <p>Cada vulnerabilidad encontrada incluye un botón <em>"Fix with AI"</em> que genera un prompt detallado listo para pegar en ChatGPT, Claude o cualquier IA. Incluye título, severidad, categoría OWASP, descripción, evidencia y pide código específico + guía paso a paso. También existe un botón que agrupa <strong>todos los issues a la vez</strong>, ordenados de más crítico a menos.</p>
+        </div>
+      </div>
+      <div class="icon-item">
+        <div class="icon bg-green">✅</div>
+        <div class="text">
+          <h4>Verificación de propiedad obligatoria — ético por diseño</h4>
+          <p>Antes de lanzar cualquier análisis, el usuario debe demostrar que es dueño del dominio. Esto impide que la herramienta se abuse para espiar webs de terceros.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 3. EL PROBLEMA ── -->
+  <div class="slide" style="align-items:flex-start; gap:32px;">
+    <div class="title-row">
+      <div class="section-label">02 · El Problema</div>
+      <h2 style="margin-top:10px;">La seguridad web es crítica… y opaca</h2>
+    </div>
+    <div class="two-col content-row" style="max-width:1000px;">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <span style="font-size:1.4rem;">😰</span>
+            <h4>Complejidad invisible</h4>
+          </div>
+          <p>El 90 % de los ataques web explotan vulnerabilidades bien conocidas y evitables, pero la mayoría de los desarrolladores no saben si su web es vulnerable.</p>
+        </div>
+        <div class="card">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <span style="font-size:1.4rem;">💸</span>
+            <h4>Auditorías costosas e inaccesibles</h4>
+          </div>
+          <p>Una auditoría de seguridad profesional cuesta miles de euros y requiere contratar a un especialista. No es una opción para proyectos pequeños o indie developers.</p>
+        </div>
+        <div class="card">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <span style="font-size:1.4rem;">🛠️</span>
+            <h4>Herramientas demasiado técnicas</h4>
+          </div>
+          <p>Herramientas como OWASP ZAP o Nessus son poderosas pero requieren conocimiento especializado. No existe un punto de entrada sencillo para el desarrollador promedio.</p>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;justify-content:center;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px 24px;text-align:center;">
+          <div style="font-size:2rem;font-weight:800;color:var(--danger);">Sin auditoría<br>= sin visibilidad</div>
+          <p style="font-size:0.9rem;margin-top:8px;">La mayoría de proyectos web no han pasado nunca por un análisis de seguridad</p>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px 24px;text-align:center;">
+          <div style="font-size:3rem;font-weight:800;color:var(--warn);">OWASP<br>Top 10</div>
+          <p style="font-size:0.9rem;margin-top:8px;">Estándar internacional que define las 10 categorías de vulnerabilidades web más importantes</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4. LA SOLUCIÓN ── -->
+  <div class="slide" style="align-items:flex-start; gap:32px;">
+    <div class="title-row">
+      <div class="section-label">02 · El Problema → Solución</div>
+      <h2 style="margin-top:10px;">Owmeter democratiza el análisis de seguridad</h2>
+    </div>
+    <div class="icon-list content-row">
+      <div class="icon-item">
+        <div class="icon bg-blue">🎯</div>
+        <div class="text">
+          <h4>Un resultado claro: tu puntuación de seguridad</h4>
+          <p>En lugar de un reporte técnico incomprensible, el usuario recibe una <strong>puntuación de 0 a 100</strong> y un desglose por categoría OWASP. Sabe exactamente qué arreglar.</p>
+        </div>
+      </div>
+      <div class="icon-item">
+        <div class="icon bg-green">🆓</div>
+        <div class="text">
+          <h4>Gratuito y open-source</h4>
+          <p>Sin barreras de coste. Cualquier desarrollador puede escanear su web, revisar el código fuente, o desplegarlo en su propia infraestructura.</p>
+        </div>
+      </div>
+      <div class="icon-item">
+        <div class="icon bg-warn">⚡</div>
+        <div class="text">
+          <h4>Powered by OWASP ZAP + análisis pasivo</h4>
+          <p>Bajo el capó usa <strong>OWASP ZAP</strong> (el escáner de seguridad más usado del mundo) junto con análisis propio de cabeceras HTTP, TLS y código fuente.</p>
+        </div>
+      </div>
+      <div class="icon-item">
+        <div class="icon bg-purple">🔒</div>
+        <div class="text">
+          <h4>Ético por diseño</h4>
+          <p>Solo puedes escanear dominios que demuestres que son tuyos. La herramienta no puede convertirse en un instrumento de ataque.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 5. CÓMO FUNCIONA - FLUJO ── -->
+  <div class="slide" style="align-items:flex-start; gap:32px;">
+    <div class="title-row">
+      <div class="section-label">03 · Cómo Funciona</div>
+      <h2 style="margin-top:10px;">Flujo de usuario</h2>
+    </div>
+    <div class="flow content-row">
+      <div class="flow-step">
+        <div class="step-num">Paso 1</div>
+        <div class="step-icon">🔑</div>
+        <div class="step-label">Login con Google o GitHub</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">Paso 2</div>
+        <div class="step-icon">➕</div>
+        <div class="step-label">Crear proyecto y añadir dominio</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">Paso 3</div>
+        <div class="step-icon">🛡️</div>
+        <div class="step-label">Verificar propiedad del dominio</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">Paso 4</div>
+        <div class="step-icon">🚀</div>
+        <div class="step-label">Lanzar análisis de seguridad</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">Paso 5</div>
+        <div class="step-icon">📊</div>
+        <div class="step-label">Ver resultados y puntuación</div>
+      </div>
+    </div>
+    <div class="content-row" style="margin-top:24px;">
+      <div class="card" style="max-width:860px;">
+        <h4>Verificación de propiedad — 3 métodos</h4>
+        <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;">
+          <span class="pill pill-blue">🌐 DNS TXT record</span>
+          <span class="pill pill-green">🏷️ Meta tag HTML</span>
+          <span class="pill pill-warn">📁 Archivo .well-known</span>
+          <span class="pill pill-blue" style="margin-left:auto;">🐙 GitHub App (repos privados)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 6. TIPOS DE ANÁLISIS ── -->
+  <div class="slide" style="align-items:flex-start; gap:32px;">
+    <div class="title-row">
+      <div class="section-label">03 · Cómo Funciona</div>
+      <h2 style="margin-top:10px;">Tres modos de análisis</h2>
+    </div>
+    <div class="icon-list content-row">
+      <div class="icon-item">
+        <div class="icon bg-blue">👁️</div>
+        <div class="text">
+          <h4>Análisis Pasivo</h4>
+          <p>Examina <strong>cabeceras HTTP</strong> (CSP, HSTS, X-Frame-Options…), configuración <strong>TLS/SSL</strong>, <strong>flags de cookies</strong>, y sondeos de rutas comunes. No interactúa con la lógica de la aplicación. Rápido y no intrusivo.</p>
+        </div>
+      </div>
+      <div class="icon-item">
+        <div class="icon bg-red">⚔️</div>
+        <div class="text">
+          <h4>Análisis Activo (OWASP ZAP)</h4>
+          <p>Lanza el <strong>spider + modo de ataque activo</strong> de OWASP ZAP vía su API REST desde un contenedor Docker. Detecta vulnerabilidades como XSS, SQLi, SSRF, path traversal, y más. Las tareas largas se procesan en segundo plano con <strong>BullMQ + Redis</strong>.</p>
+        </div>
+      </div>
+      <div class="icon-item">
+        <div class="icon bg-green">📦</div>
+        <div class="text">
+          <h4>Análisis de Código Fuente</h4>
+          <p>Análisis estático (SAST) de proyectos <strong>JavaScript / TypeScript</strong>: escanea <code>package.json</code>, detecta dependencias con <strong>CVEs conocidos</strong> (vía GitHub Advisory API), y busca patrones inseguros en el código. Soporte para repos privados vía GitHub App.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 7. OWASP COVERAGE ── -->
+  <div class="slide" style="align-items:flex-start; gap:28px;">
+    <div class="title-row">
+      <div class="section-label">03 · Cómo Funciona</div>
+      <h2 style="margin-top:10px;">Cobertura OWASP Top 10 completa</h2>
+    </div>
+    <div class="cats content-row">
+      <div class="cat"><div class="code">A01</div><div class="name">Broken Access Control</div></div>
+      <div class="cat"><div class="code">A02</div><div class="name">Cryptographic Failures</div></div>
+      <div class="cat"><div class="code">A03</div><div class="name">Injection</div></div>
+      <div class="cat"><div class="code">A04</div><div class="name">Insecure Design</div></div>
+      <div class="cat"><div class="code">A05</div><div class="name">Security Misconfiguration</div></div>
+      <div class="cat"><div class="code">A06</div><div class="name">Vulnerable Components</div></div>
+      <div class="cat"><div class="code">A07</div><div class="name">Auth Failures</div></div>
+      <div class="cat"><div class="code">A08</div><div class="name">Software & Data Integrity</div></div>
+      <div class="cat"><div class="code">A09</div><div class="name">Security Logging</div></div>
+      <div class="cat"><div class="code">A10</div><div class="name">SSRF</div></div>
+    </div>
+    <div class="content-row" style="max-width:860px;">
+      <h3 style="margin-bottom:16px;">Sistema de puntuación por severidad</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Severidad</th>
+            <th>Puntos deducidos</th>
+            <th>Ejemplo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="pill pill-blue">Info</span></td><td>0 pts</td><td>Banner de versión de servidor</td></tr>
+          <tr><td><span class="pill pill-green">Low</span></td><td>−1 pt</td><td>Falta cabecera X-Content-Type</td></tr>
+          <tr><td><span class="pill pill-warn">Medium</span></td><td>−2 pts</td><td>CSP permisiva o ausente</td></tr>
+          <tr><td><span class="pill pill-red">High</span></td><td>−4 pts</td><td>Cookies sin flag Secure/HttpOnly</td></tr>
+          <tr><td><span class="pill pill-red" style="background:rgba(218,54,51,0.2)">Critical</span></td><td>−6 pts</td><td>Vulnerabilidad XSS o SQLi activa</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── 8. CARACTERÍSTICAS AVANZADAS ── -->
+  <div class="slide" style="align-items:flex-start; gap:32px;">
+    <div class="title-row">
+      <div class="section-label">03 · Cómo Funciona</div>
+      <h2 style="margin-top:10px;">Características adicionales</h2>
+    </div>
+    <div class="two-col content-row" style="max-width:1000px;gap:20px;">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><span>📄</span><h4>Certificado PDF descargable</h4></div>
+          <p>Tras cada análisis el usuario puede descargar un informe PDF compartible con los resultados, puntuación y hallazgos por categoría.</p>
+        </div>
+        <div class="card">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><span>🚩</span><h4>Gestión de falsos positivos</h4></div>
+          <p>El usuario puede reportar hallazgos incorrectos desde la página de resultados. Los admins revisan y suprimen los aprobados en futuros análisis.</p>
+        </div>
+        <div class="card">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><span>🐙</span><h4>Repos privados via GitHub App</h4></div>
+          <p>Integración con GitHub App para acceder a repositorios privados sin almacenar tokens. Token efímero generado bajo demanda y descartado.</p>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><span>🤖</span><h4>Fix with AI</h4></div>
+          <p>Cada hallazgo incluye un botón que genera un prompt listo para copiar en cualquier IA. También hay un "Fix all" que agrupa todos los issues ordenados de CRITICAL a INFO.</p>
+        </div>
+        <div class="card">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><span>🌍</span><h4>Multiidioma (ES / EN)</h4></div>
+          <p>Interfaz completamente traducida al español e inglés usando next-intl con rutas por locale (<code>/es/</code>, <code>/en/</code>).</p>
+        </div>
+        <div class="card">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><span>⚙️</span><h4>Integración con CI/CD (GitHub Actions)</h4></div>
+          <p>Cada proyecto expone un endpoint autenticado con API key. Un <code>curl</code> desde cualquier pipeline lanza el análisis automáticamente en cada push a <code>main</code>.</p>
+          <pre style="margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:0.72rem;color:#8b949e;overflow:auto;line-height:1.5;">on:
+  push:
+    branches: [main]
+steps:
+  - run: |
+      curl -sf -X POST \
+        -H "Authorization: Bearer ${{ secrets.OWMETER_API_KEY }}" \
+        https://owmeter.dev/api/projects/${{ secrets.OWMETER_PROJECT_ID }}/trigger-scan</pre>
+        </div>
+        <div class="card">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><span>📛</span><h4>Badge dinámico para README</h4></div>
+          <p>Genera un badge con la puntuación actual del proyecto, incrustable en un README de GitHub o cualquier web pública.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 9. TECNOLOGÍAS ── -->
+  <div class="slide" style="align-items:flex-start; gap:32px;">
+    <div class="title-row">
+      <div class="section-label">04 · Stack Tecnológico</div>
+      <h2 style="margin-top:10px;">Tecnologías usadas</h2>
+    </div>
+    <div class="two-col content-row" style="max-width:1000px;">
+      <table>
+        <thead><tr><th>Capa</th><th>Tecnología</th></tr></thead>
+        <tbody>
+          <tr><td style="color:var(--muted);font-size:0.82rem;">Framework</td><td><strong>Next.js 16</strong> · App Router · TypeScript</td></tr>
+          <tr><td style="color:var(--muted);font-size:0.82rem;">Autenticación</td><td><strong>Auth.js v5</strong> · OAuth Google + GitHub · JWT</td></tr>
+          <tr><td style="color:var(--muted);font-size:0.82rem;">Base de datos</td><td><strong>PostgreSQL 17</strong> · Prisma 7</td></tr>
+          <tr><td style="color:var(--muted);font-size:0.82rem;">Cola de tareas</td><td><strong>BullMQ</strong> + <strong>Redis 7</strong></td></tr>
+          <tr><td style="color:var(--muted);font-size:0.82rem;">Escáner activo</td><td><strong>OWASP ZAP</strong> · Docker · REST API</td></tr>
+          <tr><td style="color:var(--muted);font-size:0.82rem;">i18n</td><td><strong>next-intl</strong> · rutas por locale</td></tr>
+          <tr><td style="color:var(--muted);font-size:0.82rem;">Estilos</td><td><strong>Tailwind CSS v4</strong></td></tr>
+          <tr><td style="color:var(--muted);font-size:0.82rem;">PDF</td><td><strong>@react-pdf/renderer</strong></td></tr>
+          <tr><td style="color:var(--muted);font-size:0.82rem;">Validación</td><td><strong>Zod v4</strong> en todos los boundaries</td></tr>
+          <tr><td style="color:var(--muted);font-size:0.82rem;">Testing</td><td><strong>Vitest</strong> + React Testing Library</td></tr>
+          <tr><td style="color:var(--muted);font-size:0.82rem;">Logging</td><td><strong>pino</strong></td></tr>
+        </tbody>
+      </table>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card">
+          <h4 style="color:var(--accent2);margin-bottom:8px;">La aplicación se audita a sí misma</h4>
+          <p>Owmeter mantiene su propio badge OWASP en el README — la puntuación de seguridad de <em>owmeter.dev</em> frente al estándar que implementa. El proyecto cumple A01, A02, A04, A05 y A07.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:8px;">Arquitectura limpia (Clean Architecture)</h4>
+          <p>Capas estrictamente separadas: <code>domain</code> → <code>application</code> → <code>infrastructure</code> → <code>presentation</code>. Sin imports hacia arriba.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:8px;">Infraestructura 100% dockerizada</h4>
+          <p>PostgreSQL, Redis, y OWASP ZAP corren en contenedores. Un solo <code>docker compose up</code> levanta todo el entorno de desarrollo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 10. ARQUITECTURA ── -->
+  <div class="slide" style="align-items:flex-start; gap:32px;">
+    <div class="title-row">
+      <div class="section-label">05 · Arquitectura</div>
+      <h2 style="margin-top:10px;">Diseño en capas — Clean Architecture</h2>
+    </div>
+    <div style="display:flex;gap:48px;width:100%;max-width:1000px;align-items:flex-start;">
+      <div class="arch" style="flex:1;">
+        <div class="arch-layer layer-pres">
+          <div class="layer-label">Presentation</div>
+          <div class="layer-content">Next.js App Router · Server Actions · Componentes React · i18n</div>
+        </div>
+        <div class="arch-arrow">↓ llama a →</div>
+        <div class="arch-layer layer-app">
+          <div class="layer-label">Application</div>
+          <div class="layer-content">Use cases · Orquestación de lógica · Sin imports de Prisma</div>
+        </div>
+        <div class="arch-arrow">↓ depende de interfaces →</div>
+        <div class="arch-layer layer-domain">
+          <div class="layer-label">Domain</div>
+          <div class="layer-content">Entidades puras · Value objects · Servicios de dominio · Solo TypeScript</div>
+        </div>
+        <div class="arch-arrow">↑ implementado por →</div>
+        <div class="arch-layer layer-infra">
+          <div class="layer-label">Infrastructure</div>
+          <div class="layer-content">Prisma · BullMQ workers · ZAP client · GitHub API · Resend</div>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <h4>¿Por qué Clean Architecture?</h4>
+          <p>Permite testear la lógica de negocio sin base de datos ni servicios externos. Los tests de use-case solo usan <code>vi.fn()</code>, no Prisma real.</p>
+        </div>
+        <div class="card">
+          <h4>Regla de dependencia</h4>
+          <p>El código de capas internas (<code>domain</code>) nunca importa capas externas. El framework puede cambiar sin tocar la lógica de negocio.</p>
+        </div>
+        <div class="card">
+          <h4>Proxy en lugar de middleware</h4>
+          <p>Next.js 16 renombra <code>middleware.ts</code> a <code>proxy.ts</code>. Gestiona detección de locale y guarda de autenticación en <code>/dashboard/**</code>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 11. CIERRE ── -->
+  <div class="slide closing">
+    <img src="logo.svg" alt="OWMeter" style="width:200px;height:auto;" />
+    <p style="max-width:560px;color:var(--muted);font-size:1.05rem;">Seguridad web accesible, basada en estándares, y de código abierto — para cualquier desarrollador o propietario de un sitio web.</p>
+    <div class="stat-row">
+      <div class="stat">
+        <div class="num">10</div>
+        <div class="lbl">Categorías OWASP cubiertas</div>
+      </div>
+      <div class="stat">
+        <div class="num">3</div>
+        <div class="lbl">Modos de análisis</div>
+      </div>
+      <div class="stat">
+        <div class="num">100</div>
+        <div class="lbl">Puntuación máxima posible</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:16px;">
+      <span class="pill pill-green">Open Source · MIT</span>
+      <span class="pill pill-blue">owmeter.dev</span>
+    </div>
+    <div style="margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 28px;max-width:560px;text-align:left;">
+      <p style="font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;color:var(--accent2);font-weight:600;margin-bottom:14px;">Roadmap</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="color:var(--accent2);margin-top:1px;">→</span>
+          <p style="font-size:0.9rem;"><strong>Reducir falsos positivos</strong> — afinar el escáner para mejorar la precisión de las detecciones y filtrar resultados inválidos</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="color:var(--accent2);margin-top:1px;">→</span>
+          <p style="font-size:0.9rem;"><strong>Soporte multi-lenguaje</strong> — ampliar el análisis de código fuente a .NET, Java, Python y Go</p>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:24px;font-size:0.9rem;color:var(--muted);">Gracias</p>
+  </div>
+
+</div>
+
+<nav>
+  <button id="prev" onclick="go(-1)">← Anterior</button>
+  <span id="counter"></span>
+  <button id="next" onclick="go(1)">Siguiente →</button>
+</nav>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let cur = 0;
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === cur));
+    document.getElementById('counter').textContent = `${cur + 1} / ${slides.length}`;
+    document.getElementById('slideNum').textContent = `${cur + 1} / ${slides.length}`;
+    document.getElementById('prev').disabled = cur === 0;
+    document.getElementById('next').disabled = cur === slides.length - 1;
+    document.getElementById('progress').style.width = `${((cur + 1) / slides.length) * 100}%`;
+  }
+
+  function go(d) {
+    cur = Math.max(0, Math.min(slides.length - 1, cur + d));
+    render();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') go(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') go(-1);
+  });
+
+  render();
+</script>
+</body>
+</html>
