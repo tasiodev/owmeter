@@ -3,14 +3,14 @@ import { fpKey, extractFilePath } from "../FalsePositiveReport";
 
 describe("fpKey", () => {
   it("concatenates category, title and filePath with colons", () => {
-    expect(fpKey("A03_INJECTION", "SQL Injection", "src/db.ts")).toBe(
-      "A03_INJECTION:SQL Injection:src/db.ts"
+    expect(fpKey("A05_INJECTION", "SQL Injection", "src/db.ts")).toBe(
+      "A05_INJECTION:SQL Injection:src/db.ts"
     );
   });
 
   it("produces a stable key with an empty filePath", () => {
-    expect(fpKey("A05_SECURITY_MISCONFIGURATION", "Missing CSP", "")).toBe(
-      "A05_SECURITY_MISCONFIGURATION:Missing CSP:"
+    expect(fpKey("A02_SECURITY_MISCONFIGURATION", "Missing CSP", "")).toBe(
+      "A02_SECURITY_MISCONFIGURATION:Missing CSP:"
     );
   });
 
@@ -21,8 +21,8 @@ describe("fpKey", () => {
   });
 
   it("different filePaths produce different keys", () => {
-    const a = fpKey("A03_INJECTION", "XSS", "src/a.tsx");
-    const b = fpKey("A03_INJECTION", "XSS", "src/b.tsx");
+    const a = fpKey("A05_INJECTION", "XSS", "src/a.tsx");
+    const b = fpKey("A05_INJECTION", "XSS", "src/b.tsx");
     expect(a).not.toBe(b);
   });
 });

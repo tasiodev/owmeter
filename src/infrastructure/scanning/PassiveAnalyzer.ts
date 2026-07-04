@@ -13,7 +13,7 @@ const REQUIRED_SECURITY_HEADERS: Record<string, { description: string; missingFi
   "strict-transport-security": {
     description: "HSTS prevents protocol downgrade attacks",
     missingFinding: {
-      category: "A02_CRYPTOGRAPHIC_FAILURES",
+      category: "A04_CRYPTOGRAPHIC_FAILURES",
       severity: "HIGH",
       title: "Missing Strict-Transport-Security (HSTS) header",
       description: "The server does not set HSTS, leaving users vulnerable to SSL stripping attacks.",
@@ -22,7 +22,7 @@ const REQUIRED_SECURITY_HEADERS: Record<string, { description: string; missingFi
   "content-security-policy": {
     description: "CSP mitigates XSS attacks",
     missingFinding: {
-      category: "A05_SECURITY_MISCONFIGURATION",
+      category: "A02_SECURITY_MISCONFIGURATION",
       severity: "MEDIUM",
       title: "Missing Content-Security-Policy header",
       description: "No CSP header found. This increases the risk of XSS attacks.",
@@ -31,7 +31,7 @@ const REQUIRED_SECURITY_HEADERS: Record<string, { description: string; missingFi
   "x-frame-options": {
     description: "Prevents clickjacking",
     missingFinding: {
-      category: "A05_SECURITY_MISCONFIGURATION",
+      category: "A02_SECURITY_MISCONFIGURATION",
       severity: "MEDIUM",
       title: "Missing X-Frame-Options header",
       description: "The page can be embedded in iframes, enabling clickjacking attacks.",
@@ -40,7 +40,7 @@ const REQUIRED_SECURITY_HEADERS: Record<string, { description: string; missingFi
   "x-content-type-options": {
     description: "Prevents MIME sniffing",
     missingFinding: {
-      category: "A05_SECURITY_MISCONFIGURATION",
+      category: "A02_SECURITY_MISCONFIGURATION",
       severity: "LOW",
       title: "Missing X-Content-Type-Options header",
       description: "Browser may perform MIME-type sniffing, which can lead to XSS.",
@@ -49,7 +49,7 @@ const REQUIRED_SECURITY_HEADERS: Record<string, { description: string; missingFi
   "referrer-policy": {
     description: "Controls referrer information",
     missingFinding: {
-      category: "A05_SECURITY_MISCONFIGURATION",
+      category: "A02_SECURITY_MISCONFIGURATION",
       severity: "LOW",
       title: "Missing Referrer-Policy header",
       description: "Without a Referrer-Policy, sensitive URL data may leak to third parties.",
@@ -58,7 +58,7 @@ const REQUIRED_SECURITY_HEADERS: Record<string, { description: string; missingFi
   "permissions-policy": {
     description: "Controls browser feature access",
     missingFinding: {
-      category: "A05_SECURITY_MISCONFIGURATION",
+      category: "A02_SECURITY_MISCONFIGURATION",
       severity: "LOW",
       title: "Missing Permissions-Policy header",
       description: "No Permissions-Policy found. Browser features like camera/microphone are unrestricted.",
@@ -133,7 +133,7 @@ function checkServerInfoLeak(headers: Record<string, string>): RawFinding[] {
   for (const header of leakyHeaders) {
     if (headers[header]) {
       findings.push({
-        category: "A05_SECURITY_MISCONFIGURATION",
+        category: "A02_SECURITY_MISCONFIGURATION",
         severity: "LOW",
         title: `Server information disclosed via ${header} header`,
         description: `The response includes the ${header} header, which reveals server technology information.`,
@@ -146,7 +146,7 @@ function checkServerInfoLeak(headers: Record<string, string>): RawFinding[] {
   const acao = headers["access-control-allow-origin"];
   if (acao === "*") {
     findings.push({
-      category: "A05_SECURITY_MISCONFIGURATION",
+      category: "A02_SECURITY_MISCONFIGURATION",
       severity: "MEDIUM",
       title: "CORS wildcard origin (Access-Control-Allow-Origin: *)",
       description: "The server allows requests from any origin. This disables same-origin protection and exposes APIs to any website.",
@@ -180,7 +180,7 @@ function checkCookieSecurity(headers: Record<string, string>): RawFinding[] {
     }
     if (!lower.includes("secure")) {
       findings.push({
-        category: "A02_CRYPTOGRAPHIC_FAILURES",
+        category: "A04_CRYPTOGRAPHIC_FAILURES",
         severity: "MEDIUM",
         title: `Cookie missing Secure flag: ${name}`,
         description: "Cookie transmitted over HTTP. The Secure flag ensures cookies are only sent over HTTPS.",
@@ -214,7 +214,7 @@ export async function runPassiveAnalysis(targetUrl: string): Promise<RawFinding[
       const { redirectedToHttps } = await fetchWithRedirect(httpBase, 3);
       if (!redirectedToHttps) {
         findings.push({
-          category: "A02_CRYPTOGRAPHIC_FAILURES",
+          category: "A04_CRYPTOGRAPHIC_FAILURES",
           severity: "HIGH",
           title: "HTTP not redirected to HTTPS",
           description: "The site does not redirect HTTP traffic to HTTPS, leaving users exposed to plaintext interception.",

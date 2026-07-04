@@ -68,7 +68,7 @@ describe("runPassiveAnalysis", () => {
 
     expect(cspFinding).toBeDefined();
     expect(cspFinding?.severity).toBe("MEDIUM");
-    expect(cspFinding?.category).toBe("A05_SECURITY_MISCONFIGURATION");
+    expect(cspFinding?.category).toBe("A02_SECURITY_MISCONFIGURATION");
   });
 
   it("reports missing HSTS header as HIGH severity", async () => {
@@ -82,7 +82,7 @@ describe("runPassiveAnalysis", () => {
 
     expect(hstsFinding).toBeDefined();
     expect(hstsFinding?.severity).toBe("HIGH");
-    expect(hstsFinding?.category).toBe("A02_CRYPTOGRAPHIC_FAILURES");
+    expect(hstsFinding?.category).toBe("A04_CRYPTOGRAPHIC_FAILURES");
   });
 
   it("reports missing X-Frame-Options as MEDIUM severity", async () => {
@@ -109,7 +109,7 @@ describe("runPassiveAnalysis", () => {
 
     expect(serverFinding).toBeDefined();
     expect(serverFinding?.severity).toBe("LOW");
-    expect(serverFinding?.category).toBe("A05_SECURITY_MISCONFIGURATION");
+    expect(serverFinding?.category).toBe("A02_SECURITY_MISCONFIGURATION");
   });
 
   it("reports cookie missing HttpOnly as MEDIUM severity for session cookies", async () => {

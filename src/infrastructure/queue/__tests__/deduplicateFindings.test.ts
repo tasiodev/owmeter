@@ -3,7 +3,7 @@ import { deduplicateFindings } from "../scanQueue";
 import type { RawFinding } from "@/domain/services/ScoringService";
 
 const base: Omit<RawFinding, "title"> = {
-  category: "A05_SECURITY_MISCONFIGURATION",
+  category: "A02_SECURITY_MISCONFIGURATION",
   severity: "MEDIUM",
   description: "desc",
 };
@@ -65,8 +65,8 @@ describe("deduplicateFindings", () => {
 
   it("keeps same title in different categories as separate findings", () => {
     const findings: RawFinding[] = [
-      { ...base, category: "A02_CRYPTOGRAPHIC_FAILURES", title: "Weak cipher" },
-      { ...base, category: "A05_SECURITY_MISCONFIGURATION", title: "Weak cipher" },
+      { ...base, category: "A04_CRYPTOGRAPHIC_FAILURES", title: "Weak cipher" },
+      { ...base, category: "A02_SECURITY_MISCONFIGURATION", title: "Weak cipher" },
     ];
     expect(deduplicateFindings(findings)).toHaveLength(2);
   });

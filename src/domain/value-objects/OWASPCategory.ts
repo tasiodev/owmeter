@@ -1,63 +1,63 @@
 export const OWASP_CATEGORIES = {
   A01_BROKEN_ACCESS_CONTROL: {
     id: "A01_BROKEN_ACCESS_CONTROL",
-    name: "A01:2021 Broken Access Control",
+    name: "A01:2025 Broken Access Control",
     maxPoints: 10,
-    url: "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+    url: "https://owasp.org/Top10/A01_2025-Broken_Access_Control/",
   },
-  A02_CRYPTOGRAPHIC_FAILURES: {
-    id: "A02_CRYPTOGRAPHIC_FAILURES",
-    name: "A02:2021 Cryptographic Failures",
+  A02_SECURITY_MISCONFIGURATION: {
+    id: "A02_SECURITY_MISCONFIGURATION",
+    name: "A02:2025 Security Misconfiguration",
     maxPoints: 15,
-    url: "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/",
+    url: "https://owasp.org/Top10/A02_2025-Security_Misconfiguration/",
   },
-  A03_INJECTION: {
-    id: "A03_INJECTION",
-    name: "A03:2021 Injection",
-    maxPoints: 8,
-    url: "https://owasp.org/Top10/A03_2021-Injection/",
-  },
-  A04_INSECURE_DESIGN: {
-    id: "A04_INSECURE_DESIGN",
-    name: "A04:2021 Insecure Design",
-    maxPoints: 10,
-    url: "https://owasp.org/Top10/A04_2021-Insecure_Design/",
-  },
-  A05_SECURITY_MISCONFIGURATION: {
-    id: "A05_SECURITY_MISCONFIGURATION",
-    name: "A05:2021 Security Misconfiguration",
-    maxPoints: 15,
-    url: "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
-  },
-  A06_VULNERABLE_COMPONENTS: {
-    id: "A06_VULNERABLE_COMPONENTS",
-    name: "A06:2021 Vulnerable & Outdated Components",
+  A03_SUPPLY_CHAIN_FAILURES: {
+    id: "A03_SUPPLY_CHAIN_FAILURES",
+    name: "A03:2025 Software Supply Chain Failures",
     maxPoints: 5,
-    url: "https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/",
+    url: "https://owasp.org/Top10/A03_2025-Software_Supply_Chain_Failures/",
+  },
+  A04_CRYPTOGRAPHIC_FAILURES: {
+    id: "A04_CRYPTOGRAPHIC_FAILURES",
+    name: "A04:2025 Cryptographic Failures",
+    maxPoints: 15,
+    url: "https://owasp.org/Top10/A04_2025-Cryptographic_Failures/",
+  },
+  A05_INJECTION: {
+    id: "A05_INJECTION",
+    name: "A05:2025 Injection",
+    maxPoints: 8,
+    url: "https://owasp.org/Top10/A05_2025-Injection/",
+  },
+  A06_INSECURE_DESIGN: {
+    id: "A06_INSECURE_DESIGN",
+    name: "A06:2025 Insecure Design",
+    maxPoints: 10,
+    url: "https://owasp.org/Top10/A06_2025-Insecure_Design/",
   },
   A07_AUTH_FAILURES: {
     id: "A07_AUTH_FAILURES",
-    name: "A07:2021 Identification & Auth Failures",
+    name: "A07:2025 Authentication Failures",
     maxPoints: 10,
-    url: "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/",
+    url: "https://owasp.org/Top10/A07_2025-Authentication_Failures/",
   },
   A08_DATA_INTEGRITY_FAILURES: {
     id: "A08_DATA_INTEGRITY_FAILURES",
-    name: "A08:2021 Software & Data Integrity Failures",
+    name: "A08:2025 Software or Data Integrity Failures",
     maxPoints: 10,
-    url: "https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/",
+    url: "https://owasp.org/Top10/A08_2025-Software_and_Data_Integrity_Failures/",
   },
   A09_LOGGING_FAILURES: {
     id: "A09_LOGGING_FAILURES",
-    name: "A09:2021 Security Logging & Monitoring Failures",
+    name: "A09:2025 Security Logging and Alerting Failures",
     maxPoints: 15,
-    url: "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/",
+    url: "https://owasp.org/Top10/A09_2025-Security_Logging_and_Monitoring_Failures/",
   },
-  A10_SSRF: {
-    id: "A10_SSRF",
-    name: "A10:2021 Server-Side Request Forgery",
+  A10_EXCEPTIONAL_CONDITIONS: {
+    id: "A10_EXCEPTIONAL_CONDITIONS",
+    name: "A10:2025 Mishandling of Exceptional Conditions",
     maxPoints: 2,
-    url: "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/",
+    url: "https://owasp.org/Top10/A10_2025-Mishandling_of_Exceptional_Conditions/",
   },
 } as const;
 
@@ -70,46 +70,46 @@ export type ScanMode = "PASSIVE" | "FULL" | "CODE";
 
 // Categories not evaluated in PASSIVE mode (domain + ZAP only, no source code).
 export const PASSIVE_UNEVALUATED: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
-  "A04_INSECURE_DESIGN",         // requires architecture/code review
-  "A08_DATA_INTEGRITY_FAILURES", // requires code/CI analysis
-  "A09_LOGGING_FAILURES",        // requires code/system access
+  "A06_INSECURE_DESIGN",          // requires architecture/code review
+  "A08_DATA_INTEGRITY_FAILURES",  // requires code/CI analysis
+  "A09_LOGGING_FAILURES",         // requires code/system access
+  "A10_EXCEPTIONAL_CONDITIONS",   // requires code review for exception handling patterns
 ]);
 
 // Categories only PARTIALLY evaluable in PASSIVE mode (domain + ZAP, no source code).
 // ZAP and PassiveAnalyzer cover the externally visible surface; code is needed to close the gaps.
 export const PASSIVE_PARTIAL: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
-  "A01_BROKEN_ACCESS_CONTROL",  // ZAP: path traversal + 6 sensitive paths; code: RBAC, auth middleware, IDOR
-  "A02_CRYPTOGRAPHIC_FAILURES", // ZAP+passive: HTTPS/HSTS/TLS/Secure-cookie; code: MD5/SHA-1/JWT algo choice
-  "A03_INJECTION",              // ZAP: SQL/XSS payloads on public endpoints; code: parameterized queries everywhere
-  "A06_VULNERABLE_COMPONENTS",  // ZAP retire.js: client-side JS libraries; code: server-side deps (package.json)
-  "A07_AUTH_FAILURES",          // passive: cookie flags; ZAP: brute-force/session; code: JWT secret, bcrypt
-  "A10_SSRF",                   // ZAP: probes on discovered inputs; code: all internal URL fetches
+  "A01_BROKEN_ACCESS_CONTROL",   // ZAP: path traversal + 6 sensitive paths; code: RBAC, auth middleware, IDOR
+  "A03_SUPPLY_CHAIN_FAILURES",   // ZAP retire.js: client-side JS libraries; code: server-side deps (package.json)
+  "A04_CRYPTOGRAPHIC_FAILURES",  // ZAP+passive: HTTPS/HSTS/TLS/Secure-cookie; code: MD5/SHA-1/JWT algo choice
+  "A05_INJECTION",               // ZAP: SQL/XSS payloads on public endpoints; code: parameterized queries everywhere
+  "A07_AUTH_FAILURES",           // passive: cookie flags; ZAP: brute-force/session; code: JWT secret, bcrypt
 ]);
 
-// A05 checks HTTP headers, SSL certs, and server config — impossible to verify from source code alone
+// A02 checks HTTP headers, SSL certs, and server config — impossible to verify from source code alone
 export const CODE_UNEVALUATED: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
-  "A05_SECURITY_MISCONFIGURATION",
+  "A02_SECURITY_MISCONFIGURATION",
 ]);
 
 // These categories are only PARTIALLY evaluable from source code alone.
 // The code-checkable aspects are covered, but server-side runtime checks require a live domain.
 export const CODE_PARTIAL: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
-  "A01_BROKEN_ACCESS_CONTROL",  // code: CORS wildcard patterns only; runtime: path traversal, IDOR, missing auth
-  "A02_CRYPTOGRAPHIC_FAILURES", // code: weak crypto, hardcoded secrets, web storage tokens; server: TLS/HTTPS config
-  "A07_AUTH_FAILURES",          // code: auth logic, password hashing; server: cookie flags (HttpOnly, Secure, SameSite)
+  "A01_BROKEN_ACCESS_CONTROL",   // code: CORS wildcard patterns only; runtime: path traversal, IDOR, missing auth
+  "A04_CRYPTOGRAPHIC_FAILURES",  // code: weak crypto, hardcoded secrets, web storage tokens; server: TLS/HTTPS config
+  "A07_AUTH_FAILURES",           // code: auth logic, password hashing; server: cookie flags (HttpOnly, Secure, SameSite)
 ]);
 
 // Categories whose checks are JS/TS-specific. For foreign-language projects (e.g. .NET, Java)
-// these are skipped entirely — only A04 (hardcoded secrets) runs cross-language.
+// these are skipped entirely — only A06 (hardcoded secrets) runs cross-language.
 export const FOREIGN_LANG_UNEVALUATED: ReadonlySet<OWASPCategoryId> = new Set<OWASPCategoryId>([
   "A01_BROKEN_ACCESS_CONTROL",
-  "A02_CRYPTOGRAPHIC_FAILURES",
-  "A03_INJECTION",
-  "A06_VULNERABLE_COMPONENTS",
+  "A03_SUPPLY_CHAIN_FAILURES",
+  "A04_CRYPTOGRAPHIC_FAILURES",
+  "A05_INJECTION",
   "A07_AUTH_FAILURES",
   "A08_DATA_INTEGRITY_FAILURES",
   "A09_LOGGING_FAILURES",
-  "A10_SSRF",
+  "A10_EXCEPTIONAL_CONDITIONS",
 ]);
 
 export type EvaluationLevel = "full" | "partial" | "none";

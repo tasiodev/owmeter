@@ -18,14 +18,16 @@ describe("OWASP_CATEGORIES", () => {
   });
 
   it("scanning categories have correct maxPoints", () => {
-    expect(OWASP_CATEGORIES.A02_CRYPTOGRAPHIC_FAILURES.maxPoints).toBe(15);
-    expect(OWASP_CATEGORIES.A05_SECURITY_MISCONFIGURATION.maxPoints).toBe(15);
+    expect(OWASP_CATEGORIES.A04_CRYPTOGRAPHIC_FAILURES.maxPoints).toBe(15);
+    expect(OWASP_CATEGORIES.A02_SECURITY_MISCONFIGURATION.maxPoints).toBe(15);
+    expect(OWASP_CATEGORIES.A09_LOGGING_FAILURES.maxPoints).toBe(15);
     expect(OWASP_CATEGORIES.A01_BROKEN_ACCESS_CONTROL.maxPoints).toBe(10);
     expect(OWASP_CATEGORIES.A07_AUTH_FAILURES.maxPoints).toBe(10);
-    expect(OWASP_CATEGORIES.A04_INSECURE_DESIGN.maxPoints).toBe(10);
-    expect(OWASP_CATEGORIES.A03_INJECTION.maxPoints).toBe(8);
-    expect(OWASP_CATEGORIES.A06_VULNERABLE_COMPONENTS.maxPoints).toBe(5);
-    expect(OWASP_CATEGORIES.A10_SSRF.maxPoints).toBe(2);
+    expect(OWASP_CATEGORIES.A06_INSECURE_DESIGN.maxPoints).toBe(10);
+    expect(OWASP_CATEGORIES.A08_DATA_INTEGRITY_FAILURES.maxPoints).toBe(10);
+    expect(OWASP_CATEGORIES.A05_INJECTION.maxPoints).toBe(8);
+    expect(OWASP_CATEGORIES.A03_SUPPLY_CHAIN_FAILURES.maxPoints).toBe(5);
+    expect(OWASP_CATEGORIES.A10_EXCEPTIONAL_CONDITIONS.maxPoints).toBe(2);
   });
 });
 
@@ -44,27 +46,28 @@ describe("evaluationLevel — PASSIVE mode", () => {
     }
   });
 
-  it("A01/A02/A03/A07/A10 are partial — ZAP covers public surface, code covers the rest", () => {
+  it("A01/A03/A04/A05/A07 are partial — ZAP covers public surface, code covers the rest", () => {
     expect(evaluationLevel("A01_BROKEN_ACCESS_CONTROL", "PASSIVE")).toBe("partial");
-    expect(evaluationLevel("A02_CRYPTOGRAPHIC_FAILURES", "PASSIVE")).toBe("partial");
-    expect(evaluationLevel("A03_INJECTION", "PASSIVE")).toBe("partial");
+    expect(evaluationLevel("A03_SUPPLY_CHAIN_FAILURES", "PASSIVE")).toBe("partial");
+    expect(evaluationLevel("A04_CRYPTOGRAPHIC_FAILURES", "PASSIVE")).toBe("partial");
+    expect(evaluationLevel("A05_INJECTION", "PASSIVE")).toBe("partial");
     expect(evaluationLevel("A07_AUTH_FAILURES", "PASSIVE")).toBe("partial");
-    expect(evaluationLevel("A10_SSRF", "PASSIVE")).toBe("partial");
   });
 
-  it("A05 is fully evaluated in PASSIVE mode — server config is entirely externally visible", () => {
-    expect(evaluationLevel("A05_SECURITY_MISCONFIGURATION", "PASSIVE")).toBe("full");
+  it("A02 is fully evaluated in PASSIVE mode — server config is entirely externally visible", () => {
+    expect(evaluationLevel("A02_SECURITY_MISCONFIGURATION", "PASSIVE")).toBe("full");
   });
 
   it("source-code-only categories are not evaluated", () => {
-    expect(isEvaluated("A04_INSECURE_DESIGN", "PASSIVE")).toBe(false);
+    expect(isEvaluated("A06_INSECURE_DESIGN", "PASSIVE")).toBe(false);
     expect(isEvaluated("A08_DATA_INTEGRITY_FAILURES", "PASSIVE")).toBe(false);
     expect(isEvaluated("A09_LOGGING_FAILURES", "PASSIVE")).toBe(false);
+    expect(isEvaluated("A10_EXCEPTIONAL_CONDITIONS", "PASSIVE")).toBe(false);
   });
 
-  it("A06 is partially evaluated in PASSIVE mode — ZAP retire.js detects client-side vulnerable libraries", () => {
-    expect(isEvaluated("A06_VULNERABLE_COMPONENTS", "PASSIVE")).toBe(true);
-    expect(evaluationLevel("A06_VULNERABLE_COMPONENTS", "PASSIVE")).toBe("partial");
+  it("A03 is partially evaluated in PASSIVE mode — ZAP retire.js detects client-side vulnerable libraries", () => {
+    expect(isEvaluated("A03_SUPPLY_CHAIN_FAILURES", "PASSIVE")).toBe(true);
+    expect(evaluationLevel("A03_SUPPLY_CHAIN_FAILURES", "PASSIVE")).toBe("partial");
   });
 });
 
@@ -84,8 +87,8 @@ describe("evaluationLevel — CODE mode", () => {
     }
   });
 
-  it("A05 is not evaluated in CODE mode — requires live server", () => {
-    expect(evaluationLevel("A05_SECURITY_MISCONFIGURATION", "CODE")).toBe("none");
+  it("A02 is not evaluated in CODE mode — requires live server", () => {
+    expect(evaluationLevel("A02_SECURITY_MISCONFIGURATION", "CODE")).toBe("none");
   });
 
   it("CODE_PARTIAL categories return 'partial' and count as evaluated", () => {
@@ -95,15 +98,16 @@ describe("evaluationLevel — CODE mode", () => {
     }
   });
 
-  it("A01/A02/A07 are partial in CODE mode — code checks limited patterns, runtime gaps remain", () => {
+  it("A01/A04/A07 are partial in CODE mode — code checks limited patterns, runtime gaps remain", () => {
     expect(evaluationLevel("A01_BROKEN_ACCESS_CONTROL", "CODE")).toBe("partial");
-    expect(evaluationLevel("A02_CRYPTOGRAPHIC_FAILURES", "CODE")).toBe("partial");
+    expect(evaluationLevel("A04_CRYPTOGRAPHIC_FAILURES", "CODE")).toBe("partial");
     expect(evaluationLevel("A07_AUTH_FAILURES", "CODE")).toBe("partial");
   });
 
   it("categories not in CODE_UNEVALUATED or CODE_PARTIAL are fully evaluated", () => {
-    expect(evaluationLevel("A03_INJECTION", "CODE")).toBe("full");
-    expect(evaluationLevel("A06_VULNERABLE_COMPONENTS", "CODE")).toBe("full");
+    expect(evaluationLevel("A05_INJECTION", "CODE")).toBe("full");
+    expect(evaluationLevel("A03_SUPPLY_CHAIN_FAILURES", "CODE")).toBe("full");
+    expect(evaluationLevel("A10_EXCEPTIONAL_CONDITIONS", "CODE")).toBe("full");
   });
 });
 

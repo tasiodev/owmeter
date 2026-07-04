@@ -20,16 +20,16 @@ import { SignOutButton } from "@/presentation/components/ui/SignOutButton";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://owmeter.dev";
 
 const OWASP_ITEMS = [
-  { id: "A01", name: "Broken Access Control", desc: "Auth guards, CORS policies, path traversal, IDOR" },
-  { id: "A02", name: "Cryptographic Failures", desc: "HTTPS, HSTS, TLS config, Secure cookie flag, weak algorithms" },
-  { id: "A03", name: "Injection", desc: "SQL, XSS, and command injection via OWASP ZAP active scan" },
-  { id: "A04", name: "Insecure Design", desc: "Input validation and security patterns in source code" },
-  { id: "A05", name: "Security Misconfiguration", desc: "HTTP headers, CSP, X-Frame-Options, server info leakage" },
-  { id: "A06", name: "Vulnerable Components", desc: "Known CVEs and outdated dependency detection" },
-  { id: "A07", name: "Auth Failures", desc: "Cookie flags, JWT signing, password hashing, brute-force protection" },
-  { id: "A08", name: "Data Integrity Failures", desc: "Unsafe deserialization and supply chain patterns in code" },
-  { id: "A09", name: "Logging Failures", desc: "Logging practices and sensitive data in logs" },
-  { id: "A10", name: "SSRF", desc: "Server-side request forgery probes on public endpoints" },
+  { id: "A01", name: "Broken Access Control", desc: "Auth guards, CORS policies, path traversal, IDOR, SSRF" },
+  { id: "A02", name: "Security Misconfiguration", desc: "HTTP headers, CSP, X-Frame-Options, server info leakage" },
+  { id: "A03", name: "Software Supply Chain Failures", desc: "Known CVEs and outdated dependency detection" },
+  { id: "A04", name: "Cryptographic Failures", desc: "HTTPS, HSTS, TLS config, Secure cookie flag, weak algorithms" },
+  { id: "A05", name: "Injection", desc: "SQL, XSS, and command injection via OWASP ZAP active scan" },
+  { id: "A06", name: "Insecure Design", desc: "Hardcoded secrets, passwords, and API keys in source code" },
+  { id: "A07", name: "Authentication Failures", desc: "Cookie flags, JWT signing, password hashing, brute-force protection" },
+  { id: "A08", name: "Software or Data Integrity Failures", desc: "Missing SRI on external scripts and unsafe deserialization" },
+  { id: "A09", name: "Security Logging & Alerting Failures", desc: "Logging practices and sensitive data in logs" },
+  { id: "A10", name: "Mishandling of Exceptional Conditions", desc: "Empty catch blocks and silenced exceptions in source code" },
 ] as const;
 
 export async function generateMetadata({

@@ -95,13 +95,13 @@ const isI18nFile = (path: string) =>
   /\.(strings|po|pot)$/.test(path);
 
 const PATTERNS: SASTPattern[] = [
-  // A03 Injection
+  // A05 Injection
   {
     // Negative lookbehind (?<![\w.]) excludes method calls like redis.eval() or obj.eval().
     // skipStrings: true prevents false positives when eval() appears only inside a string
     // literal (e.g. a title, description, or SAST pattern definition like /eval\s*\(/).
     regex: /(?<![\w.])eval\s*\(/g,
-    category: "A03_INJECTION",
+    category: "A05_INJECTION",
     severity: "CRITICAL",
     title: "Dangerous eval() usage",
     description: "The eval function executes arbitrary code and is a major injection risk if user-controlled data reaches it.",
@@ -111,7 +111,7 @@ const PATTERNS: SASTPattern[] = [
     // skipStrings: true prevents false positives when new Function() appears only in a
     // documentation string (e.g. "eval(), new Function(), and setTimeout(string)...").
     regex: /new\s+Function\s*\(/g,
-    category: "A03_INJECTION",
+    category: "A05_INJECTION",
     severity: "HIGH",
     title: "Dynamic Function constructor",
     description: "The Function constructor behaves like eval and can execute arbitrary code.",
@@ -121,21 +121,21 @@ const PATTERNS: SASTPattern[] = [
     // \b word boundaries prevent matching CSS/JS identifiers like "fileSelector" or "--selected"
     // that contain the substring "select" but are not SQL keywords.
     regex: /`[^`]*\b(?:SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|EXEC)\b[^`]*\$\{/gi,
-    category: "A03_INJECTION",
+    category: "A05_INJECTION",
     severity: "CRITICAL",
     title: "SQL injection via template literal",
     description: "SQL query built with a template literal allows injecting arbitrary SQL through interpolated variables.",
   },
   {
     regex: /require\s*\(\s*(?:req|request|params|query|body)\b/g,
-    category: "A03_INJECTION",
+    category: "A05_INJECTION",
     severity: "CRITICAL",
     title: "Dynamic require() with user input",
     description: "Passing user-controlled data to require() enables path traversal and arbitrary module execution.",
   },
   {
     regex: /innerHTML\s*=/g,
-    category: "A03_INJECTION",
+    category: "A05_INJECTION",
     severity: "HIGH",
     title: "Direct innerHTML assignment",
     description: "Setting innerHTML with untrusted data leads to XSS. Use textContent or a sanitization library instead.",
@@ -146,7 +146,7 @@ const PATTERNS: SASTPattern[] = [
     // \s* is inside the lookahead to avoid backtracking (the engine would otherwise
     // retry with \s* matching 0 chars and the lookahead would pass on whitespace).
     regex: /dangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html\s*:(?!\s*JSON\.stringify\()/g,
-    category: "A03_INJECTION",
+    category: "A05_INJECTION",
     severity: "MEDIUM",
     title: "dangerouslySetInnerHTML usage",
     description: "dangerouslySetInnerHTML bypasses React's XSS protection. Ensure the value is sanitized.",
@@ -154,7 +154,7 @@ const PATTERNS: SASTPattern[] = [
   {
     // Matches standalone child-process sync functions, not regex .exec() calls
     regex: /\bexecSync\s*\(|\bspawnSync\s*\(/g,
-    category: "A03_INJECTION",
+    category: "A05_INJECTION",
     severity: "HIGH",
     title: "Shell execution function detected",
     description: "execSync/spawnSync can lead to command injection if user-controlled data reaches these calls.",
@@ -179,24 +179,24 @@ const PATTERNS: SASTPattern[] = [
     description: "Using the cors middleware without options allows all origins. Pass an explicit allowlist of trusted origins.",
   },
 
-  // A02 Cryptographic Failures
+  // A04 Cryptographic Failures
   {
     regex: /createHash\s*\(\s*['"]md5['"]/gi,
-    category: "A02_CRYPTOGRAPHIC_FAILURES",
+    category: "A04_CRYPTOGRAPHIC_FAILURES",
     severity: "HIGH",
     title: "MD5 used for hashing",
     description: "MD5 is cryptographically broken and should not be used for security-sensitive operations.",
   },
   {
     regex: /createHash\s*\(\s*['"]sha1['"]/gi,
-    category: "A02_CRYPTOGRAPHIC_FAILURES",
+    category: "A04_CRYPTOGRAPHIC_FAILURES",
     severity: "HIGH",
     title: "SHA-1 used for hashing",
     description: "SHA-1 is deprecated for security use. Use SHA-256 or stronger.",
   },
   {
     regex: /Math\.random\s*\(\s*\)/g,
-    category: "A02_CRYPTOGRAPHIC_FAILURES",
+    category: "A04_CRYPTOGRAPHIC_FAILURES",
     severity: "HIGH",
     title: "Math.random() used for security",
     description: "Math.random() is not cryptographically secure. Use crypto.randomBytes() or crypto.getRandomValues() instead.",
@@ -205,20 +205,20 @@ const PATTERNS: SASTPattern[] = [
   },
   {
     regex: /algorithms?\s*:\s*\[['"]none['"]\]/gi,
-    category: "A02_CRYPTOGRAPHIC_FAILURES",
+    category: "A04_CRYPTOGRAPHIC_FAILURES",
     severity: "CRITICAL",
     title: "JWT 'none' algorithm allowed",
     description: "Accepting the 'none' JWT algorithm allows tokens to be forged without a valid signature.",
   },
   {
     regex: /(?:localStorage|sessionStorage)\.setItem\s*\(\s*['"][^'"]*(?:token|auth|jwt|session|credential|api.?key|password)[^'"]*['"]/gi,
-    category: "A02_CRYPTOGRAPHIC_FAILURES",
+    category: "A04_CRYPTOGRAPHIC_FAILURES",
     severity: "HIGH",
     title: "Sensitive token stored in web storage",
     description: "localStorage and sessionStorage are readable by any JavaScript on the page. Tokens or credentials stored here can be stolen via XSS. Use HttpOnly cookies instead.",
   },
 
-  // A04 Insecure Design
+  // A06 Insecure Design
   {
     // Lookahead requires at least one digit or symbol in the value — real passwords almost
     // always have them; i18n labels like password: 'Contraseña' are pure words and won't match.
@@ -227,7 +227,7 @@ const PATTERNS: SASTPattern[] = [
     // Quote chars (' ") and common punctuation (. , ; :) are intentionally excluded from the
     // class — the closing quote would otherwise satisfy the lookahead for plain words like 'Contraseña'.
     regex: /password\s*(?:=|:)\s*['"](?=[^'"]*[\d!@#$%^&*_\-+=])[^'"]{8,}['"]/gi,
-    category: "A04_INSECURE_DESIGN",
+    category: "A06_INSECURE_DESIGN",
     severity: "CRITICAL",
     title: "Hardcoded password",
     description: "A password is hardcoded in source code. Use environment variables and a secrets manager instead.",
@@ -235,7 +235,7 @@ const PATTERNS: SASTPattern[] = [
   },
   {
     regex: /secret\s*(?:=|:)\s*['"](?=[^'"]*[\d!@#$%^&*_\-+=])[^'"]{8,}['"]/gi,
-    category: "A04_INSECURE_DESIGN",
+    category: "A06_INSECURE_DESIGN",
     severity: "CRITICAL",
     title: "Hardcoded secret",
     description: "A secret value is hardcoded in source code. Rotate it immediately and move it to environment variables.",
@@ -243,7 +243,7 @@ const PATTERNS: SASTPattern[] = [
   },
   {
     regex: /(?:api_?key|apikey|api_?secret)\s*(?:=|:)\s*['"][^'"]{8,}['"]/gi,
-    category: "A04_INSECURE_DESIGN",
+    category: "A06_INSECURE_DESIGN",
     severity: "HIGH",
     title: "Hardcoded API key",
     description: "An API key is hardcoded in source code. It should be stored in environment variables.",
@@ -285,7 +285,7 @@ const PATTERNS: SASTPattern[] = [
     description: "Parsing request data with JSON.parse without error handling or schema validation can cause crashes and injection.",
   },
 
-  // A09 Security Logging & Monitoring
+  // A09 Security Logging and Alerting
   {
     regex: /console\.log\s*\([^)]*(?:password|passwd|secret|token|apikey|api_key|authorization)/gi,
     category: "A09_LOGGING_FAILURES",
@@ -293,35 +293,37 @@ const PATTERNS: SASTPattern[] = [
     title: "Logging sensitive data",
     description: "Sensitive data (passwords, tokens, secrets) is being logged. Remove these log statements.",
   },
+
+  // A10 Mishandling of Exceptional Conditions
   {
     regex: /catch\s*\([^)]*\)\s*\{\s*\}/g,
-    category: "A09_LOGGING_FAILURES",
+    category: "A10_EXCEPTIONAL_CONDITIONS",
     severity: "MEDIUM",
     title: "Empty catch block",
     description: "Silently swallowing exceptions hides security-relevant errors and makes incidents invisible.",
   },
   {
     regex: /catch\s*\([^)]*\)\s*\{\s*\/\//g,
-    category: "A09_LOGGING_FAILURES",
+    category: "A10_EXCEPTIONAL_CONDITIONS",
     severity: "LOW",
     title: "Catch block with only a comment",
     description: "A catch block that only has a comment effectively silences errors, hiding security events.",
   },
 
-  // A10 SSRF
+  // A01 Broken Access Control — SSRF enables unauthorized access to internal resources
   {
     regex: /fetch\s*\(\s*(?:req|request|ctx)\b[^)]*(?:query|body|params)/g,
-    category: "A10_SSRF",
+    category: "A01_BROKEN_ACCESS_CONTROL",
     severity: "HIGH",
     title: "Potential SSRF — fetch with request-derived URL",
-    description: "Passing user-controlled input to fetch() can enable Server-Side Request Forgery (SSRF).",
+    description: "Passing user-controlled input to fetch() can enable Server-Side Request Forgery, bypassing access controls to reach internal resources.",
   },
   {
     regex: /axios\s*\.(?:get|post|put|delete)\s*\(\s*(?:req|request)\b/g,
-    category: "A10_SSRF",
+    category: "A01_BROKEN_ACCESS_CONTROL",
     severity: "HIGH",
     title: "Potential SSRF — axios with request-derived URL",
-    description: "Passing user-controlled input to axios can enable SSRF attacks.",
+    description: "Passing user-controlled input to axios can enable SSRF attacks, bypassing access controls to reach internal resources.",
   },
 ];
 
@@ -627,7 +629,7 @@ async function analyzeDependencies(pkgContent: string, lockContent?: string): Pr
 
       const descParts = [worst.summary, cves.length > 0 ? `CVE: ${cves.join(", ")}` : ""].filter(Boolean);
       return {
-        category: "A06_VULNERABLE_COMPONENTS" as const,
+        category: "A03_SUPPLY_CHAIN_FAILURES" as const,
         severity: ghsaSeverityToOurs(worst.severity),
         title: `Vulnerable dependency: ${name}@${version}`,
         description: descParts.join(" — ") || "Known vulnerability in this version range.",
@@ -645,7 +647,7 @@ export class NoValidCodeError extends Error {
   }
 }
 
-const A04_PATTERNS = PATTERNS.filter((p) => p.category === "A04_INSECURE_DESIGN");
+const A06_PATTERNS = PATTERNS.filter((p) => p.category === "A06_INSECURE_DESIGN");
 
 export async function runSourceCodeAnalysis(
   zipBuffer: Uint8Array
@@ -669,12 +671,12 @@ export async function runSourceCodeAnalysis(
   // because they rely on JS/TS-specific APIs and patterns.
   if (!jsTs) {
     findings.push({
-      category: "A04_INSECURE_DESIGN",
+      category: "A06_INSECURE_DESIGN",
       severity: "INFO",
       title: `Limited code analysis: ${foreignLanguage} project`,
       description:
         `The uploaded project appears to be written in ${foreignLanguage}. ` +
-        `Only hardcoded-secrets checks (A04) are applied cross-language. ` +
+        `Only hardcoded-secrets checks (A06) are applied cross-language. ` +
         `All other code analysis categories require JavaScript/TypeScript and are marked as not evaluated.`,
       evidence: undefined,
     });
@@ -690,7 +692,7 @@ export async function runSourceCodeAnalysis(
       const firstLineLength = firstNewline === -1 ? content.length : firstNewline;
       if (firstLineLength > MAX_LINE_LENGTH) continue;
 
-      findings.push(...analyzeFile(filePath, content, A04_PATTERNS));
+      findings.push(...analyzeFile(filePath, content, A06_PATTERNS));
     }
 
     return { findings, unevaluated: FOREIGN_LANG_UNEVALUATED };
@@ -700,7 +702,7 @@ export async function runSourceCodeAnalysis(
   // analyse the JS/TS side fully but note the foreign part was skipped.
   if (foreignLanguage) {
     findings.push({
-      category: "A06_VULNERABLE_COMPONENTS",
+      category: "A03_SUPPLY_CHAIN_FAILURES",
       severity: "INFO",
       title: `Partial code analysis: ${foreignLanguage} components not scanned`,
       description:
@@ -725,7 +727,7 @@ export async function runSourceCodeAnalysis(
     findings.push(...await analyzeDependencies(pkgContent, lockContent));
   } else if (pkgPath && !lockPath) {
     findings.push({
-      category: "A06_VULNERABLE_COMPONENTS",
+      category: "A03_SUPPLY_CHAIN_FAILURES",
       severity: "INFO",
       title: "Dependency versions unverifiable — no lock file found",
       description:
@@ -737,7 +739,7 @@ export async function runSourceCodeAnalysis(
   }
 
   const unevaluated: Set<OWASPCategoryId> = a06Unevaluated
-    ? new Set<OWASPCategoryId>(["A06_VULNERABLE_COMPONENTS"])
+    ? new Set<OWASPCategoryId>(["A03_SUPPLY_CHAIN_FAILURES"])
     : new Set();
 
   // Analyze JS/TS source files

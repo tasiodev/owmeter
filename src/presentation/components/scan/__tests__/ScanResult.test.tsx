@@ -50,7 +50,7 @@ describe("ScanResult", () => {
         {
           id: "f1",
           scanId: "scan-1",
-          category: "A05_SECURITY_MISCONFIGURATION",
+          category: "A02_SECURITY_MISCONFIGURATION",
           severity: "MEDIUM",
           title: "Missing CSP Header",
           description: "No Content-Security-Policy found.",
@@ -83,7 +83,7 @@ describe("ScanResult", () => {
           id: "f1",
           scanId: "scan-1",
           // A05 is evaluated in PASSIVE mode (not in PASSIVE_UNEVALUATED)
-          category: "A05_SECURITY_MISCONFIGURATION",
+          category: "A02_SECURITY_MISCONFIGURATION",
           severity: "CRITICAL",
           title: "Missing Security Headers",
           description: "Critical misconfiguration",
@@ -103,7 +103,7 @@ describe("ScanResult", () => {
         {
           id: "f1",
           scanId: "scan-1",
-          category: "A05_SECURITY_MISCONFIGURATION",
+          category: "A02_SECURITY_MISCONFIGURATION",
           severity: "LOW",
           title: "Server leaks version",
           description: "desc",

@@ -115,17 +115,17 @@ function mapToOWASPCategory(cweid: string, _wascid: string, alertName: string): 
   const cwe = parseInt(cweid, 10);
   const alert = alertName.toLowerCase();
 
-  if ([89, 564, 943].includes(cwe) || alert.includes("sql injection")) return "A03_INJECTION";
-  if ([79, 80, 87].includes(cwe) || alert.includes("xss") || alert.includes("cross-site scripting")) return "A03_INJECTION";
-  if ([311, 319, 326, 327, 328].includes(cwe) || alert.includes("ssl") || alert.includes("tls") || alert.includes("https")) return "A02_CRYPTOGRAPHIC_FAILURES";
+  if ([89, 564, 943].includes(cwe) || alert.includes("sql injection")) return "A05_INJECTION";
+  if ([79, 80, 87].includes(cwe) || alert.includes("xss") || alert.includes("cross-site scripting")) return "A05_INJECTION";
+  if ([311, 319, 326, 327, 328].includes(cwe) || alert.includes("ssl") || alert.includes("tls") || alert.includes("https")) return "A04_CRYPTOGRAPHIC_FAILURES";
   if ([306, 307, 521, 522, 613].includes(cwe) || alert.includes("authentication") || alert.includes("password")) return "A07_AUTH_FAILURES";
-  if ([918].includes(cwe) || alert.includes("ssrf")) return "A10_SSRF";
-  if ([200, 497, 538].includes(cwe) || alert.includes("information disclosure") || alert.includes("server leaks")) return "A05_SECURITY_MISCONFIGURATION";
-  if ([16, 614].includes(cwe) || alert.includes("cookie") || alert.includes("cors") || alert.includes("csp") || alert.includes("header")) return "A05_SECURITY_MISCONFIGURATION";
+  if ([918].includes(cwe) || alert.includes("ssrf")) return "A01_BROKEN_ACCESS_CONTROL";
+  if ([200, 497, 538].includes(cwe) || alert.includes("information disclosure") || alert.includes("server leaks")) return "A02_SECURITY_MISCONFIGURATION";
+  if ([16, 614].includes(cwe) || alert.includes("cookie") || alert.includes("cors") || alert.includes("csp") || alert.includes("header")) return "A02_SECURITY_MISCONFIGURATION";
   if ([284, 285, 639].includes(cwe) || alert.includes("access control") || alert.includes("path traversal")) return "A01_BROKEN_ACCESS_CONTROL";
-  if ([1104].includes(cwe) || alert.includes("vulnerable js library") || alert.includes("vulnerable component")) return "A06_VULNERABLE_COMPONENTS";
+  if ([1104].includes(cwe) || alert.includes("vulnerable js library") || alert.includes("vulnerable component")) return "A03_SUPPLY_CHAIN_FAILURES";
 
-  return "A05_SECURITY_MISCONFIGURATION";
+  return "A02_SECURITY_MISCONFIGURATION";
 }
 
 async function zapGet<T>(path: string, params: Record<string, string> = {}): Promise<T> {

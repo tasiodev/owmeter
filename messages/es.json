@@ -231,14 +231,13 @@
     "invalidDesc": "Este resultado de análisis ya no es válido.",
     "invalidErrorLabel": "Motivo:",
     "partialNotes": {
-      "PASSIVE_A01_BROKEN_ACCESS_CONTROL": "ZAP comprueba path traversal y rutas sensibles. Verificar RBAC, IDOR y middleware de auth requiere código fuente.",
-      "PASSIVE_A02_CRYPTOGRAPHIC_FAILURES": "Comprueba HTTPS, HSTS, TLS y cookie Secure. Verificar uso de algoritmos (MD5, SHA-1, JWT) requiere código fuente.",
-      "PASSIVE_A03_INJECTION": "ZAP lanza payloads SQL/XSS en endpoints públicos. Cobertura completa (queries parametrizadas en todo el código) requiere código fuente.",
+      "PASSIVE_A01_BROKEN_ACCESS_CONTROL": "ZAP comprueba path traversal, rutas sensibles y probes SSRF. Verificar RBAC, IDOR y middleware de auth requiere código fuente.",
+      "PASSIVE_A03_SUPPLY_CHAIN_FAILURES": "ZAP retire.js detecta librerías JS del lado cliente con vulnerabilidades. Verificar dependencias del servidor (package.json, lock files) requiere código fuente.",
+      "PASSIVE_A04_CRYPTOGRAPHIC_FAILURES": "Comprueba HTTPS, HSTS, TLS y cookie Secure. Verificar uso de algoritmos (MD5, SHA-1, JWT) requiere código fuente.",
+      "PASSIVE_A05_INJECTION": "ZAP lanza payloads SQL/XSS en endpoints públicos. Cobertura completa (queries parametrizadas en todo el código) requiere código fuente.",
       "PASSIVE_A07_AUTH_FAILURES": "Comprueba flags de cookies y ZAP prueba fuerza bruta/sesión. Verificar secret JWT y hashing de contraseñas requiere código fuente.",
-      "PASSIVE_A06_VULNERABLE_COMPONENTS": "ZAP retire.js detecta librerías JS del lado cliente con vulnerabilidades. Verificar dependencias del servidor (package.json, lock files) requiere código fuente.",
-      "PASSIVE_A10_SSRF": "ZAP lanza probes SSRF a los inputs descubiertos. Verificar que cada fetch interno valida su URL requiere código fuente.",
-      "CODE_A01_BROKEN_ACCESS_CONTROL": "El código comprueba patrones CORS wildcard. Verificar path traversal, IDOR y rutas sin auth requiere dominio publicado.",
-      "CODE_A02_CRYPTOGRAPHIC_FAILURES": "El código comprueba algoritmos débiles (MD5, SHA-1) y config JWT. Verificar TLS y HTTPS requiere dominio publicado.",
+      "CODE_A01_BROKEN_ACCESS_CONTROL": "El código comprueba patrones CORS wildcard y SSRF. Verificar path traversal, IDOR y rutas sin auth requiere dominio publicado.",
+      "CODE_A04_CRYPTOGRAPHIC_FAILURES": "El código comprueba algoritmos débiles (MD5, SHA-1) y config JWT. Verificar TLS y HTTPS requiere dominio publicado.",
       "CODE_A07_AUTH_FAILURES": "El código comprueba firma JWT y uso de bcrypt. Verificar flags de cookies (HttpOnly, Secure, SameSite) requiere dominio publicado."
     }
   },

@@ -13,7 +13,7 @@ describe("calculateScore — PASSIVE mode (default)", () => {
   it("deducts correct points for a HIGH finding in evaluated category", () => {
     const findings: RawFinding[] = [
       {
-        category: "A02_CRYPTOGRAPHIC_FAILURES",
+        category: "A04_CRYPTOGRAPHIC_FAILURES",
         severity: "HIGH",
         title: "Missing HSTS",
         description: "No HSTS header",
@@ -50,7 +50,7 @@ describe("calculateScore — PASSIVE mode (default)", () => {
   it("INFO findings cost 0 points", () => {
     const findings: RawFinding[] = [
       {
-        category: "A05_SECURITY_MISCONFIGURATION",
+        category: "A02_SECURITY_MISCONFIGURATION",
         severity: "INFO",
         title: "Info finding",
         description: "Informational",
@@ -62,7 +62,7 @@ describe("calculateScore — PASSIVE mode (default)", () => {
 
   it("score is never negative", () => {
     const findings: RawFinding[] = Array.from({ length: 100 }, (_, i) => ({
-      category: "A05_SECURITY_MISCONFIGURATION" as const,
+      category: "A02_SECURITY_MISCONFIGURATION" as const,
       severity: "CRITICAL" as const,
       title: `Finding ${i}`,
       description: "desc",
@@ -95,31 +95,31 @@ describe("calculateScore — PASSIVE mode (default)", () => {
   it("not_evaluated categories ignore findings in PASSIVE mode", () => {
     const findings: RawFinding[] = [
       {
-        category: "A04_INSECURE_DESIGN",
+        category: "A06_INSECURE_DESIGN",
         severity: "CRITICAL",
         title: "Hardcoded secret",
         description: "desc",
       },
     ];
     const { score, categoryBreakdown } = calculateScore(findings, "PASSIVE");
-    // A04 is not_evaluated in PASSIVE — no deduction
-    expect(categoryBreakdown.A04_INSECURE_DESIGN.status).toBe("not_evaluated");
+    // A06 is not_evaluated in PASSIVE — no deduction
+    expect(categoryBreakdown.A06_INSECURE_DESIGN.status).toBe("not_evaluated");
     expect(score).toBe(MAX_SCORE);
   });
 
   it("evaluated categories are marked as such", () => {
     const { categoryBreakdown } = calculateScore([]);
     expect(categoryBreakdown.A01_BROKEN_ACCESS_CONTROL.status).toBe("evaluated");
-    expect(categoryBreakdown.A02_CRYPTOGRAPHIC_FAILURES.status).toBe("evaluated");
+    expect(categoryBreakdown.A04_CRYPTOGRAPHIC_FAILURES.status).toBe("evaluated");
   });
 
   it("accumulates deductions across multiple findings in same category", () => {
     const findings: RawFinding[] = [
-      { category: "A05_SECURITY_MISCONFIGURATION", severity: "LOW", title: "t1", description: "d" },
-      { category: "A05_SECURITY_MISCONFIGURATION", severity: "LOW", title: "t2", description: "d" },
+      { category: "A02_SECURITY_MISCONFIGURATION", severity: "LOW", title: "t1", description: "d" },
+      { category: "A02_SECURITY_MISCONFIGURATION", severity: "LOW", title: "t2", description: "d" },
     ];
     const { categoryBreakdown } = calculateScore(findings);
-    expect(categoryBreakdown.A05_SECURITY_MISCONFIGURATION.score).toBe(13); // 15 - 2
+    expect(categoryBreakdown.A02_SECURITY_MISCONFIGURATION.score).toBe(13); // 15 - 2
   });
 });
 
@@ -130,19 +130,19 @@ describe("calculateScore — FULL mode", () => {
     expect(score).toBe(MAX_SCORE);
   });
 
-  it("deducts from A04 in FULL mode", () => {
+  it("deducts from A06 in FULL mode", () => {
     const findings: RawFinding[] = [
       {
-        category: "A04_INSECURE_DESIGN",
+        category: "A06_INSECURE_DESIGN",
         severity: "HIGH",
         title: "Hardcoded secret",
         description: "desc",
       },
     ];
     const { score, categoryBreakdown } = calculateScore(findings, "FULL");
-    expect(categoryBreakdown.A04_INSECURE_DESIGN.status).toBe("evaluated");
-    expect(categoryBreakdown.A04_INSECURE_DESIGN.maxScore).toBe(10);
-    expect(categoryBreakdown.A04_INSECURE_DESIGN.score).toBe(6); // 10 - 4 (HIGH)
+    expect(categoryBreakdown.A06_INSECURE_DESIGN.status).toBe("evaluated");
+    expect(categoryBreakdown.A06_INSECURE_DESIGN.maxScore).toBe(10);
+    expect(categoryBreakdown.A06_INSECURE_DESIGN.score).toBe(6); // 10 - 4 (HIGH)
     expect(score).toBe(MAX_SCORE - 4);
   });
 
@@ -175,14 +175,14 @@ describe("calculateScore — CODE mode", () => {
     expect(score).toBe(MAX_SCORE);
   });
 
-  it("A05 is not_evaluated in CODE mode (requires live server)", () => {
+  it("A02 is not_evaluated in CODE mode (requires live server)", () => {
     const { categoryBreakdown } = calculateScore([], "CODE");
-    expect(categoryBreakdown.A05_SECURITY_MISCONFIGURATION.status).toBe("not_evaluated");
+    expect(categoryBreakdown.A02_SECURITY_MISCONFIGURATION.status).toBe("not_evaluated");
   });
 
-  it("all categories except A05 are evaluated in CODE mode", () => {
+  it("all categories except A02 are evaluated in CODE mode", () => {
     const { categoryBreakdown } = calculateScore([], "CODE");
-    const others = Object.entries(categoryBreakdown).filter(([id]) => id !== "A05_SECURITY_MISCONFIGURATION");
+    const others = Object.entries(categoryBreakdown).filter(([id]) => id !== "A02_SECURITY_MISCONFIGURATION");
     for (const [, entry] of others) {
       expect(entry.status).toBe("evaluated");
     }

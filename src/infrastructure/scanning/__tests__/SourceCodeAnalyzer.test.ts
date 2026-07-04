@@ -45,23 +45,23 @@ describe("runSourceCodeAnalysis", () => {
     expect(findings).toHaveLength(0);
   });
 
-  it("detects eval() → A03_INJECTION CRITICAL", async () => {
+  it("detects eval() → A05_INJECTION CRITICAL", async () => {
     const zip = makeZip({ "utils.js": "function run(code) { eval(code); }" });
     const { findings } = await runSourceCodeAnalysis(zip);
     const f = findings.find((f) => f.title.includes("eval"));
     expect(f).toBeDefined();
-    expect(f?.category).toBe("A03_INJECTION");
+    expect(f?.category).toBe("A05_INJECTION");
     expect(f?.severity).toBe("CRITICAL");
   });
 
-  it("detects SQL injection via template literal → A03_INJECTION CRITICAL", async () => {
+  it("detects SQL injection via template literal → A05_INJECTION CRITICAL", async () => {
     const zip = makeZip({
       "db.ts": "const q = `SELECT * FROM users WHERE id = ${userId}`;",
     });
     const { findings } = await runSourceCodeAnalysis(zip);
     const f = findings.find((f) => f.title.includes("SQL injection"));
     expect(f).toBeDefined();
-    expect(f?.category).toBe("A03_INJECTION");
+    expect(f?.category).toBe("A05_INJECTION");
     expect(f?.severity).toBe("CRITICAL");
   });
 
@@ -75,25 +75,25 @@ describe("runSourceCodeAnalysis", () => {
     expect(f?.category).toBe("A01_BROKEN_ACCESS_CONTROL");
   });
 
-  it("detects MD5 hashing → A02_CRYPTOGRAPHIC_FAILURES HIGH", async () => {
+  it("detects MD5 hashing → A04_CRYPTOGRAPHIC_FAILURES HIGH", async () => {
     const zip = makeZip({
       "hash.js": "const h = crypto.createHash('md5').update(data).digest('hex');",
     });
     const { findings } = await runSourceCodeAnalysis(zip);
     const f = findings.find((f) => f.title.includes("MD5"));
     expect(f).toBeDefined();
-    expect(f?.category).toBe("A02_CRYPTOGRAPHIC_FAILURES");
+    expect(f?.category).toBe("A04_CRYPTOGRAPHIC_FAILURES");
     expect(f?.severity).toBe("HIGH");
   });
 
-  it("detects hardcoded password → A04_INSECURE_DESIGN CRITICAL", async () => {
+  it("detects hardcoded password → A06_INSECURE_DESIGN CRITICAL", async () => {
     const zip = makeZip({
       "config.ts": "const password = 'super-secret-password-123';",
     });
     const { findings } = await runSourceCodeAnalysis(zip);
     const f = findings.find((f) => f.title.includes("Hardcoded password"));
     expect(f).toBeDefined();
-    expect(f?.category).toBe("A04_INSECURE_DESIGN");
+    expect(f?.category).toBe("A06_INSECURE_DESIGN");
     expect(f?.severity).toBe("CRITICAL");
   });
 
@@ -118,14 +118,14 @@ describe("runSourceCodeAnalysis", () => {
     expect(f?.severity).toBe("HIGH");
   });
 
-  it("detects empty catch block → A09_LOGGING_FAILURES MEDIUM", async () => {
+  it("detects empty catch block → A10_EXCEPTIONAL_CONDITIONS MEDIUM", async () => {
     const zip = makeZip({
       "handler.ts": "try { doSomething(); } catch (err) {}",
     });
     const { findings } = await runSourceCodeAnalysis(zip);
     const f = findings.find((f) => f.title.includes("Empty catch"));
     expect(f).toBeDefined();
-    expect(f?.category).toBe("A09_LOGGING_FAILURES");
+    expect(f?.category).toBe("A10_EXCEPTIONAL_CONDITIONS");
     expect(f?.severity).toBe("MEDIUM");
   });
 
@@ -193,25 +193,25 @@ describe("runSourceCodeAnalysis", () => {
     expect(findings.some((f) => f.title.includes("Hardcoded password"))).toBe(true);
   });
 
-  it("detects localStorage.setItem with token key → A02_CRYPTOGRAPHIC_FAILURES HIGH", async () => {
+  it("detects localStorage.setItem with token key → A04_CRYPTOGRAPHIC_FAILURES HIGH", async () => {
     const zip = makeZip({
       "auth.ts": "localStorage.setItem('access_token', response.token);",
     });
     const { findings } = await runSourceCodeAnalysis(zip);
     const f = findings.find((f) => f.title.includes("web storage"));
     expect(f).toBeDefined();
-    expect(f?.category).toBe("A02_CRYPTOGRAPHIC_FAILURES");
+    expect(f?.category).toBe("A04_CRYPTOGRAPHIC_FAILURES");
     expect(f?.severity).toBe("HIGH");
   });
 
-  it("detects sessionStorage.setItem with jwt key → A02_CRYPTOGRAPHIC_FAILURES HIGH", async () => {
+  it("detects sessionStorage.setItem with jwt key → A04_CRYPTOGRAPHIC_FAILURES HIGH", async () => {
     const zip = makeZip({
       "session.ts": "sessionStorage.setItem('jwt', token);",
     });
     const { findings } = await runSourceCodeAnalysis(zip);
     const f = findings.find((f) => f.title.includes("web storage"));
     expect(f).toBeDefined();
-    expect(f?.category).toBe("A02_CRYPTOGRAPHIC_FAILURES");
+    expect(f?.category).toBe("A04_CRYPTOGRAPHIC_FAILURES");
   });
 
   it("does not flag localStorage.setItem with non-sensitive key", async () => {
@@ -223,7 +223,7 @@ describe("runSourceCodeAnalysis", () => {
     expect(f).toBeUndefined();
   });
 
-  it("detects vulnerable dependency → A06_VULNERABLE_COMPONENTS", async () => {
+  it("detects vulnerable dependency → A03_SUPPLY_CHAIN_FAILURES", async () => {
     const lockfile = { lockfileVersion: 2, packages: { "": {}, "node_modules/jsonwebtoken": { version: "8.5.0" } } };
     const zip = makeZip({
       "package.json": JSON.stringify({ dependencies: { jsonwebtoken: "^8.5.0" } }),
@@ -232,7 +232,7 @@ describe("runSourceCodeAnalysis", () => {
     const { findings } = await runSourceCodeAnalysis(zip);
     const f = findings.find((f) => f.title.includes("jsonwebtoken"));
     expect(f).toBeDefined();
-    expect(f?.category).toBe("A06_VULNERABLE_COMPONENTS");
+    expect(f?.category).toBe("A03_SUPPLY_CHAIN_FAILURES");
   });
 
   it("does not flag up-to-date dependencies", async () => {
@@ -369,7 +369,7 @@ describe("runSourceCodeAnalysis", () => {
     it("marks A06 as not_evaluated when no package.json is present", async () => {
       const zip = makeZip({ "index.ts": "export const x = 1;" });
       const { unevaluated } = await runSourceCodeAnalysis(zip);
-      expect(unevaluated.has("A06_VULNERABLE_COMPONENTS")).toBe(true);
+      expect(unevaluated.has("A03_SUPPLY_CHAIN_FAILURES")).toBe(true);
     });
 
     it("does not mark A06 as not_evaluated when package.json and package-lock.json are present", async () => {
@@ -380,7 +380,7 @@ describe("runSourceCodeAnalysis", () => {
         "package-lock.json": JSON.stringify(lockfile),
       });
       const { unevaluated } = await runSourceCodeAnalysis(zip);
-      expect(unevaluated.has("A06_VULNERABLE_COMPONENTS")).toBe(false);
+      expect(unevaluated.has("A03_SUPPLY_CHAIN_FAILURES")).toBe(false);
     });
 
     it("marks A06 as not_evaluated when package.json is present but package-lock.json is missing", async () => {
@@ -389,7 +389,7 @@ describe("runSourceCodeAnalysis", () => {
         "package.json": JSON.stringify({ dependencies: {} }),
       });
       const { unevaluated } = await runSourceCodeAnalysis(zip);
-      expect(unevaluated.has("A06_VULNERABLE_COMPONENTS")).toBe(true);
+      expect(unevaluated.has("A03_SUPPLY_CHAIN_FAILURES")).toBe(true);
     });
 
     it("returns empty unevaluated set for a full JS/TS project with package.json and lock file", async () => {
@@ -414,16 +414,16 @@ describe("runSourceCodeAnalysis", () => {
       const info = findings.find((f) => f.severity === "INFO");
       expect(info).toBeDefined();
       expect(info?.title).toContain("Java");
-      expect(info?.category).toBe("A04_INSECURE_DESIGN");
-      expect(unevaluated.has("A03_INJECTION")).toBe(true);
-      expect(unevaluated.has("A06_VULNERABLE_COMPONENTS")).toBe(true);
+      expect(info?.category).toBe("A06_INSECURE_DESIGN");
+      expect(unevaluated.has("A05_INJECTION")).toBe(true);
+      expect(unevaluated.has("A03_SUPPLY_CHAIN_FAILURES")).toBe(true);
       expect(unevaluated.has("A09_LOGGING_FAILURES")).toBe(true);
     });
 
     it("does not mark A04 as not_evaluated for a foreign language project", async () => {
       const zip = makeZip({ "app.py": "from flask import Flask" });
       const { unevaluated } = await runSourceCodeAnalysis(zip);
-      expect(unevaluated.has("A04_INSECURE_DESIGN")).toBe(false);
+      expect(unevaluated.has("A06_INSECURE_DESIGN")).toBe(false);
     });
 
     it("detects hardcoded password in a Python file", async () => {
@@ -433,7 +433,7 @@ describe("runSourceCodeAnalysis", () => {
       const { findings } = await runSourceCodeAnalysis(zip);
       const f = findings.find((f) => f.title.includes("Hardcoded password"));
       expect(f).toBeDefined();
-      expect(f?.category).toBe("A04_INSECURE_DESIGN");
+      expect(f?.category).toBe("A06_INSECURE_DESIGN");
       expect(f?.severity).toBe("CRITICAL");
     });
 
@@ -444,7 +444,7 @@ describe("runSourceCodeAnalysis", () => {
       const { findings } = await runSourceCodeAnalysis(zip);
       const f = findings.find((f) => f.title.includes("Hardcoded secret"));
       expect(f).toBeDefined();
-      expect(f?.category).toBe("A04_INSECURE_DESIGN");
+      expect(f?.category).toBe("A06_INSECURE_DESIGN");
     });
 
     it("detects hardcoded API key in a Go file", async () => {
@@ -454,7 +454,7 @@ describe("runSourceCodeAnalysis", () => {
       const { findings } = await runSourceCodeAnalysis(zip);
       const f = findings.find((f) => f.title.includes("API key"));
       expect(f).toBeDefined();
-      expect(f?.category).toBe("A04_INSECURE_DESIGN");
+      expect(f?.category).toBe("A06_INSECURE_DESIGN");
     });
 
     it("returns INFO finding for a .NET project (.csproj)", async () => {
@@ -561,7 +561,7 @@ describe("runSourceCodeAnalysis", () => {
         "package.json": JSON.stringify({ dependencies: { express: "^4.17.0" } }),
       });
       const { findings, unevaluated } = await runSourceCodeAnalysis(zip);
-      expect(unevaluated.has("A06_VULNERABLE_COMPONENTS")).toBe(true);
+      expect(unevaluated.has("A03_SUPPLY_CHAIN_FAILURES")).toBe(true);
       const info = findings.find((f) => f.title.includes("no lock file"));
       expect(info).toBeDefined();
       expect(info?.severity).toBe("INFO");

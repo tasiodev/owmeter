@@ -5,7 +5,7 @@ import type { Finding } from "@/domain/entities/Scan";
 const baseFinding: Finding = {
   id: "f1",
   scanId: "s1",
-  category: "A05_SECURITY_MISCONFIGURATION",
+  category: "A02_SECURITY_MISCONFIGURATION",
   severity: "MEDIUM",
   title: "Missing Content-Security-Policy header",
   description: "No CSP header found. This increases the risk of XSS attacks.",
@@ -26,7 +26,7 @@ describe("generateFindingPrompt", () => {
 
   it("includes the OWASP category name", () => {
     const prompt = generateFindingPrompt(baseFinding);
-    expect(prompt).toContain("A05:2021 Security Misconfiguration");
+    expect(prompt).toContain("A02:2025 Security Misconfiguration");
   });
 
   it("includes the description", () => {
@@ -58,7 +58,7 @@ describe("generateAllFindingsPrompt", () => {
     {
       id: "f2",
       scanId: "s1",
-      category: "A02_CRYPTOGRAPHIC_FAILURES",
+      category: "A04_CRYPTOGRAPHIC_FAILURES",
       severity: "HIGH",
       title: "Missing Strict-Transport-Security (HSTS) header",
       description: "The server does not set HSTS.",

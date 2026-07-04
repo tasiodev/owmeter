@@ -36,7 +36,7 @@ function makeReport(overrides: Partial<FalsePositiveReport> = {}): FalsePositive
     id: "fp-1",
     projectId: "proj-1",
     reportedById: "user-1",
-    category: "A03_INJECTION",
+    category: "A05_INJECTION",
     title: "SQL Injection",
     filePath: "src/db.ts",
     evidence: "src/db.ts:42 — query = `SELECT * FROM ${table}`",
@@ -88,7 +88,7 @@ describe("reportFalsePositive", () => {
     const result = await reportFalsePositive(
       "proj-1",
       "user-1",
-      "A03_INJECTION",
+      "A05_INJECTION",
       "SQL Injection",
       "src/db.ts:42 — query = `SELECT * FROM ${table}`",
       "This is a test helper, not production code.",
@@ -108,7 +108,7 @@ describe("reportFalsePositive", () => {
     await reportFalsePositive(
       "proj-1",
       "user-1",
-      "A03_INJECTION",
+      "A05_INJECTION",
       "SQL Injection",
       "src/db.ts:42 — query snippet",
       "reason",
@@ -128,7 +128,7 @@ describe("reportFalsePositive", () => {
     await reportFalsePositive(
       "proj-1",
       "user-1",
-      "A05_SECURITY_MISCONFIGURATION",
+      "A02_SECURITY_MISCONFIGURATION",
       "Missing CSP",
       "Header X-Content-Type-Options is absent",
       "reason",
@@ -146,7 +146,7 @@ describe("reportFalsePositive", () => {
     const fpRepo = makeFpRepo();
 
     await expect(
-      reportFalsePositive("proj-1", "user-1", "A03_INJECTION", "title", "evidence", "reason", projectRepo, fpRepo)
+      reportFalsePositive("proj-1", "user-1", "A05_INJECTION", "title", "evidence", "reason", projectRepo, fpRepo)
     ).rejects.toThrow(ReportFalsePositiveError);
 
     expect(fpRepo.create).not.toHaveBeenCalled();
@@ -157,7 +157,7 @@ describe("reportFalsePositive", () => {
     const fpRepo = makeFpRepo();
 
     await expect(
-      reportFalsePositive("proj-1", "user-1", "A03_INJECTION", "title", "evidence", "reason", projectRepo, fpRepo)
+      reportFalsePositive("proj-1", "user-1", "A05_INJECTION", "title", "evidence", "reason", projectRepo, fpRepo)
     ).rejects.toThrow(ReportFalsePositiveError);
   });
 
@@ -166,7 +166,7 @@ describe("reportFalsePositive", () => {
     const fpRepo = makeFpRepo(makeReport());
 
     await expect(
-      reportFalsePositive("proj-1", "user-1", "A03_INJECTION", "SQL Injection", "src/db.ts:42 — snip", "reason", projectRepo, fpRepo)
+      reportFalsePositive("proj-1", "user-1", "A05_INJECTION", "SQL Injection", "src/db.ts:42 — snip", "reason", projectRepo, fpRepo)
     ).rejects.toThrow(ReportFalsePositiveError);
 
     expect(fpRepo.create).not.toHaveBeenCalled();

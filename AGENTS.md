@@ -77,12 +77,11 @@ npm run build
 
 | Check | How maintained |
 |---|---|
-| A01 Access Control | Middleware guards /dashboard/**; ownership verified before scan |
-| A02 Crypto | HTTPS, HttpOnly+Secure+SameSite=Strict cookies, HSTS header |
-| A03 Injection | Prisma parameterized queries; Zod input validation |
-| A05 Misconfig | CSP, X-Frame-Options, X-Content-Type headers in middleware |
-| A07 Auth Failures | Auth.js handles session rotation; no custom session logic |
-| A10 SSRF | Scans restricted to user-verified domains only |
+| A01 Broken Access Control | Middleware guards /dashboard/**; ownership verified before scan; SSRF prevented by domain allowlist |
+| A02 Security Misconfiguration | CSP, X-Frame-Options, X-Content-Type headers in middleware |
+| A04 Cryptographic Failures | HTTPS, HttpOnly+Secure+SameSite=Strict cookies, HSTS header |
+| A05 Injection | Prisma parameterized queries; Zod input validation |
+| A07 Authentication Failures | Auth.js handles session rotation; no custom session logic |
 
 ## Next.js 16 docs
 
