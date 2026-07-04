@@ -11,7 +11,7 @@ function makeReport(overrides: Partial<FalsePositiveReport & { projectName?: str
     id: "fp-1",
     projectId: "proj-1",
     reportedById: "user-1",
-    category: "A03_INJECTION" as const,
+    category: "A05_INJECTION" as const,
     title: "SQL Injection via template literal",
     filePath: "src/db.ts",
     evidence: "src/db.ts:42 — query snippet",

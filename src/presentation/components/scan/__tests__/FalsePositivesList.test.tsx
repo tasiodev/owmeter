@@ -10,7 +10,7 @@ function makeReport(overrides: Partial<FalsePositiveReport> = {}): FalsePositive
     id: "fp-1",
     projectId: "proj-1",
     reportedById: "user-1",
-    category: "A03_INJECTION",
+    category: "A05_INJECTION",
     title: "SQL Injection via template literal",
     filePath: "src/db.ts",
     evidence: "src/db.ts:42 — query snippet",

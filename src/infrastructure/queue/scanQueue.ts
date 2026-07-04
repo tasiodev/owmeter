@@ -125,7 +125,7 @@ export function createScanWorker(): Worker<ScanJobData> {
           const rawUnevaluated = new Set(serializedUnevaluated);
           // ZAP retire.js covers the client-side portion of A06 in every FULL scan,
           // so don't let missing SAST data mark the whole category as not_evaluated.
-          rawUnevaluated.delete("A06_VULNERABLE_COMPONENTS");
+          rawUnevaluated.delete("A03_SUPPLY_CHAIN_FAILURES");
           sastUnevaluated = rawUnevaluated;
 
           await assertReachable(targetUrl).catch((err: unknown) => {
@@ -179,7 +179,7 @@ export function createScanWorker(): Worker<ScanJobData> {
             // ZAP retire.js covers the client-side portion of A06 in every FULL scan,
             // so don't let missing SAST data mark the whole category as not_evaluated.
             const filteredUnevaluated = new Set(unevaluated);
-            filteredUnevaluated.delete("A06_VULNERABLE_COMPONENTS");
+            filteredUnevaluated.delete("A03_SUPPLY_CHAIN_FAILURES");
             sastUnevaluated = filteredUnevaluated;
             scanMode = "FULL";
           } else {

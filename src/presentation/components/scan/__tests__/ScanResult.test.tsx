@@ -60,7 +60,7 @@ describe("ScanResult", () => {
         {
           id: "f2",
           scanId: "scan-1",
-          category: "A02_CRYPTOGRAPHIC_FAILURES",
+          category: "A04_CRYPTOGRAPHIC_FAILURES",
           severity: "HIGH",
           title: "Missing HSTS",
           description: "No HSTS header.",
@@ -127,7 +127,7 @@ describe("ScanResult", () => {
 const codeFinding = {
   id: "f1",
   scanId: "scan-1",
-  category: "A03_INJECTION" as const,
+  category: "A05_INJECTION" as const,
   severity: "HIGH" as const,
   title: "SQL Injection via template literal",
   description: "Template literal used in query.",
@@ -147,7 +147,7 @@ describe("ScanResult — false positive status on findings", () => {
   it("shows 'already reported' badge and hides button when fpStatus is PENDING", () => {
     const scan = makeScan({ findings: [codeFinding] });
     const reportedFpKeys = new Map([
-      ["A03_INJECTION:SQL Injection via template literal:src/db.ts", "PENDING"],
+      ["A05_INJECTION:SQL Injection via template literal:src/db.ts", "PENDING"],
     ]);
     render(<ScanResult scan={scan} projectId="proj-1" reportedFpKeys={reportedFpKeys} />);
 
@@ -158,7 +158,7 @@ describe("ScanResult — false positive status on findings", () => {
   it("shows rejected badge and re-enables the Report FP button when fpStatus is REJECTED", () => {
     const scan = makeScan({ findings: [codeFinding] });
     const reportedFpKeys = new Map([
-      ["A03_INJECTION:SQL Injection via template literal:src/db.ts", "REJECTED"],
+      ["A05_INJECTION:SQL Injection via template literal:src/db.ts", "REJECTED"],
     ]);
     render(<ScanResult scan={scan} projectId="proj-1" reportedFpKeys={reportedFpKeys} />);
 
@@ -176,14 +176,14 @@ describe("ScanResult — suppressed findings (approved FPs)", () => {
 
   it("shows the suppressed banner when an approved FP key matches a finding", () => {
     const scan = makeScan({ findings: [codeFinding] });
-    const approvedFpKeys = new Set(["A03_INJECTION:SQL Injection via template literal:src/db.ts"]);
+    const approvedFpKeys = new Set(["A05_INJECTION:SQL Injection via template literal:src/db.ts"]);
     render(<ScanResult scan={scan} projectId="proj-1" approvedFpKeys={approvedFpKeys} />);
     expect(screen.getByText(/scan\.suppressedBanner/)).toBeInTheDocument();
   });
 
   it("hides suppressed findings by default and shows them after clicking Show", async () => {
     const scan = makeScan({ findings: [codeFinding] });
-    const approvedFpKeys = new Set(["A03_INJECTION:SQL Injection via template literal:src/db.ts"]);
+    const approvedFpKeys = new Set(["A05_INJECTION:SQL Injection via template literal:src/db.ts"]);
     render(<ScanResult scan={scan} projectId="proj-1" approvedFpKeys={approvedFpKeys} />);
 
     // Finding should not appear in the active list
@@ -197,7 +197,7 @@ describe("ScanResult — suppressed findings (approved FPs)", () => {
 
   it("shows the approved FP badge on a suppressed finding", async () => {
     const scan = makeScan({ findings: [codeFinding] });
-    const approvedFpKeys = new Set(["A03_INJECTION:SQL Injection via template literal:src/db.ts"]);
+    const approvedFpKeys = new Set(["A05_INJECTION:SQL Injection via template literal:src/db.ts"]);
     render(<ScanResult scan={scan} projectId="proj-1" approvedFpKeys={approvedFpKeys} />);
 
     await userEvent.click(screen.getByRole("button", { name: /scan\.suppressedShow/i }));
@@ -207,7 +207,7 @@ describe("ScanResult — suppressed findings (approved FPs)", () => {
 
   it("hides suppressed findings again after clicking Hide", async () => {
     const scan = makeScan({ findings: [codeFinding] });
-    const approvedFpKeys = new Set(["A03_INJECTION:SQL Injection via template literal:src/db.ts"]);
+    const approvedFpKeys = new Set(["A05_INJECTION:SQL Injection via template literal:src/db.ts"]);
     render(<ScanResult scan={scan} projectId="proj-1" approvedFpKeys={approvedFpKeys} />);
 
     await userEvent.click(screen.getByRole("button", { name: /scan\.suppressedShow/i }));
