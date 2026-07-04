@@ -417,28 +417,31 @@
   <div class="slide" style="align-items:flex-start; gap:32px;">
     <div class="title-row">
       <div class="section-label">03 · Cómo Funciona</div>
-      <h2 style="margin-top:10px;">Tres modos de análisis</h2>
+      <h2 style="margin-top:10px;">Dos tipos de análisis</h2>
     </div>
     <div class="icon-list content-row">
       <div class="icon-item">
-        <div class="icon bg-blue">👁️</div>
+        <div class="icon bg-blue">🌐</div>
         <div class="text">
-          <h4>Análisis Pasivo</h4>
-          <p>Examina <strong>cabeceras HTTP</strong> (CSP, HSTS, X-Frame-Options…), configuración <strong>TLS/SSL</strong>, <strong>flags de cookies</strong>, y sondeos de rutas comunes. No interactúa con la lógica de la aplicación. Rápido y no intrusivo.</p>
-        </div>
-      </div>
-      <div class="icon-item">
-        <div class="icon bg-red">⚔️</div>
-        <div class="text">
-          <h4>Análisis Activo (OWASP ZAP)</h4>
-          <p>Lanza el <strong>spider + modo de ataque activo</strong> de OWASP ZAP vía su API REST desde un contenedor Docker. Detecta vulnerabilidades como XSS, SQLi, SSRF, path traversal, y más. Las tareas largas se procesan en segundo plano con <strong>BullMQ + Redis</strong>.</p>
+          <h4>Análisis de dominio web — dos niveles de profundidad</h4>
+          <p>Para proyectos web el usuario elige entre dos niveles:</p>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;padding-left:4px;">
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <span class="pill pill-blue" style="flex-shrink:0;font-size:0.75rem;">Pasivo</span>
+              <p style="font-size:0.88rem;">Examina cabeceras HTTP (CSP, HSTS, X-Frame-Options…), TLS/SSL y flags de cookies. Rápido y no intrusivo — no interactúa con la lógica de la aplicación.</p>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <span class="pill pill-blue" style="flex-shrink:0;font-size:0.75rem;">Completo</span>
+              <p style="font-size:0.88rem;">Todo lo anterior más un análisis activo con <strong>OWASP ZAP</strong> (spider + modo de ataque). Detecta XSS, SQLi, SSRF, path traversal y más. Se procesa en segundo plano con BullMQ + Redis.</p>
+            </div>
+          </div>
         </div>
       </div>
       <div class="icon-item">
         <div class="icon bg-green">📦</div>
         <div class="text">
-          <h4>Análisis de Código Fuente</h4>
-          <p>Análisis estático (SAST) de proyectos <strong>JavaScript / TypeScript</strong>: escanea <code>package.json</code>, detecta dependencias con <strong>CVEs conocidos</strong> (vía GitHub Advisory API), y busca patrones inseguros en el código. Soporte para repos privados vía GitHub App.</p>
+          <h4>Análisis de código fuente — requiere acceso al repositorio</h4>
+          <p>Disponible cuando el proyecto tiene un repositorio vinculado (público verificado o privado vía GitHub App). Realiza análisis estático (SAST) de proyectos <strong>JavaScript / TypeScript</strong>: detecta dependencias con <strong>CVEs conocidos</strong> (GitHub Advisory API) y busca patrones inseguros en el código fuente.</p>
         </div>
       </div>
     </div>
